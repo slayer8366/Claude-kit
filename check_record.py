@@ -950,7 +950,7 @@ def render_check():
           "intent ID is accepted",
           check18)
 
-    # ---- Checks 19-23: dispatch-note entries (Claude-kit addition) ---------
+    # ---- Checks 19-23: dispatch-note entries (Claude-kit v0.1 addition) ---------
     def check19():
         text = _minimal_record(_minimal_intent(), _minimal_note())
         entries, errors, unterminated, _ = validate_entries(text)

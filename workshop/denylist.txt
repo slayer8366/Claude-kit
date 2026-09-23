@@ -38,3 +38,6 @@ R5CT
 # Citations of the kit's private record: released files cite the kit by
 # release version ("Claude-kit v0.1 addition"), never by a RECORD.md entry
 (?i)claude-kit[^\n]{0,40}RECORD\.md
+# ... and never unversioned: "(Claude-kit addition)" becomes
+# "(Claude-kit v0.1 addition)"
+(?i)\bClaude-kit addition\b

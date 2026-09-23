@@ -189,7 +189,7 @@ changed in `check_record.py`, 124 added in `check_prompts.py`. The full diff:
            "intent ID is accepted",
            check18)
  
-+    # ---- Checks 19-23: dispatch-note entries (Claude-kit addition) ---------
++    # ---- Checks 19-23: dispatch-note entries (Claude-kit v0.1 addition) ---------
 +    def check19():
 +        text = _minimal_record(_minimal_intent(), _minimal_note())
 +        entries, errors, unterminated, _ = validate_entries(text)
@@ -290,7 +290,7 @@ changed in `check_record.py`, 124 added in `check_prompts.py`. The full diff:
  
  
 +# --------------------------------------------------------------------------
-+# Self-tests (Claude-kit addition). Store-level fixtures under a temp dir,
++# Self-tests (Claude-kit v0.1 addition). Store-level fixtures under a temp dir,
 +# checked by both this script's binding check and check_record.py's entry
 +# validation, because a dispatch-note is only a valid claim if it is also a
 +# valid entry.

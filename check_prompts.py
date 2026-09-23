@@ -241,7 +241,7 @@ def main():
 
 
 # --------------------------------------------------------------------------
-# Self-tests (Claude-kit addition). Store-level fixtures under a temp dir,
+# Self-tests (Claude-kit v0.1 addition). Store-level fixtures under a temp dir,
 # checked by both this script's binding check and check_record.py's entry
 # validation, because a dispatch-note is only a valid claim if it is also a
 # valid entry.

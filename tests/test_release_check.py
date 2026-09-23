@@ -75,6 +75,18 @@ class ReleaseCheck(unittest.TestCase):
         self.assertIn("check_prompts.py:5: matches", r.stdout)
         self.assertIn("Claude-kit RECORD.md", r.stdout)
 
+    def test_unversioned_citation_fails(self):
+        # Released files cite the kit by release version ("Claude-kit v0.1
+        # addition"), never unversioned.
+        target = self.root / "check_record.py"
+        lines = target.read_text().splitlines()
+        lines.insert(4, "# (Claude-kit addition)")
+        target.write_text("\n".join(lines) + "\n")
+        r = self.check()
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("check_record.py:5: matches", r.stdout)
+        self.assertIn("Claude-kit addition", r.stdout)
+
     def test_missing_or_empty_denylist_fails(self):
         empty = self.root / "empty.txt"
         empty.write_text("# nothing\n\n")
