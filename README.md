@@ -19,7 +19,7 @@ source files unchanged; later steps make them generic.
 | `check_record.py`, `check_prompts.py` | the record checkers, at the repository root | yes |
 | `check_kit.py` | drift check against `.claude/kit.lock` | yes |
 | `templates/` | files an install writes only when absent | yes |
-| `install.py` | vendors a tag into an adopter | no |
+| `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `workshop/` | private sources, drafts and the release denylist | no |
 | `RECORD.md`, `prompts/`, `docs/` | this repository's own record | no |
 
@@ -50,11 +50,34 @@ and pulse tool allowlists, the pulse's adb reads, the dispatch tool names
 (`Agent`, `Task`), and the approval split (Types `build` and `device` ask the
 operator; any other Type is allowed).
 
+## Install and drift
+
+From a clone of this repository:
+
+    python3 install.py --target <adopter checkout> --tag <tag>
+
+`release.json` is the one definition of the release set. The installer reads
+it, and every file in it, from the tag, not the working tree. It writes the
+vendored files, writes `.claude/kit.json` from `templates/kit.json` only if the
+adopter has none, and records the tag and each vendored file's SHA-256 in
+`.claude/kit.lock`. It never writes `.claude/kit.json` over an existing one,
+`RECORD.md`, `CLAUDE.md` or anything under `prompts/`. If the adopter already
+has a `.claude/settings.json` that differs from the release's, it stops and
+writes nothing; reconcile the two by hand.
+
+In the adopter, `python3 check_kit.py` fails naming each vendored file whose
+hash differs from the lock, or that is missing. It never contacts this
+repository.
+
 ## Tests
 
     python3 -m unittest discover -s .claude/hooks/tests
     python3 check_record.py --render-check
     python3 check_prompts.py --render-check
+    python3 -m unittest discover -s tests
+
+`tests/` (install, drift and release checks) is not released. The install
+tests tag only a throwaway copy of this repository, never this repository.
 
 The hook tests never read the repository's own `kit.json`: the harness copies
 the hooks into a temporary `.claude/hooks/` with a test config beside them.
