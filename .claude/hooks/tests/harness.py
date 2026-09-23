@@ -17,7 +17,7 @@ HOOKS = Path(__file__).resolve().parent.parent
 # .claude/hooks/ with the config the test chose beside it, so a test's
 # result does not depend on how the repository running it is configured.
 TEST_CONFIG = {
-    "android_package": "com.zynergylabs.forager.app",
+    "android_package": "com.example.kittest",
     "protected_branches": ["main"],
     "dispatchable_agents": ["coder", "pulse"],
     "type_targets": {"pulse": "pulse", "build": "coder", "device": "coder"},
@@ -31,7 +31,7 @@ TEST_CONFIG = {
         "pulse": ["Role", "Base and state", "Rules", "Questions"],
     },
     "checkers_dir": ".",
-    "guard_env_prefix": "FORAGER_GUARD_",
+    "guard_env_prefix": "KIT_GUARD_",
 }
 NO_CONFIG = object()  # pass as config= to run a hook with no kit.json at all
 _trees = {}

@@ -1,4 +1,4 @@
-"""device_guard.py: step 5. The guard shells out to adb, aapt2 and
+"""device_guard.py. The guard shells out to adb, aapt2 and
 apksigner; these tests replace all three with fakes whose output is set per
 test, so every device answer the guard acts on is one the test chose."""
 import os
@@ -11,8 +11,10 @@ from pathlib import Path
 from harness import TEST_CONFIG, bash, run_hook
 
 HOOK = "device_guard.py"
-FORAGER = "com.zynergylabs.forager.app"
-LAUNCHER = "com.sec.android.app.launcher"
+APP = TEST_CONFIG["android_package"]
+PREFIX = TEST_CONFIG["guard_env_prefix"]
+LAUNCHER = "com.example.launcher"
+SERIAL = "TESTSERIAL01"
 LEAVE = "-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true"
 
 FAKE_ADB = r'''#!/usr/bin/env python3
@@ -47,7 +49,7 @@ print("package: name='%s' versionCode='7' versionName='1.0'" % os.environ["FAKE_
 FAKE_APKSIGNER = r'''#!/usr/bin/env python3
 import sys
 digest = open(sys.argv[-1]).read().strip()
-# The shape apksigner 37.0.0 prints, observed on Forager's own debug APK.
+# The shape apksigner 37.0.0 prints for a debug APK.
 print("V2 Signer: certificate DN: CN=test")
 print("V2 Signer: certificate SHA-256 digest: " + digest)
 '''
@@ -66,12 +68,12 @@ class DeviceGuard(unittest.TestCase):
         self.apk.write_text("aa11")          # the new APK's signing digest
         self.installed = self.tmp / "installed.apk"
         self.installed.write_text("aa11")    # the installed build's digest
-        self.env = {"FORAGER_GUARD_ADB": str(self.tmp / "adb"),
-                    "FORAGER_GUARD_AAPT2": str(self.tmp / "aapt2"),
-                    "FORAGER_GUARD_APKSIGNER": str(self.tmp / "apksigner"),
-                    "FAKE_LOG": str(self.log), "FAKE_PKG": FORAGER,
+        self.env = {PREFIX + "ADB": str(self.tmp / "adb"),
+                    PREFIX + "AAPT2": str(self.tmp / "aapt2"),
+                    PREFIX + "APKSIGNER": str(self.tmp / "apksigner"),
+                    "FAKE_LOG": str(self.log), "FAKE_PKG": APP,
                     "FAKE_INSTALLED_APK": str(self.installed),
-                    "FAKE_FOREGROUND": FORAGER, "FAKE_INSTALLED": "0"}
+                    "FAKE_FOREGROUND": APP, "FAKE_INSTALLED": "0"}
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -98,8 +100,8 @@ class DeviceGuard(unittest.TestCase):
     # uninstall / clear
     def test_uninstall_and_clear_denied(self):
         for command, word in (("adb uninstall com.example.doesnotexist", "adb uninstall"),
-                              ("adb -s R5CT shell pm uninstall " + FORAGER, "pm uninstall"),
-                              ("adb shell pm clear " + FORAGER, "pm clear")):
+                              (f"adb -s {SERIAL} shell pm uninstall " + APP, "pm uninstall"),
+                              ("adb shell pm clear " + APP, "pm clear")):
             with self.subTest(command):
                 decision, reason = self.decide(command)
                 self.assertEqual(decision, "deny")
@@ -113,15 +115,15 @@ class DeviceGuard(unittest.TestCase):
     def test_install_same_signature_passes(self):
         decision, reason = self.decide(f"adb install -r {self.apk}", FAKE_INSTALLED="1")
         self.assertIsNone(decision, reason)
-        self.assertIn(f"pull /data/app/~~x/{FORAGER}-1/base.apk", self.log.read_text())
+        self.assertIn(f"pull /data/app/~~x/{APP}-1/base.apk", self.log.read_text())
 
     def test_install_different_signature_denied(self):
         self.installed.write_text("ff99")
-        decision, reason = self.decide(f"adb -s R5CT install -r {self.apk}", FAKE_INSTALLED="1")
+        decision, reason = self.decide(f"adb -s {SERIAL} install -r {self.apk}", FAKE_INSTALLED="1")
         self.assertEqual(decision, "deny")
         self.assertIn("aa11", reason)
         self.assertIn("ff99", reason)
-        self.assertIn(FORAGER, reason)
+        self.assertIn(APP, reason)
 
     def test_install_undeterminable_denied(self):
         for env in ({"FAKE_PKG": "ERROR"}, {"FAKE_INSTALLED": "ERROR"}):
@@ -131,16 +133,16 @@ class DeviceGuard(unittest.TestCase):
                 self.assertIn("could not", reason)
 
     # foreground
-    def test_input_and_screencap_blocked_when_forager_not_in_front(self):
+    def test_input_and_screencap_blocked_when_app_not_in_front(self):
         for command in ("adb shell input keyevent 0", "adb exec-out screencap -p",
-                        "adb -s R5CT shell screencap /sdcard/s.png"):
+                        f"adb -s {SERIAL} shell screencap /sdcard/s.png"):
             with self.subTest(command):
                 decision, reason = self.decide(command, FAKE_FOREGROUND=LAUNCHER)
                 self.assertEqual(decision, "deny")
                 self.assertIn(LAUNCHER, reason)
 
-    def test_input_allowed_when_forager_in_front(self):
-        decision, reason = self.decide("adb shell input keyevent 0", FAKE_FOREGROUND=FORAGER)
+    def test_input_allowed_when_app_in_front(self):
+        decision, reason = self.decide("adb shell input keyevent 0", FAKE_FOREGROUND=APP)
         self.assertIsNone(decision, reason)
 
     def test_foreground_unreadable_denied(self):
@@ -166,7 +168,7 @@ class DeviceGuard(unittest.TestCase):
                                        FAKE_FOREGROUND="com.example.other")
         self.assertIsNone(decision, reason)
         decision, reason = self.decide("adb shell input keyevent 0", config=config,
-                                       FAKE_FOREGROUND=FORAGER)
+                                       FAKE_FOREGROUND=APP)
         self.assertEqual(decision, "deny")
         self.assertIn("not com.example.other", reason)
 

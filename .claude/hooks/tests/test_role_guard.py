@@ -1,4 +1,4 @@
-"""role_guard.py: decision A (planner read-only) and the pulse role's
+"""role_guard.py: the planner is read-only, and so is the pulse role's
 read-only Bash. Run: python3 -m unittest discover -s .claude/hooks/tests"""
 import unittest
 
@@ -21,10 +21,10 @@ class PlannerTools(unittest.TestCase):
                 self.assertDenied(tool(name), name, "planner")
 
     def test_mcp_tools_denied(self):
-        self.assertDenied(tool("mcp__claude_ai_Resend__send-email"),
-                          "mcp__claude_ai_Resend__send-email")
-        self.assertDenied(tool("mcp__claude_ai_Resend__list-domains"),
-                          "mcp__claude_ai_Resend__list-domains")
+        self.assertDenied(tool("mcp__example__send"),
+                          "mcp__example__send")
+        self.assertDenied(tool("mcp__example__list"),
+                          "mcp__example__list")
 
     def test_unknown_tool_denied_by_default(self):
         self.assertDenied(tool("SomeFutureTool"), "SomeFutureTool", "allowlist")
@@ -38,7 +38,7 @@ class PlannerTools(unittest.TestCase):
 
     def test_grep_and_glob_not_on_the_planner_allowlist(self):
         # Neither exists as a tool on Claude Code 2.1.280; the design listed
-        # them in error (RECORD.md 2026-09-23-01).
+        # them in error (Claude-kit RECORD.md 2026-09-23-01).
         for name in ("Grep", "Glob"):
             with self.subTest(name):
                 self.assertDenied(tool(name), name, "planner")
@@ -61,11 +61,11 @@ class PlannerBash(unittest.TestCase):
         decision, reason = run_hook(HOOK, bash(command))
         self.assertIsNone(decision, f"{command!r}: {decision} {reason}")
 
-    # The patterns step 2 names, each with its own message. The expected
+    # The named patterns, each with its own message. The expected
     # text is the named layer's own wording, not just the command's name:
     # the allowlist behind it also denies most of these and also quotes the
     # command, so asserting on the name alone passed with a named pattern
-    # removed (sabotage run, 2026-09-22).
+    # removed (found by a sabotage run).
     def test_named_patterns(self):
         named = "changes the repository or build"
         cases = {
@@ -93,7 +93,7 @@ class PlannerBash(unittest.TestCase):
                         "git rev-parse HEAD", "git ls-remote origin",
                         "git blame app/build.gradle.kts", "git branch -a",
                         "gh pr view 104", "gh pr list --state open",
-                        "gh api repos/slayer8366/Forager/pulls"):
+                        "gh api repos/example/project/pulls"):
             with self.subTest(command):
                 self.assertPasses(command)
 
@@ -120,7 +120,7 @@ class OtherRoles(unittest.TestCase):
 
     def test_pulse_device_reads_pass(self):
         for command in ("adb shell getprop ro.build.version.release",
-                        "adb -s R5CT10 shell dumpsys package com.zynergylabs.forager.app",
+                        "adb -s TESTSERIAL01 shell dumpsys package com.example.kittest",
                         "adb devices", "adb exec-out screencap -p",
                         "adb shell screencap /sdcard/p.png", "git log -3"):
             with self.subTest(command):
@@ -144,7 +144,7 @@ class OtherRoles(unittest.TestCase):
                 self.assertIn("pulse", reason)
 
     def test_pulse_tools_limited(self):
-        for name in ("Write", "Edit", "mcp__claude_ai_Resend__list-domains"):
+        for name in ("Write", "Edit", "mcp__example__list"):
             with self.subTest(name):
                 decision, reason = run_hook(HOOK, tool(name, "pulse"))
                 self.assertEqual(decision, "deny")

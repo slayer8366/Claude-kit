@@ -1,4 +1,4 @@
-"""history_guard.py: step 6. Crafted Bash payloads, with cwd a throwaway
+"""history_guard.py. Crafted Bash payloads, with cwd a throwaway
 repository checked out on main or on a feature branch."""
 import shutil
 import subprocess

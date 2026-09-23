@@ -1,4 +1,4 @@
-"""dispatch_guard.py: step 4. Crafted Agent payloads against a throwaway
+"""dispatch_guard.py. Crafted Agent payloads against a throwaway
 git repository holding the real checkers."""
 import datetime
 import os
@@ -14,7 +14,7 @@ HOOK = "dispatch_guard.py"
 REPO_ROOT = HOOKS.parent.parent
 
 BUILD_SECTIONS = ["Role", "Base and state", "Scope boundary",
-                  "Closed decisions (operator, 2026-09-22)", "Prediction",
+                  "Closed decisions (operator)", "Prediction",
                   "Finish line and abort conditions", "Checks", "Out of scope",
                   "Device items"]
 PULSE_SECTIONS = ["Role", "Base and state", "Rules", "Questions"]
@@ -115,9 +115,9 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("check_prompts.py", reason)
         self.assertIn("no RECORD.md entry", reason)
 
-    # Flag 1 (operator ruling, 2026-09-22): a live test showed the planner
-    # dispatching the built-in general-purpose agent, which then ran an MCP
-    # call. Only the named subagents may be dispatched.
+    # A built-in agent carries every tool, MCP included, so a read-only
+    # planner could act through it. Only the configured subagents may be
+    # dispatched.
     def test_only_coder_and_pulse_may_be_dispatched(self):
         for target in ("general-purpose", "Explore", "Plan", "statusline-setup",
                        "claude", "auditor"):
@@ -136,8 +136,8 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("may not be dispatched", reason)
         self.assertEqual(self.written(), [])
 
-    # Operator ruling, 2026-09-22: Type binds to target. Before this, a
-    # pulse-typed dispatch to coder ran without approval (decision B bypass).
+    # Type binds to target: unbound, a pulse-typed dispatch to coder would
+    # run without the approval builds need.
     def test_type_and_target_mismatch_blocked(self):
         cases = (("pulse", PULSE_SECTIONS, "coder", "'pulse'"),
                  ("build", BUILD_SECTIONS, "pulse", "'coder'"),
