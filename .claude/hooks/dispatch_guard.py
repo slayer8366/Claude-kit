@@ -1,0 +1,150 @@
+"""PreToolUse on the dispatch tool (Agent; Task was its name up to Claude
+Code 2.1.63 and still appears in 2.1.280's init tool list).
+
+0. Blocks any target that is not one of the config's dispatchable_agents.
+   A built-in agent type carries every tool, so dispatching one would let
+   a read-only planner act through it.
+1. Reads the prompt's `Type:` line. Missing or unknown blocks.
+2. Blocks a type sent to any agent but the one type_targets names for it,
+   so a dispatch cannot skip approval by carrying the wrong type.
+3. Checks the sections that type requires (required_sections); missing
+   ones block, by name.
+4. On pass, writes the prompt verbatim to prompts/preserved/<date>-<seq>.md,
+   headed with the HEAD hash, the target subagent and the type. Neither
+   agent writes this file. If it cannot be written, the dispatch is
+   blocked: an unpreserved dispatch is the failure this hook exists to
+   prevent.
+5. Runs check_prompts.py from checkers_dir and reports its result. It does
+   not block on it: the prompt just written is unclaimed until the coder's
+   next sweep writes its dispatch-note, and the planner cannot write that
+   note, so blocking would stop the planner dispatching the coder that
+   fixes it.
+6. Returns "ask" for build and device (builds and device runs need
+   operator approval) and "allow" for any other type.
+
+The section check is structural. A dispatch can carry every heading and
+still be wrong.
+"""
+import datetime
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import guardlib as g  # noqa: E402
+
+DISPATCH_TOOLS = {"Agent", "Task"}
+TYPE_LINE = re.compile(r"(?m)^\s*(?:\*\*Type:\*\*|Type:)\s*(\S+)")
+HEADING = re.compile(r"(?m)^#{1,6}\s+(.+?)\s*#*\s*$")
+DELIMITER = "--- verbatim prompt follows ---"
+
+
+def missing_sections(text, required):
+    headings = [h.strip().lower() for h in HEADING.findall(text)]
+    return [s for s in required
+            if not any(h == s.lower() or h.startswith(s.lower() + " ")
+                       or h.startswith(s.lower() + "(") for h in headings)]
+
+
+def git(cwd, *args):
+    r = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} failed in {cwd}: {r.stderr.strip()}")
+    return r.stdout.strip()
+
+
+def preserve(root, head, target, type_, text):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    date = now.strftime("%Y-%m-%d")
+    store = Path(root) / "prompts" / "preserved"
+    store.mkdir(parents=True, exist_ok=True)
+    taken = [int(m.group(1)) for p in store.glob(f"{date}-*.md")
+             if (m := re.fullmatch(rf"{date}-(\d+)\.md", p.name))]
+    seq = max(taken, default=0) + 1
+    header = (f"HEAD: {head}\nTarget subagent: {target}\nType: {type_}\n"
+              f"Preserved: {now.strftime('%Y-%m-%dT%H:%M:%SZ')} by "
+              f".claude/hooks/dispatch_guard.py\n{DELIMITER}\n")
+    while True:
+        path = store / f"{date}-{seq:02d}.md"
+        try:
+            with open(path, "x") as f:  # never overwrite a preserved prompt
+                f.write(header + text)
+            return path
+        except FileExistsError:
+            seq += 1
+
+
+def store_check(root, checkers_dir):
+    checker = Path(root) / checkers_dir / "check_prompts.py"
+    if not checker.is_file():
+        where = ("the repository root" if Path(checkers_dir) == Path(".")
+                 else Path(checkers_dir).as_posix())
+        return f"check_prompts.py not found at {where}; the store was not checked."
+    r = subprocess.run([sys.executable, str(checker)], capture_output=True,
+                       text=True, cwd=root)
+    tail = "\n".join(l for l in r.stdout.splitlines() if l.startswith((" -", "PASS", "FAIL")))
+    return f"check_prompts.py exit {r.returncode}:\n{tail}"
+
+
+def guard(payload):
+    if payload.get("tool_name") not in DISPATCH_TOOLS:
+        return None
+    config = g.CONFIG
+    dispatchable = set(config["dispatchable_agents"])
+    target_for_type = config["type_targets"]
+    required = config["required_sections"]
+
+    tool_input = payload.get("tool_input") or {}
+    text = tool_input.get("prompt", "") or ""
+    target = tool_input.get("subagent_type") or "(none given)"
+
+    # Checked before anything is written: only the configured subagents may
+    # be dispatched.
+    if target not in dispatchable:
+        return ("deny", f"dispatch_guard: subagent type {target!r} may not be "
+                        f"dispatched. Only {', '.join(sorted(dispatchable))} may; "
+                        f"built-in agent types are blocked.")
+
+    m = TYPE_LINE.search(text)
+    if not m:
+        types = sorted(required)
+        return ("deny", f"dispatch_guard: the dispatch has no `Type:` line. "
+                        f"Add `**Type:** {types[0]}`"
+                        + "".join(f", `{t}`" for t in types[1:-1])
+                        + (f" or `{types[-1]}`." if len(types) > 1 else "."))
+    type_ = m.group(1).strip("*`").lower()
+    if type_ not in required:
+        return ("deny", f"dispatch_guard: unknown Type {type_!r}. Known types: "
+                        f"{', '.join(sorted(required))}.")
+    # Type binds to target: unbound, a dispatch could carry a type that runs
+    # without approval to an agent whose work needs it.
+    if target_for_type[type_] != target:
+        return ("deny", f"dispatch_guard: Type {type_!r} may only be dispatched to "
+                        f"{target_for_type[type_]!r}, not {target!r}.")
+    missing = missing_sections(text, required[type_])
+    if missing:
+        return ("deny", f"dispatch_guard: this {type_} dispatch is missing "
+                        f"{len(missing)} required section(s): {'; '.join(missing)}. "
+                        f"Required for {type_}: {'; '.join(required[type_])}.")
+
+    cwd = payload.get("cwd") or "."
+    try:
+        root = git(cwd, "rev-parse", "--show-toplevel")
+        head = git(root, "rev-parse", "HEAD")
+        path = preserve(root, head, target, type_, text)
+    except Exception as exc:
+        return ("deny", f"dispatch_guard: could not preserve the dispatch, so it "
+                        f"is blocked: {type(exc).__name__}: {exc}")
+    rel = path.relative_to(root).as_posix()
+    check = store_check(root, config["checkers_dir"])
+    if type_ in ("build", "device"):
+        return ("ask", f"dispatch_guard: {type_} dispatch to {target} preserved at "
+                       f"{rel} (HEAD {head[:10]}). Operator approval required: "
+                       f"builds and device runs need approval.\n{check}")
+    return ("allow", f"dispatch_guard: pulse dispatch to {target} preserved at "
+                     f"{rel} (HEAD {head[:10]}). Pulses run without approval.\n{check}")
+
+
+if __name__ == "__main__":
+    sys.exit(g.run(guard))

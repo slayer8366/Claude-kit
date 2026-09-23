@@ -1,0 +1,17 @@
+{
+  "android_package": null,
+  "protected_branches": ["main"],
+  "dispatchable_agents": ["coder", "pulse"],
+  "type_targets": {"pulse": "pulse", "build": "coder", "device": "coder"},
+  "required_sections": {
+    "build": ["Role", "Base and state", "Scope boundary", "Closed decisions",
+              "Prediction", "Finish line and abort conditions", "Checks",
+              "Out of scope", "Device items"],
+    "device": ["Role", "Base and state", "Scope boundary", "Closed decisions",
+               "Prediction", "Finish line and abort conditions", "Checks",
+               "Out of scope", "Device items"],
+    "pulse": ["Role", "Base and state", "Rules", "Questions"]
+  },
+  "checkers_dir": ".",
+  "guard_env_prefix": "KIT_GUARD_"
+}

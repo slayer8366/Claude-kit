@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.8 is the documented minimum; 3.14 is the current release.
+        python: ["3.8", "3.14"]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Python in use
+        run: python3 --version
+      - name: Hook tests
+        run: python3 -m unittest discover -s .claude/hooks/tests -v
+      - name: Checker self-tests
+        run: |
+          python3 check_record.py --render-check
+          python3 check_prompts.py --render-check
+      - name: Install and drift tests, release-check tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Release check
+        run: python3 release_check.py

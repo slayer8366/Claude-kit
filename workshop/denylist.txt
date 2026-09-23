@@ -1,0 +1,36 @@
+# Release denylist for release_check.py. One Python regular expression per
+# line; blank lines and lines starting with # are ignored. Any match in any
+# file of the release set (release.json) fails the release check.
+#
+# Workshop only, never released: this file names what must not be published.
+# Covers every identifier type in the extraction pulse's Question 5
+# (workshop/extraction-pulse-2026-09-23.md).
+
+# Adopter and project names, and the adopter package names built on them
+(?i)forager
+(?i)zynergy
+com\.zynergylabs
+# Device-vendor packages seen in adopter fixtures (the phone's launcher)
+com\.sec\.android
+
+# Owner paths
+/home/[a-z]
+~/Zynergy
+(?i)forager-backups
+
+# Account names and real service accounts
+(?i)slayer8366
+(?i)resend
+# Any e-mail address outside the reserved example domains
+[A-Za-z0-9._%+-]+@(?!example\.(?:invalid|com|org|net)\b)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}
+
+# Device serials: the fixture prefix used before, Samsung-style 11-character
+# serials, and 16-digit hex serials
+R5CT
+\bR[0-9A-Z]{10}\b
+\b[0-9A-Fa-f]{16}\b
+
+# Phone model and build names
+\bSM-[A-Z]\d{3}
+(?i)\bS2\d\s*Ultra\b
+(?i)galaxy
