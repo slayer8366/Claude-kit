@@ -14,8 +14,9 @@ whose role is not one of the kit's roles below, is denied every tool.
 - planner: an allowlist of tools; every other tool, including every mcp__
   tool and any tool added later, is denied until the operator adds it by
   name. Bash is limited to read-only git and gh.
-- pulse: Read, Grep, Glob, and Bash limited to read-only git and gh plus
-  the adb reads getprop, dumpsys and screencap. device_guard.py separately
+- pulse: Read, Grep, Glob, SubagentHandback (to deliver its report), and
+  Bash limited to read-only git and gh plus the adb reads getprop, dumpsys
+  and screencap. device_guard.py separately
   checks the foreground app before any screencap.
 - coder: not restricted here. device_guard.py and history_guard.py apply
   to everyone.
@@ -36,7 +37,9 @@ import guardlib as g  # noqa: E402
 # inert on that version.
 PLANNER_TOOLS = {"Read", "Bash", "Agent", "Skill", "WebFetch",
                  "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite"}
-PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash"}
+# SubagentHandback delivers a subagent's report to its caller; without it a
+# pulse runs and delivers nothing. The pulse's only, not the planner's.
+PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash", "SubagentHandback"}
 # The kit's roles. agent_roles maps agents onto these; any other role name
 # gets nothing.
 KIT_ROLES = ("coder", "planner", "pulse")

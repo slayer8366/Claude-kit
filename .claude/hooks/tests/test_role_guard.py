@@ -43,6 +43,10 @@ class PlannerTools(unittest.TestCase):
             with self.subTest(name):
                 self.assertDenied(tool(name), name, "planner")
 
+    def test_planner_may_not_hand_back(self):
+        # The hand-back tool is the pulse's only, not the planner's.
+        self.assertDenied(tool("SubagentHandback"), "SubagentHandback", "planner")
+
     def test_malformed_payload_fails_closed(self):
         decision, reason = run_hook(HOOK, "not json")
         self.assertEqual(decision, "deny")
@@ -142,6 +146,13 @@ class OtherRoles(unittest.TestCase):
                 decision, reason = run_hook(HOOK, bash(command, "pulse"))
                 self.assertEqual(decision, "deny", f"{command!r}: {decision}")
                 self.assertIn("pulse", reason)
+
+    def test_pulse_may_hand_back(self):
+        # SubagentHandback delivers a subagent's report to its caller;
+        # without it a pulse runs and delivers nothing.
+        decision, reason = run_hook(HOOK, tool("SubagentHandback", "pulse",
+                                               {"message": "report"}))
+        self.assertIsNone(decision, reason)
 
     def test_pulse_tools_limited(self):
         for name in ("Write", "Edit", "mcp__example__list"):
