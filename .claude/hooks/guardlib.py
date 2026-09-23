@@ -32,7 +32,7 @@ def emit(decision, reason):
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "kit.json"
 CONFIG_REQUIRED = ("android_package", "protected_branches", "dispatchable_agents",
                    "type_targets", "required_sections")
-CONFIG_DEFAULTS = {"checkers_dir": ".", "guard_env_prefix": "KIT_GUARD_"}
+CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_"}
 CONFIG = None  # set by run() before the guard is called
 
 
@@ -85,10 +85,6 @@ def validate_config(data):
                             "section names")
         elif isinstance(targets, dict) and set(sections) != set(targets):
             problems.append("required_sections and type_targets must name the same types")
-    checkers = data.get("checkers_dir", CONFIG_DEFAULTS["checkers_dir"])
-    if not (isinstance(checkers, str) and checkers and not os.path.isabs(checkers)
-            and ".." not in Path(checkers).parts):
-        problems.append("checkers_dir must be a path relative to the repository root")
     prefix = data.get("guard_env_prefix", CONFIG_DEFAULTS["guard_env_prefix"])
     if not (isinstance(prefix, str) and re.fullmatch(r"[A-Z_][A-Z0-9_]*", prefix)):
         problems.append("guard_env_prefix must be an upper-case environment-variable prefix")

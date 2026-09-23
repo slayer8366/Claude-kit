@@ -30,8 +30,7 @@ not facts.
 
 `RECORD.md` is append-only; `check_record.py` defines what a valid entry is
 and `check_prompts.py` how entries bind to `prompts/preserved/`. Both checkers
-sit in the directory `.claude/kit.json` names as `checkers_dir` (the
-repository root by default).
+sit at the repository root.
 
 1. **Sweep first.** The first commit of every build is a sweep: one
    `dispatch-note` entry for each file in `prompts/preserved/` that no entry

@@ -44,7 +44,6 @@ open on its own config. Unknown keys are invalid.
 | `dispatchable_agents` | yes | the only subagent types the dispatch hook lets through |
 | `type_targets` | yes | dispatch `Type:` to the one agent it may go to; every agent must be dispatchable |
 | `required_sections` | yes | dispatch `Type:` to the headings it must carry; same types as `type_targets` |
-| `checkers_dir` | no, default `.` | where the dispatch hook finds `check_prompts.py`, relative to the repository root |
 | `guard_env_prefix` | no, default `KIT_GUARD_` | `<prefix>ADB`, `<prefix>AAPT2`, `<prefix>APKSIGNER` override the device guard's tools |
 
 Fixed in code, not config: the prompt store `prompts/preserved/`, the planner

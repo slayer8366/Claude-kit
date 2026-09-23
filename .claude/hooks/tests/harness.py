@@ -30,7 +30,6 @@ TEST_CONFIG = {
                    "Out of scope", "Device items"],
         "pulse": ["Role", "Base and state", "Rules", "Questions"],
     },
-    "checkers_dir": ".",
     "guard_env_prefix": "KIT_GUARD_",
 }
 NO_CONFIG = object()  # pass as config= to run a hook with no kit.json at all

@@ -183,20 +183,19 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("missing 1 required section(s): Question.", reason)
         self.assertEqual(len(self.written()), 2)
 
-    def test_checker_location_comes_from_config(self):
+    def test_checkers_are_found_at_the_root_only(self):
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py exit ", reason)
         tools = self.repo / "tools"
         tools.mkdir()
         for name in ("check_record.py", "check_prompts.py"):
             (self.repo / name).rename(tools / name)
-        config = dict(TEST_CONFIG, checkers_dir="tools")
-        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
-                                                cwd=str(self.repo)), config=config)
-        self.assertEqual(decision, "allow", reason)
-        self.assertIn("check_prompts.py exit ", reason)
-        self.assertNotIn("not found", reason)
         decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
                                                 cwd=str(self.repo)))
-        self.assertIn("check_prompts.py not found", reason)
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py not found at the repository root", reason)
 
     def test_outside_a_repository_blocks(self):
         outside = tempfile.mkdtemp(prefix="dispatch_guard_norepo_")

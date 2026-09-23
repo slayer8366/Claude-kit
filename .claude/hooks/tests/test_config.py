@@ -58,6 +58,12 @@ class Config(unittest.TestCase):
         config = with_change(prompt_store="prompts/preserved")
         self.assertEveryHookBlocks(config, "unknown key(s) prompt_store")
 
+    def test_checkers_dir_is_an_unknown_key(self):
+        # The checkers sit at the repository root; the key that once moved
+        # them is gone, and a config still carrying it fails closed.
+        self.assertEveryHookBlocks(with_change(checkers_dir="."),
+                                   "unknown key(s) checkers_dir")
+
     def test_missing_required_key_blocks(self):
         for key in ("android_package", "protected_branches", "dispatchable_agents",
                     "type_targets", "required_sections"):
@@ -71,7 +77,6 @@ class Config(unittest.TestCase):
             "protected_branches": ([], "protected_branches"),
             "dispatchable_agents": (["coder", ""], "dispatchable_agents"),
             "type_targets": ({"build": 3}, "type_targets"),
-            "checkers_dir": ("../elsewhere", "checkers_dir"),
             "guard_env_prefix": ("kit-guard", "guard_env_prefix"),
         }
         for key, (value, word) in cases.items():
@@ -90,7 +95,7 @@ class Config(unittest.TestCase):
                                    "must name the same types")
 
     def test_optional_keys_default(self):
-        config = with_change(checkers_dir=NO_CONFIG, guard_env_prefix=NO_CONFIG)
+        config = with_change(guard_env_prefix=NO_CONFIG)
         for hook, payload in SILENT.items():
             with self.subTest(hook):
                 decision, reason = run_hook(hook, payload, config=config)
