@@ -163,6 +163,7 @@ class DispatchGuard(unittest.TestCase):
     # Values from .claude/kit.json
     def test_agents_types_and_sections_come_from_config(self):
         config = dict(TEST_CONFIG, dispatchable_agents=["coder", "reader"],
+                      agent_roles={"coder": "coder", "reader": "pulse"},
                       type_targets={"pulse": "reader", "build": "coder", "device": "coder"},
                       required_sections={"pulse": ["Role", "Question"],
                                          "build": ["Role", "Plan"],

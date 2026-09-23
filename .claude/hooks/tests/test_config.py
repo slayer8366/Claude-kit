@@ -66,7 +66,8 @@ class Config(unittest.TestCase):
 
     def test_missing_required_key_blocks(self):
         for key in ("android_package", "protected_branches", "dispatchable_agents",
-                    "type_targets", "required_sections", "approval_exempt_types"):
+                    "type_targets", "required_sections", "approval_exempt_types",
+                    "agent_roles"):
             with self.subTest(key):
                 self.assertEveryHookBlocks(with_change(**{key: NO_CONFIG}),
                                            f"missing required key(s) {key}")
@@ -79,6 +80,7 @@ class Config(unittest.TestCase):
             "type_targets": ({"build": 3}, "type_targets"),
             "guard_env_prefix": ("kit-guard", "guard_env_prefix"),
             "approval_exempt_types": ("pulse", "approval_exempt_types"),
+            "agent_roles": ({"coder": "coder", "pulse": 3}, "agent_roles"),
         }
         for key, (value, word) in cases.items():
             with self.subTest(key):
@@ -102,6 +104,18 @@ class Config(unittest.TestCase):
 
     def test_no_exempt_types_is_valid(self):
         config = with_change(approval_exempt_types=[])
+        for hook, payload in SILENT.items():
+            with self.subTest(hook):
+                decision, reason = run_hook(hook, payload, config=config)
+                self.assertIsNone(decision, reason)
+
+    def test_every_dispatchable_agent_needs_a_role(self):
+        config = with_change(agent_roles={"coder": "coder"})
+        self.assertEveryHookBlocks(config, "agent_roles", "pulse")
+
+    def test_an_unknown_role_name_is_not_a_config_error(self):
+        # role_guard denies such an agent at runtime; the config stays valid.
+        config = with_change(agent_roles={"coder": "coder", "pulse": "nosuch"})
         for hook, payload in SILENT.items():
             with self.subTest(hook):
                 decision, reason = run_hook(hook, payload, config=config)

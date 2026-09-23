@@ -3,7 +3,13 @@
 The planner, which is the main session, is read-only. Settings deny rules
 cannot express this: on Claude Code 2.1.280 a settings deny reaches
 subagents too, so it would deny the coder as well. The hook input's
-agent_type is what tells the roles apart.
+agent_type is what tells the agents apart: on 2.1.280 it is absent in the
+main session and set to the subagent's name inside one.
+
+The main session always has the planner role. A subagent has the role
+agent_roles gives it in .claude/kit.json, and its restrictions come from
+that role, not from its name. A subagent with no entry in agent_roles, or
+whose role is not one of the kit's roles below, is denied every tool.
 
 - planner: an allowlist of tools; every other tool, including every mcp__
   tool and any tool added later, is denied until the operator adds it by
@@ -11,8 +17,8 @@ agent_type is what tells the roles apart.
 - pulse: Read, Grep, Glob, and Bash limited to read-only git and gh plus
   the adb reads getprop, dumpsys and screencap. device_guard.py separately
   checks the foreground app before any screencap.
-- coder, and any other subagent: not restricted here. device_guard.py and
-  history_guard.py apply to everyone.
+- coder: not restricted here. device_guard.py and history_guard.py apply
+  to everyone.
 
 The Bash checks are patterns over the command text. They hold the command
 forms an agent usually writes, not every program that could do the same
@@ -31,6 +37,9 @@ import guardlib as g  # noqa: E402
 PLANNER_TOOLS = {"Read", "Bash", "Agent", "Skill", "WebFetch",
                  "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite"}
 PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash"}
+# The kit's roles. agent_roles maps agents onto these; any other role name
+# gets nothing.
+KIT_ROLES = ("coder", "planner", "pulse")
 
 GIT_PREFIX = r"\bgit\s+(?:(?:-C\s+\S+|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+)\s+)*"
 # Named patterns, checked first so each is blocked by name.
@@ -165,8 +174,21 @@ def check_bash(command, role):
 
 
 def guard(payload):
-    who = g.role(payload)
-    if who not in ("planner", "pulse"):
+    agent = payload.get("agent_type")
+    if not agent:
+        who = "planner"
+    else:
+        roles = g.CONFIG["agent_roles"]
+        if agent not in roles:
+            return ("deny", f"role_guard: agent {agent!r} has no role in agent_roles, "
+                            f"so it may use no tool. Give it one of the kit's roles "
+                            f"({', '.join(KIT_ROLES)}) in .claude/kit.json.")
+        who = roles[agent]
+        if who not in KIT_ROLES:
+            return ("deny", f"role_guard: agent {agent!r} has role {who!r}, which is "
+                            f"not one of the kit's roles ({', '.join(KIT_ROLES)}), so "
+                            f"it may use no tool.")
+    if who == "coder":
         return None
     tool = payload.get("tool_name", "")
     allowed = PLANNER_TOOLS if who == "planner" else PULSE_TOOLS

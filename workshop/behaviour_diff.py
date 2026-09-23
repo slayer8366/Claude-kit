@@ -59,6 +59,8 @@ def source_config(source):
             # b2435ef asks for build and device and allows every other Type.
             "approval_exempt_types": sorted(set(dispatch_guard.REQUIRED)
                                             - {"build", "device"}),
+            # b2435ef restricted by agent name, so each agent's role is its name.
+            "agent_roles": {a: a for a in sorted(dispatch_guard.DISPATCHABLE)},
             "guard_env_prefix": prefix,
         }
         sys.path.remove(str(probe))

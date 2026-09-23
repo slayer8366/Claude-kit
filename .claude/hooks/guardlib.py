@@ -31,7 +31,8 @@ def emit(decision, reason):
 # hook always reads the config that was installed with it.
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "kit.json"
 CONFIG_REQUIRED = ("android_package", "protected_branches", "dispatchable_agents",
-                   "type_targets", "required_sections", "approval_exempt_types")
+                   "type_targets", "required_sections", "approval_exempt_types",
+                   "agent_roles")
 CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_"}
 CONFIG = None  # set by run() before the guard is called
 
@@ -97,6 +98,18 @@ def validate_config(data):
             if strays:
                 problems.append(f"approval_exempt_types names type(s) "
                                 f"{', '.join(strays)} not in type_targets")
+    # Agent name -> role. A role name the kit does not define is not a
+    # config error: role_guard denies that agent everything at runtime.
+    roles = data.get("agent_roles")
+    if "agent_roles" in data:
+        if not (isinstance(roles, dict) and _string_list(list(roles))
+                and _string_list(list(roles.values()))):
+            problems.append("agent_roles must be an object of agent name -> role name")
+        elif _string_list(agents):
+            roleless = [a for a in agents if a not in roles]
+            if roleless:
+                problems.append(f"dispatchable agent(s) {', '.join(roleless)} have no "
+                                f"role in agent_roles")
     prefix = data.get("guard_env_prefix", CONFIG_DEFAULTS["guard_env_prefix"])
     if not (isinstance(prefix, str) and re.fullmatch(r"[A-Z_][A-Z0-9_]*", prefix)):
         problems.append("guard_env_prefix must be an upper-case environment-variable prefix")
@@ -148,15 +161,6 @@ def run(guard):
     if result is not None:
         emit(*result)
     return 0
-
-
-def role(payload):
-    """'planner' for the main session, else the subagent's agent_type.
-
-    On Claude Code 2.1.280, agent_type is absent in the main session and set
-    to the subagent's name inside one."""
-    agent_type = payload.get("agent_type")
-    return agent_type if agent_type else "planner"
 
 
 def command_of(payload):

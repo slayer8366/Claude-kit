@@ -44,11 +44,12 @@ open on its own config. Unknown keys are invalid.
 | `dispatchable_agents` | yes | the only subagent types the dispatch hook lets through |
 | `type_targets` | yes | dispatch `Type:` to the one agent it may go to; every agent must be dispatchable |
 | `required_sections` | yes | dispatch `Type:` to the headings it must carry; same types as `type_targets` |
+| `agent_roles` | yes | subagent name to role: `planner`, `pulse` or `coder`; every dispatchable agent needs one. role_guard restricts an agent by its role; an agent with no role, or with any other role name, is denied every tool. The main session is always `planner` |
 | `approval_exempt_types` | yes | the dispatch Types that run without operator approval (may be empty); every other Type asks. Each must be a Type in `type_targets` |
 | `guard_env_prefix` | no, default `KIT_GUARD_` | `<prefix>ADB`, `<prefix>AAPT2`, `<prefix>APKSIGNER` override the device guard's tools |
 
-Fixed in code, not config: the prompt store `prompts/preserved/`, the planner
-and pulse tool allowlists, the pulse's adb reads, and the dispatch tool names
+Fixed in code, not config: the prompt store `prompts/preserved/`, the three
+roles and the planner and pulse tool allowlists, the pulse's adb reads, and the dispatch tool names
 (`Agent`, `Task`).
 
 ## Install and drift
