@@ -1,19 +1,20 @@
 """PreToolUse on Bash, every role: history is the operator's.
 
-Merging is the operator's approval (design, "History"), and a rewrite is
-run by the operator by hand (decision F). Blocked:
+Merging into a protected branch is the operator's approval, and a history
+rewrite is run by the operator by hand. The protected branches are the
+config's protected_branches. Blocked:
 
 - git push --force, --force-with-lease, -f (alone or in a cluster);
-- git merge while the repository is on main;
-- git push to main: an explicit main refspec, --all or --mirror, or a push
-  with no refspec (or HEAD) while on main;
+- git merge while the repository is on a protected branch;
+- git push to a protected branch: an explicit refspec naming one, --all or
+  --mirror, or a push with no refspec (or HEAD) while on one;
 - gh pr merge;
 - git filter-repo and git filter-branch.
 
 Force, gh pr merge and the filters match the whole command text. Push
 refspecs and the merge branch check are parsed per command segment, so a
 command hidden in a quoted string (sh -c '...') is seen by the first group
-and not by the second; see the bypass table in the completion report.
+and not by the second.
 """
 import re
 import subprocess
@@ -30,7 +31,6 @@ FORCE_PUSH = re.compile(
 PR_MERGE = re.compile(r"\bgh\b[^;&|]*\spr\s+merge\b")
 FILTERS = re.compile(r"\bgit(?:\s+|-)(filter-(?:repo|branch))\b")
 MERGE = re.compile(r"\bgit\b((?:\s+(?:-C\s+\S+|-c\s+\S+|--no-pager))*)\s+merge\b(?!-)")
-MAIN_REFS = {"main", "refs/heads/main"}
 PUSH_OPTS_WITH_VALUE = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
 
 
@@ -75,12 +75,14 @@ def git_invocation(seg):
     return directory, seg[i], seg[i + 1:]
 
 
-def push_targets_main(args, branch):
+def push_targets_protected(args, branch, protected):
+    refs = set(protected) | {f"refs/heads/{b}" for b in protected}
     positional, i = [], 0
     while i < len(args):
         a = args[i]
         if a in ("--all", "--mirror"):
-            return f"`git push {a}` pushes main along with every other branch"
+            return (f"`git push {a}` pushes {', '.join(protected)} along with every "
+                    f"other branch")
         if a in PUSH_OPTS_WITH_VALUE:
             i += 2
             continue
@@ -89,16 +91,16 @@ def push_targets_main(args, branch):
         i += 1
     refspecs = positional[1:]
     if not refspecs:
-        return (f"a push with no refspec pushes the current branch, which is main"
-                if branch == "main" else None)
+        return (f"a push with no refspec pushes the current branch, which is {branch}"
+                if branch in protected else None)
     for spec in refspecs:
         spec = spec.lstrip("+")
         src, _, dst = spec.partition(":")
         dst = dst or src
         if dst == "HEAD":
             dst = branch
-        if dst in MAIN_REFS:
-            return f"refspec {spec!r} pushes to main"
+        if dst in refs:
+            return f"refspec {spec!r} pushes to {dst}"
     return None
 
 
@@ -107,6 +109,7 @@ def guard(payload):
         return None
     command = g.command_of(payload)
     cwd = payload.get("cwd") or "."
+    protected = g.CONFIG["protected_branches"]
 
     m = FORCE_PUSH.search(command)
     if m:
@@ -118,7 +121,7 @@ def guard(payload):
     m = FILTERS.search(command)
     if m:
         return ("deny", f"history_guard: `git {m.group(1)}` rewrites history and "
-                        f"is run by the operator by hand (decision F).")
+                        f"is run by the operator by hand: history rewriting is guarded.")
 
     for m in MERGE.finditer(command):
         dash_c = re.search(r"-C\s+(\S+)", m.group(1) or "")
@@ -127,9 +130,9 @@ def guard(payload):
         if err:
             return ("deny", f"history_guard: `git merge` blocked: could not read "
                             f"the current branch of {directory} ({err}).")
-        if branch == "main":
-            return ("deny", "history_guard: `git merge` while on main is blocked. "
-                            "Merging into main is the operator's approval.")
+        if branch in protected:
+            return ("deny", f"history_guard: `git merge` while on {branch} is blocked. "
+                            f"Merging into a protected branch is the operator's approval.")
 
     try:
         tokens = g.shell_tokens(command)
@@ -147,10 +150,11 @@ def guard(payload):
         if err:
             return ("deny", f"history_guard: push blocked: could not read the "
                             f"current branch ({err}).")
-        problem = push_targets_main(args, branch)
+        problem = push_targets_protected(args, branch, protected)
         if problem:
-            return ("deny", f"history_guard: push to main blocked: {problem}. "
-                            f"Main changes only through a PR the operator merges.")
+            return ("deny", f"history_guard: push to a protected branch blocked: "
+                            f"{problem}. A protected branch changes only through a PR "
+                            f"the operator merges.")
     return None
 
 

@@ -1,14 +1,13 @@
 """PreToolUse, every tool: what the planner and pulse roles may do.
 
-Decision A (operator, 2026-09-22): the planner, which is the main session,
-is read-only. Settings deny rules cannot express this, because step 0
-observed a settings deny reaching subagents too, which would deny the
-coder as well; the hook input's agent_type is what tells the roles apart.
+The planner, which is the main session, is read-only. Settings deny rules
+cannot express this: on Claude Code 2.1.280 a settings deny reaches
+subagents too, so it would deny the coder as well. The hook input's
+agent_type is what tells the roles apart.
 
-- planner: an allowlist of tools (operator ruling, decision A gap); every
-  other tool, including every mcp__ tool and any tool added later, is
-  denied until the operator adds it by name. Bash is limited to read-only
-  git and gh.
+- planner: an allowlist of tools; every other tool, including every mcp__
+  tool and any tool added later, is denied until the operator adds it by
+  name. Bash is limited to read-only git and gh.
 - pulse: Read, Grep, Glob, and Bash limited to read-only git and gh plus
   the adb reads getprop, dumpsys and screencap. device_guard.py separately
   checks the foreground app before any screencap.
@@ -17,7 +16,7 @@ coder as well; the hook input's agent_type is what tells the roles apart.
 
 The Bash checks are patterns over the command text. They hold the command
 forms an agent usually writes, not every program that could do the same
-thing; see the bypass table in the completion report.
+thing.
 """
 import re
 import sys
@@ -26,12 +25,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import guardlib as g  # noqa: E402
 
-PLANNER_TOOLS = {"Read", "Grep", "Glob", "Bash", "Agent", "Skill", "WebFetch",
+# Grep and Glob are not on the planner allowlist: neither exists as a tool on
+# Claude Code 2.1.280. They are still listed for the pulse, where they are
+# inert on that version.
+PLANNER_TOOLS = {"Read", "Bash", "Agent", "Skill", "WebFetch",
                  "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite"}
 PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash"}
 
 GIT_PREFIX = r"\bgit\s+(?:(?:-C\s+\S+|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+)\s+)*"
-# Step 2's required patterns. Checked first so each is blocked by name.
+# Named patterns, checked first so each is blocked by name.
 NAMED_PATTERNS = [
     ("git commit", re.compile(GIT_PREFIX + r"commit\b")),
     ("git push", re.compile(GIT_PREFIX + r"push\b")),

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness import bash, run_hook
+from harness import TEST_CONFIG, bash, run_hook
 
 HOOK = "history_guard.py"
 
@@ -94,6 +94,30 @@ class HistoryGuard(unittest.TestCase):
             with self.subTest(who):
                 decision, _ = self.decide("git push --force", self.on_feature, who)
                 self.assertEqual(decision, "deny")
+
+    def test_protected_branches_come_from_config(self):
+        config = dict(TEST_CONFIG, protected_branches=["release"])
+        on_release = make_repo("release")
+        try:
+            def decide(command, repo):
+                return run_hook(HOOK, bash(command, "coder", cwd=str(repo)), config=config)
+            for command, repo in (("git merge feature", on_release),
+                                  ("git push", on_release),
+                                  ("git push origin release", self.on_feature),
+                                  ("git push origin HEAD:refs/heads/release", self.on_feature)):
+                with self.subTest(command):
+                    decision, reason = decide(command, repo)
+                    self.assertEqual(decision, "deny", f"{command!r}: {reason}")
+                    self.assertIn("release", reason)
+            # main is not protected under this config.
+            for command, repo in (("git merge feature", self.on_main),
+                                  ("git push origin main", self.on_feature),
+                                  ("git push", self.on_main)):
+                with self.subTest(command):
+                    decision, reason = decide(command, repo)
+                    self.assertIsNone(decision, f"{command!r}: {reason}")
+        finally:
+            shutil.rmtree(on_release, ignore_errors=True)
 
     def test_unrelated_commands_untouched(self):
         for command in ("git status", "git log --oneline", "git commit -m 'push --force later'"):

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness import bash, run_hook
+from harness import TEST_CONFIG, bash, run_hook
 
 HOOK = "device_guard.py"
 FORAGER = "com.zynergylabs.forager.app"
@@ -76,10 +76,10 @@ class DeviceGuard(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def decide(self, command, **env):
+    def decide(self, command, config=None, **env):
         e = dict(self.env)
         e.update(env)
-        return run_hook(HOOK, bash(command, "coder"), env=e)
+        return run_hook(HOOK, bash(command, "coder"), env=e, config=config)
 
     # connectedAndroidTest
     def test_connected_android_test_without_flag_denied(self):
@@ -158,6 +158,41 @@ class DeviceGuard(unittest.TestCase):
             with self.subTest(command):
                 decision, reason = self.decide(command)
                 self.assertIsNone(decision, reason)
+
+    # Values from .claude/kit.json
+    def test_foreground_package_comes_from_config(self):
+        config = dict(TEST_CONFIG, android_package="com.example.other")
+        decision, reason = self.decide("adb shell input keyevent 0", config=config,
+                                       FAKE_FOREGROUND="com.example.other")
+        self.assertIsNone(decision, reason)
+        decision, reason = self.decide("adb shell input keyevent 0", config=config,
+                                       FAKE_FOREGROUND=FORAGER)
+        self.assertEqual(decision, "deny")
+        self.assertIn("not com.example.other", reason)
+
+    def test_null_package_turns_the_guard_off(self):
+        config = dict(TEST_CONFIG, android_package=None)
+        for command in ("adb uninstall x", "./gradlew connectedAndroidTest",
+                        "adb shell input keyevent 0", f"adb install {self.apk}"):
+            with self.subTest(command):
+                decision, reason = self.decide(command, config=config,
+                                               FAKE_FOREGROUND="com.example.other")
+                self.assertIsNone(decision, reason)
+
+    def test_tool_override_prefix_comes_from_config(self):
+        config = dict(TEST_CONFIG, guard_env_prefix="OTHER_GUARD_")
+        prefix = TEST_CONFIG["guard_env_prefix"]
+        env = {k: v for k, v in self.env.items() if not k.startswith(prefix)}
+        env.update({"OTHER_GUARD_ADB": str(self.tmp / "adb"),
+                    "OTHER_GUARD_AAPT2": str(self.tmp / "aapt2"),
+                    "OTHER_GUARD_APKSIGNER": str(self.tmp / "apksigner")})
+        # The default prefix points nowhere: a guard still reading it fails.
+        for name in ("ADB", "AAPT2", "APKSIGNER"):
+            env[prefix + name] = str(self.tmp / "no-such-tool")
+        decision, reason = run_hook(HOOK, bash("adb shell input keyevent 0", "coder"),
+                                    env=env, config=config)
+        self.assertIsNone(decision, reason)
+        self.assertIn("dumpsys activity activities", self.log.read_text())
 
     def test_applies_to_every_role(self):
         e = dict(self.env)

@@ -30,11 +30,18 @@ class PlannerTools(unittest.TestCase):
         self.assertDenied(tool("SomeFutureTool"), "SomeFutureTool", "allowlist")
 
     def test_allowlisted_tools_pass(self):
-        for name in ("Read", "Grep", "Glob", "Agent", "Skill", "WebFetch",
+        for name in ("Read", "Agent", "Skill", "WebFetch",
                      "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite"):
             with self.subTest(name):
                 decision, reason = run_hook(HOOK, tool(name))
                 self.assertIsNone(decision, f"{name}: {decision} {reason}")
+
+    def test_grep_and_glob_not_on_the_planner_allowlist(self):
+        # Neither exists as a tool on Claude Code 2.1.280; the design listed
+        # them in error (RECORD.md 2026-09-23-01).
+        for name in ("Grep", "Glob"):
+            with self.subTest(name):
+                self.assertDenied(tool(name), name, "planner")
 
     def test_malformed_payload_fails_closed(self):
         decision, reason = run_hook(HOOK, "not json")

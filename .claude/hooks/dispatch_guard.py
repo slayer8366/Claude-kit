@@ -1,19 +1,26 @@
 """PreToolUse on the dispatch tool (Agent; Task was its name up to Claude
-Code 2.1.63 and still appears in this version's init tool list).
+Code 2.1.63 and still appears in 2.1.280's init tool list).
 
+0. Blocks any target that is not one of the config's dispatchable_agents.
+   A built-in agent type carries every tool, so dispatching one would let
+   a read-only planner act through it.
 1. Reads the prompt's `Type:` line. Missing or unknown blocks.
-2. Checks the sections that type requires; missing ones block, by name.
-3. On pass, writes the prompt verbatim to prompts/preserved/<date>-<seq>.md
-   (operator ruling, 2026-09-22), headed with the HEAD hash, the target
-   subagent and the type. Neither agent writes this file. If it cannot be
-   written, the dispatch is blocked: an unpreserved dispatch is the failure
-   this hook exists to prevent.
-4. Runs check_prompts.py and reports its result. It does not block on it:
-   the prompt just written is unclaimed until the coder's next sweep writes
-   its dispatch-note, and the planner cannot write that note, so blocking
-   would stop the planner dispatching the coder that fixes it.
-5. Returns "ask" for build and device (decision B: operator approval) and
-   "allow" for pulse.
+2. Blocks a type sent to any agent but the one type_targets names for it,
+   so a dispatch cannot skip approval by carrying the wrong type.
+3. Checks the sections that type requires (required_sections); missing
+   ones block, by name.
+4. On pass, writes the prompt verbatim to prompts/preserved/<date>-<seq>.md,
+   headed with the HEAD hash, the target subagent and the type. Neither
+   agent writes this file. If it cannot be written, the dispatch is
+   blocked: an unpreserved dispatch is the failure this hook exists to
+   prevent.
+5. Runs check_prompts.py from checkers_dir and reports its result. It does
+   not block on it: the prompt just written is unclaimed until the coder's
+   next sweep writes its dispatch-note, and the planner cannot write that
+   note, so blocking would stop the planner dispatching the coder that
+   fixes it.
+6. Returns "ask" for build and device (builds and device runs need
+   operator approval) and "allow" for any other type.
 
 The section check is structural. A dispatch can carry every heading and
 still be wrong.
@@ -28,15 +35,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import guardlib as g  # noqa: E402
 
 DISPATCH_TOOLS = {"Agent", "Task"}
-DISPATCHABLE = {"coder", "pulse"}
-TARGET_FOR_TYPE = {"pulse": "pulse", "build": "coder", "device": "coder"}
-REQUIRED = {
-    "build": ["Role", "Base and state", "Scope boundary", "Closed decisions",
-              "Prediction", "Finish line and abort conditions", "Checks",
-              "Out of scope", "Device items"],
-    "pulse": ["Role", "Base and state", "Rules", "Questions"],
-}
-REQUIRED["device"] = REQUIRED["build"]
 TYPE_LINE = re.compile(r"(?m)^\s*(?:\*\*Type:\*\*|Type:)\s*(\S+)")
 HEADING = re.compile(r"(?m)^#{1,6}\s+(.+?)\s*#*\s*$")
 DELIMITER = "--- verbatim prompt follows ---"
@@ -77,10 +75,12 @@ def preserve(root, head, target, type_, text):
             seq += 1
 
 
-def store_check(root):
-    checker = Path(root) / "check_prompts.py"
+def store_check(root, checkers_dir):
+    checker = Path(root) / checkers_dir / "check_prompts.py"
     if not checker.is_file():
-        return "check_prompts.py not found at the repository root; the store was not checked."
+        where = ("the repository root" if Path(checkers_dir) == Path(".")
+                 else Path(checkers_dir).as_posix())
+        return f"check_prompts.py not found at {where}; the store was not checked."
     r = subprocess.run([sys.executable, str(checker)], capture_output=True,
                        text=True, cwd=root)
     tail = "\n".join(l for l in r.stdout.splitlines() if l.startswith((" -", "PASS", "FAIL")))
@@ -90,37 +90,43 @@ def store_check(root):
 def guard(payload):
     if payload.get("tool_name") not in DISPATCH_TOOLS:
         return None
+    config = g.CONFIG
+    dispatchable = set(config["dispatchable_agents"])
+    target_for_type = config["type_targets"]
+    required = config["required_sections"]
+
     tool_input = payload.get("tool_input") or {}
     text = tool_input.get("prompt", "") or ""
     target = tool_input.get("subagent_type") or "(none given)"
 
-    # Checked before anything is written. A live test on 2026-09-22 showed the
-    # planner dispatching the built-in general-purpose agent, which has Edit,
-    # Write, Bash and MCP tools, so decision A did not hold (operator ruling:
-    # only the named subagents may be dispatched).
-    if target not in DISPATCHABLE:
+    # Checked before anything is written: only the configured subagents may
+    # be dispatched.
+    if target not in dispatchable:
         return ("deny", f"dispatch_guard: subagent type {target!r} may not be "
-                        f"dispatched. Only {', '.join(sorted(DISPATCHABLE))} may; "
+                        f"dispatched. Only {', '.join(sorted(dispatchable))} may; "
                         f"built-in agent types are blocked.")
 
     m = TYPE_LINE.search(text)
     if not m:
-        return ("deny", "dispatch_guard: the dispatch has no `Type:` line. "
-                        "Add `**Type:** build`, `device` or `pulse`.")
+        types = sorted(required)
+        return ("deny", f"dispatch_guard: the dispatch has no `Type:` line. "
+                        f"Add `**Type:** {types[0]}`"
+                        + "".join(f", `{t}`" for t in types[1:-1])
+                        + (f" or `{types[-1]}`." if len(types) > 1 else "."))
     type_ = m.group(1).strip("*`").lower()
-    if type_ not in REQUIRED:
+    if type_ not in required:
         return ("deny", f"dispatch_guard: unknown Type {type_!r}. Known types: "
-                        f"{', '.join(sorted(REQUIRED))}.")
-    # Operator ruling, 2026-09-22: Type binds to target. Unbound, a dispatch
-    # typed pulse could go to coder and run without approval (decision B).
-    if TARGET_FOR_TYPE[type_] != target:
+                        f"{', '.join(sorted(required))}.")
+    # Type binds to target: unbound, a dispatch could carry a type that runs
+    # without approval to an agent whose work needs it.
+    if target_for_type[type_] != target:
         return ("deny", f"dispatch_guard: Type {type_!r} may only be dispatched to "
-                        f"{TARGET_FOR_TYPE[type_]!r}, not {target!r}.")
-    missing = missing_sections(text, REQUIRED[type_])
+                        f"{target_for_type[type_]!r}, not {target!r}.")
+    missing = missing_sections(text, required[type_])
     if missing:
         return ("deny", f"dispatch_guard: this {type_} dispatch is missing "
                         f"{len(missing)} required section(s): {'; '.join(missing)}. "
-                        f"Required for {type_}: {'; '.join(REQUIRED[type_])}.")
+                        f"Required for {type_}: {'; '.join(required[type_])}.")
 
     cwd = payload.get("cwd") or "."
     try:
@@ -131,14 +137,13 @@ def guard(payload):
         return ("deny", f"dispatch_guard: could not preserve the dispatch, so it "
                         f"is blocked: {type(exc).__name__}: {exc}")
     rel = path.relative_to(root).as_posix()
-    check = store_check(root)
+    check = store_check(root, config["checkers_dir"])
     if type_ in ("build", "device"):
         return ("ask", f"dispatch_guard: {type_} dispatch to {target} preserved at "
-                       f"{rel} (HEAD {head[:10]}). Operator approval required "
-                       f"(decision B).\n{check}")
+                       f"{rel} (HEAD {head[:10]}). Operator approval required: "
+                       f"builds and device runs need approval.\n{check}")
     return ("allow", f"dispatch_guard: pulse dispatch to {target} preserved at "
-                     f"{rel} (HEAD {head[:10]}). Pulses run without approval "
-                     f"(decision B).\n{check}")
+                     f"{rel} (HEAD {head[:10]}). Pulses run without approval.\n{check}")
 
 
 if __name__ == "__main__":

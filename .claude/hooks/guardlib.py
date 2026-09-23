@@ -1,7 +1,7 @@
-"""Shared plumbing for Forager's PreToolUse guards.
+"""Shared plumbing for the kit's PreToolUse guards.
 
-See docs/process/accountability-design.md. Every guard reads one hook
-payload from stdin and either stays silent (no decision: the call goes on
+Every guard reads the adopter's config (.claude/kit.json) and one hook
+payload from stdin, and either stays silent (no decision: the call goes on
 to the normal permission rules) or prints one permission decision.
 
 A guard that crashes must not let the call through. Claude Code treats any
@@ -16,8 +16,6 @@ import shlex
 import sys
 import traceback
 from pathlib import Path
-
-FORAGER_PACKAGE = "com.zynergylabs.forager.app"
 
 
 def emit(decision, reason):
@@ -147,8 +145,8 @@ def run(guard):
 def role(payload):
     """'planner' for the main session, else the subagent's agent_type.
 
-    Step 0 (2026-09-22, Claude Code 2.1.280) observed agent_type absent in
-    the main session and set to the subagent's name inside one."""
+    On Claude Code 2.1.280, agent_type is absent in the main session and set
+    to the subagent's name inside one."""
     agent_type = payload.get("agent_type")
     return agent_type if agent_type else "planner"
 

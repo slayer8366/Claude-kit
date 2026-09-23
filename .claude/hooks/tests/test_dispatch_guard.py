@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness import HOOKS, run_hook
+from harness import HOOKS, TEST_CONFIG, run_hook
 
 HOOK = "dispatch_guard.py"
 REPO_ROOT = HOOKS.parent.parent
@@ -159,6 +159,44 @@ class DispatchGuard(unittest.TestCase):
         decision, _ = run_hook(HOOK, {"tool_name": "Bash", "cwd": str(self.repo),
                                       "tool_input": {"command": "git log"}})
         self.assertIsNone(decision)
+
+    # Values from .claude/kit.json
+    def test_agents_types_and_sections_come_from_config(self):
+        config = dict(TEST_CONFIG, dispatchable_agents=["coder", "reader"],
+                      type_targets={"pulse": "reader", "build": "coder", "device": "coder"},
+                      required_sections={"pulse": ["Role", "Question"],
+                                         "build": ["Role", "Plan"],
+                                         "device": ["Role", "Plan"]})
+
+        def decide(text, target):
+            return run_hook(HOOK, agent(text, target, cwd=str(self.repo)), config=config)
+        decision, reason = decide(prompt("pulse", ["Role", "Question"]), "reader")
+        self.assertEqual(decision, "allow", reason)
+        decision, reason = decide(prompt("build", ["Role", "Plan"]), "coder")
+        self.assertEqual(decision, "ask", reason)
+        self.assertEqual(len(self.written()), 2)
+        decision, reason = decide(prompt("pulse", ["Role", "Question"]), "pulse")
+        self.assertEqual(decision, "deny")
+        self.assertIn("subagent type 'pulse' may not be dispatched", reason)
+        decision, reason = decide(prompt("pulse", PULSE_SECTIONS), "reader")
+        self.assertEqual(decision, "deny")
+        self.assertIn("missing 1 required section(s): Question.", reason)
+        self.assertEqual(len(self.written()), 2)
+
+    def test_checker_location_comes_from_config(self):
+        tools = self.repo / "tools"
+        tools.mkdir()
+        for name in ("check_record.py", "check_prompts.py"):
+            (self.repo / name).rename(tools / name)
+        config = dict(TEST_CONFIG, checkers_dir="tools")
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)), config=config)
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py exit ", reason)
+        self.assertNotIn("not found", reason)
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertIn("check_prompts.py not found", reason)
 
     def test_outside_a_repository_blocks(self):
         outside = tempfile.mkdtemp(prefix="dispatch_guard_norepo_")
