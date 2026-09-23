@@ -20,6 +20,8 @@ source files unchanged; later steps make them generic.
 | `check_kit.py` | drift check against `.claude/kit.lock` | yes |
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
+| `release_check.py` | scans the release set against the workshop denylist | no |
+| `tests/` | install, drift and release-check tests | no |
 | `workshop/` | private sources, drafts and the release denylist | no |
 | `RECORD.md`, `prompts/`, `docs/` | this repository's own record | no |
 
@@ -68,6 +70,16 @@ writes nothing; reconcile the two by hand.
 In the adopter, `python3 check_kit.py` fails naming each vendored file whose
 hash differs from the lock, or that is missing. It never contacts this
 repository.
+
+## Release gate
+
+    python3 release_check.py
+
+Scans every file in the release set (`release.json`) against the patterns in
+`workshop/denylist.txt`, and fails naming each file, line and pattern that
+matches. The denylist stays in the workshop and is never released, since it
+names what must not be published. A release is a tag, made by the owner after
+reading the release diff.
 
 ## Tests
 
