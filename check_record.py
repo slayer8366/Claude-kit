@@ -94,7 +94,7 @@ OUTCOME_FIELD = "Prediction (outcome — planner)"
 SUPPLIED_FIELD = "Prediction-outcome-supplied"
 
 
-# Forager addition (operator ruling, 2026-09-22; RECORD.md 2026-09-22-03).
+# Claude-kit addition (Claude-kit RECORD.md 2026-09-23-01).
 # A dispatch-note records a dispatch that opens no intent -- a pulse, a
 # build the operator declined, a live exercise of the dispatch hook -- so
 # the prompt the hook preserved for it is still claimed by an entry. It
@@ -950,7 +950,7 @@ def render_check():
           "intent ID is accepted",
           check18)
 
-    # ---- Checks 19-23: dispatch-note entries (Forager addition) ------------
+    # ---- Checks 19-23: dispatch-note entries (Claude-kit addition) ---------
     def check19():
         text = _minimal_record(_minimal_intent(), _minimal_note())
         entries, errors, unterminated, _ = validate_entries(text)
