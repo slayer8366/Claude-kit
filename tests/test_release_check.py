@@ -63,6 +63,18 @@ class ReleaseCheck(unittest.TestCase):
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn("templates/kit.json:", r.stdout)
 
+    def test_private_record_citation_fails(self):
+        # Released files cite the kit by release version, never by a path
+        # into the kit's private record.
+        target = self.root / "check_prompts.py"
+        lines = target.read_text().splitlines()
+        lines.insert(4, "# Claude-kit RECORD.md 2026-09-23-01")
+        target.write_text("\n".join(lines) + "\n")
+        r = self.check()
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("check_prompts.py:5: matches", r.stdout)
+        self.assertIn("Claude-kit RECORD.md", r.stdout)
+
     def test_missing_or_empty_denylist_fails(self):
         empty = self.root / "empty.txt"
         empty.write_text("# nothing\n\n")

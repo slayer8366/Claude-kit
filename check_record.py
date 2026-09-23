@@ -94,7 +94,7 @@ OUTCOME_FIELD = "Prediction (outcome — planner)"
 SUPPLIED_FIELD = "Prediction-outcome-supplied"
 
 
-# Claude-kit addition (Claude-kit RECORD.md 2026-09-23-01).
+# Claude-kit v0.1 addition.
 # A dispatch-note records a dispatch that opens no intent -- a pulse, a
 # build the operator declined, a live exercise of the dispatch hook -- so
 # the prompt the hook preserved for it is still claimed by an entry. It

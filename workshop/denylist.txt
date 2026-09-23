@@ -34,3 +34,7 @@ R5CT
 \bSM-[A-Z]\d{3}
 (?i)\bS2\d\s*Ultra\b
 (?i)galaxy
+
+# Citations of the kit's private record: released files cite the kit by
+# release version ("Claude-kit v0.1 addition"), never by a RECORD.md entry
+(?i)claude-kit[^\n]{0,40}RECORD\.md

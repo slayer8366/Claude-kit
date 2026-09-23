@@ -38,7 +38,7 @@ class PlannerTools(unittest.TestCase):
 
     def test_grep_and_glob_not_on_the_planner_allowlist(self):
         # Neither exists as a tool on Claude Code 2.1.280; the design listed
-        # them in error (Claude-kit RECORD.md 2026-09-23-01).
+        # them in error (Claude-kit v0.1 addition).
         for name in ("Grep", "Glob"):
             with self.subTest(name):
                 self.assertDenied(tool(name), name, "planner")

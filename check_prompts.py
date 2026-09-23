@@ -169,7 +169,7 @@ def check_binding(repo_dir=None):
                 f"{DISPATCH_FIELD!r} field: {', '.join(ids)}")
     errors.extend(duplicate_errors)
 
-    # Claude-kit addition (Claude-kit RECORD.md 2026-09-23-01): a dispatch-note claims
+    # Claude-kit v0.1 addition: a dispatch-note claims
     # exactly one *preserved* prompt -- the hook's verbatim capture -- never
     # a recovered one.
     for entry_id, value in claims:
