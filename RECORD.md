@@ -70,3 +70,14 @@ Proposals 3 to 8 as the planner summarised them in the dispatch: (3) config keys
 **Abort conditions:** Any behaviour change the port needs in order to pass a test. The release check flagging something that cannot be made generic without a design decision. Two failed fixes on one symptom, after which data only. Any behaviour-diff failure other than the two Grep and Glob subtests.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-23-02
+**Timestamp:** 2026-09-23T04:04:43Z
+**Closes:** 2026-09-23-01
+**Outcome:** completed
+**Report:** docs/audits/2026-09-23-kit-v0.1-extraction-completion-report.md
+**Observed:** Steps 1 to 9 committed and pushed on kit-v0.1 (a829f13, ed81959, 982d772, d43a1fe, 6fa0315, 4166cb2, c67b26d, bc7d037, 715ecf5), then the commit carrying this entry and the report. PR #1 open against main. CI green at 715ecf5 on Python 3.8.18 and 3.14.7, ubuntu-24.04 (run 35816606081). Behaviour diff: b2435ef's 49 hook tests, unchanged, against the ported hooks with Forager's values in kit.json: 49 ran, 2 failed, exactly the Grep and Glob subtests of test_allowlisted_tools_pass. Every config value has a test that failed first against the hard-coded hooks (68 config-error failures, 16 config-value failures, on the decision or the message); install, drift and release tests failed first with their scripts absent; sabotage of check_kit.py's hash comparison, install.py's settings check and release_check.py's pattern match each failed a test naming the edit. Release check on the release set: PASS, 18 files, 3389 lines, 16 patterns. No tag. Planner prediction: 1 confirmed (the 49 needed no change at all), 2 confirmed (history_guard compared the branch to the literal main at b2435ef history_guard.py:93 and :130, found when a test protected another branch), 3 confirmed. Coder prediction: (a) to (d) confirmed; (e) wrong, since setup-python offers 3.8.18 on ubuntu-24.04.
+**Deviations:** Step 1 imported the source files unchanged rather than empty placeholders; the config-value tests landed in step 3 with the hooks, so they could fail against the hard-coded hooks first; the README grew across steps 1, 6, 7 and 8; workshop/behaviour_diff.py and release.json were added as the tools the checks and the one release-set definition need. Flagged, not fixed (scope boundary): the approval split on the literal types build and device (a config-added type runs without approval), check_record.py's fixed dispatch-note Types, role_guard's literal role name pulse, a non-default checkers_dir that the checkers, installer and tests do not follow, and no pruning on reinstall. The full lists are in the report's "Decisions I made" and "Flags outside scope".
+
+---
