@@ -44,12 +44,12 @@ open on its own config. Unknown keys are invalid.
 | `dispatchable_agents` | yes | the only subagent types the dispatch hook lets through |
 | `type_targets` | yes | dispatch `Type:` to the one agent it may go to; every agent must be dispatchable |
 | `required_sections` | yes | dispatch `Type:` to the headings it must carry; same types as `type_targets` |
+| `approval_exempt_types` | yes | the dispatch Types that run without operator approval (may be empty); every other Type asks. Each must be a Type in `type_targets` |
 | `guard_env_prefix` | no, default `KIT_GUARD_` | `<prefix>ADB`, `<prefix>AAPT2`, `<prefix>APKSIGNER` override the device guard's tools |
 
 Fixed in code, not config: the prompt store `prompts/preserved/`, the planner
-and pulse tool allowlists, the pulse's adb reads, the dispatch tool names
-(`Agent`, `Task`), and the approval split (Types `build` and `device` ask the
-operator; any other Type is allowed).
+and pulse tool allowlists, the pulse's adb reads, and the dispatch tool names
+(`Agent`, `Task`).
 
 ## Install and drift
 

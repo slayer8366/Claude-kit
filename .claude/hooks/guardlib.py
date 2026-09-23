@@ -31,7 +31,7 @@ def emit(decision, reason):
 # hook always reads the config that was installed with it.
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "kit.json"
 CONFIG_REQUIRED = ("android_package", "protected_branches", "dispatchable_agents",
-                   "type_targets", "required_sections")
+                   "type_targets", "required_sections", "approval_exempt_types")
 CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_"}
 CONFIG = None  # set by run() before the guard is called
 
@@ -85,6 +85,18 @@ def validate_config(data):
                             "section names")
         elif isinstance(targets, dict) and set(sections) != set(targets):
             problems.append("required_sections and type_targets must name the same types")
+    # Approval fails closed: every Type asks the operator unless it is listed
+    # here. Required, so that every exemption is written down.
+    exempt = data.get("approval_exempt_types")
+    if "approval_exempt_types" in data:
+        if not _string_list(exempt):
+            problems.append("approval_exempt_types must be a list of dispatch types "
+                            "(it may be empty)")
+        elif isinstance(targets, dict):
+            strays = sorted(t for t in exempt if t not in targets)
+            if strays:
+                problems.append(f"approval_exempt_types names type(s) "
+                                f"{', '.join(strays)} not in type_targets")
     prefix = data.get("guard_env_prefix", CONFIG_DEFAULTS["guard_env_prefix"])
     if not (isinstance(prefix, str) and re.fullmatch(r"[A-Z_][A-Z0-9_]*", prefix)):
         problems.append("guard_env_prefix must be an upper-case environment-variable prefix")

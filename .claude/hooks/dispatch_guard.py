@@ -19,8 +19,8 @@ Code 2.1.63 and still appears in 2.1.280's init tool list).
    next sweep writes its dispatch-note, and the planner cannot write that
    note, so blocking would stop the planner dispatching the coder that
    fixes it.
-6. Returns "ask" for build and device (builds and device runs need
-   operator approval) and "allow" for any other type.
+6. Returns "allow" for a type listed in approval_exempt_types and "ask"
+   (operator approval) for every other type: approval fails closed.
 
 The section check is structural. A dispatch can carry every heading and
 still be wrong.
@@ -136,12 +136,13 @@ def guard(payload):
                         f"is blocked: {type(exc).__name__}: {exc}")
     rel = path.relative_to(root).as_posix()
     check = store_check(root)
-    if type_ in ("build", "device"):
-        return ("ask", f"dispatch_guard: {type_} dispatch to {target} preserved at "
-                       f"{rel} (HEAD {head[:10]}). Operator approval required: "
-                       f"builds and device runs need approval.\n{check}")
-    return ("allow", f"dispatch_guard: pulse dispatch to {target} preserved at "
-                     f"{rel} (HEAD {head[:10]}). Pulses run without approval.\n{check}")
+    if type_ in config["approval_exempt_types"]:
+        return ("allow", f"dispatch_guard: Type {type_!r} dispatch to {target} "
+                         f"preserved at {rel} (HEAD {head[:10]}). Type {type_!r} is "
+                         f"in approval_exempt_types, so it runs without approval.\n{check}")
+    return ("ask", f"dispatch_guard: Type {type_!r} dispatch to {target} preserved "
+                   f"at {rel} (HEAD {head[:10]}). Operator approval required: Type "
+                   f"{type_!r} is not in approval_exempt_types.\n{check}")
 
 
 if __name__ == "__main__":
