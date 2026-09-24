@@ -50,7 +50,17 @@ asks a different question (dispatch-file binding) than that function
 answers (intent/terminal shape and sentinel handling), and duplicating
 its required-field logic here would only reintroduce a second copy of
 rules that already live in check_record.py.
+
+Store names (Claude-kit v0.2 addition): every file under
+prompts/preserved/ (not recovered/) must be named YYYY-MM-DD-NN.md, and
+the date in its name must equal the UTC date of the Preserved: line in
+its header (the lines before "--- verbatim prompt follows ---"). A file
+with no such line is an error. Files named before 2026-09-24-05,
+compared as (date, number) and not as text, are exempt: they were in
+the store before the rule began. The rule reads only names and headers,
+never git, so it runs the same in CI and in an adopter.
 """
+import re
 import sys
 from pathlib import Path
 
@@ -62,6 +72,57 @@ RECORD_NAME = "RECORD.md"
 PROMPTS_DIR = "prompts"
 DISPATCH_FIELD = "Dispatch-file"
 PROVENANCE_DIRS = ("preserved", "recovered")
+
+# Claude-kit v0.2 addition: the store-name rule (see module docstring).
+STORE_NAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(\d{2,})\.md$")
+HEADER_DELIMITER = "--- verbatim prompt follows ---"
+PRESERVED_PREFIX = "Preserved: "
+# Exempts the files in the store before the rule began: a name whose
+# (date, number) is below this pair is not checked against its header.
+STORE_NAME_CUTOFF = ("2026-09-24", 5)
+
+
+def store_name_errors(repo_dir, on_disk):
+    """Errors for files under prompts/preserved/ that break the store-name
+    rule: a name not of the form YYYY-MM-DD-NN.md, or, for a name at or
+    after STORE_NAME_CUTOFF, a header with no Preserved: line or one whose
+    date differs from the name's date."""
+    errors = []
+    prefix = f"{PROVENANCE_DIRS[0]}/"
+    for rel in sorted(on_disk):
+        if not rel.startswith(prefix):
+            continue
+        name = rel[len(prefix):]
+        match = STORE_NAME_RE.match(name)
+        if not match:
+            errors.append(
+                f"{PROMPTS_DIR}/{rel}: name does not match YYYY-MM-DD-NN.md")
+            continue
+        name_date, number = match.group(1), int(match.group(2))
+        if (name_date, number) < STORE_NAME_CUTOFF:
+            continue
+        text = (Path(repo_dir) / PROMPTS_DIR / rel).read_text(
+            encoding="utf-8", errors="replace")
+        preserved = None
+        for line in text.splitlines():
+            if line == HEADER_DELIMITER:
+                break
+            if line.startswith(PRESERVED_PREFIX):
+                preserved = line[len(PRESERVED_PREFIX):]
+                break
+        if preserved is None:
+            errors.append(
+                f"{PROMPTS_DIR}/{rel}: its header has no "
+                f"{PRESERVED_PREFIX.strip()!r} line before "
+                f"{HEADER_DELIMITER!r}, so its name's date cannot be checked")
+            continue
+        header_date = preserved[:10]
+        if header_date != name_date:
+            errors.append(
+                f"{PROMPTS_DIR}/{rel}: name's date {name_date} differs from "
+                f"its header's Preserved date {header_date}; a store copy's "
+                f"name must carry the UTC date of its Preserved: line")
+    return errors
 
 
 def dispatch_claims(text):
@@ -194,6 +255,8 @@ def check_binding(repo_dir=None):
         errors.append(
             f"{PROMPTS_DIR}/{rel} exists but no RECORD.md entry's "
             f"{DISPATCH_FIELD!r} field names it")
+
+    errors.extend(store_name_errors(repo_dir, on_disk))
 
     if stray:
         errors.append(
@@ -345,7 +408,77 @@ def render_check():
           "accepted",
           p5)
 
-    total = 5
+    # p6-p8 (Claude-kit v0.2 addition): the store-name rule. Each fixture
+    # file carries a hook-style header and is claimed by a valid
+    # dispatch-note, so the naming rule is the only thing under test.
+    def hooked(tmp, specs):
+        """specs: list of (rel, preserved_value or None). Writes each file
+        with a hook-style header and claims it with its own note."""
+        notes = []
+        for n, (rel, preserved) in enumerate(specs, 5):
+            header = ["HEAD: fixture-head", "Target subagent: pulse",
+                      "Type: pulse"]
+            if preserved is not None:
+                header.append(f"Preserved: {preserved} by the dispatch hook")
+            header.append("--- verbatim prompt follows ---")
+            path = Path(tmp) / PROMPTS_DIR / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(header) + f"\nprompt {rel}\n")
+            notes.append(cr._minimal_note(
+                id_=f"2026-01-01-{n:02d}", **{"Dispatch-file": rel}))
+        text = cr._minimal_record(*notes)
+        (Path(tmp) / RECORD_NAME).write_text(text)
+        _, binding_errors, _, _ = check_binding(tmp)
+        _, entry_errors, _, _ = cr.validate_entries(text)
+        return binding_errors, entry_errors
+
+    def p6():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        name = "preserved/2026-09-25-01.md"
+        binding, entry = hooked(tmp, [(name, "2026-09-24T10:00:00Z")])
+        assert not entry, f"the claiming dispatch-note is not a valid entry: {entry}"
+        assert any("2026-09-25-01.md" in e and "2026-09-24" in e
+                   and "Preserved" in e for e in binding), (
+            f"a copy whose name's date differs from its Preserved date "
+            f"was accepted: {binding}")
+
+    check("p6_wrongly_named_copy_fails",
+          "a store copy named for a date other than its header's "
+          "Preserved date is accepted",
+          p6)
+
+    def p7():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = hooked(tmp, [
+            ("preserved/2026-09-25-01.md", "2026-09-25T10:00:00Z"),
+            ("preserved/2026-09-23-07.md", "2026-09-24T05:44:30Z"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert not binding, (
+            f"a correctly named copy, or a pre-cutoff copy, was rejected: "
+            f"{binding}")
+
+    check("p7_matching_and_pre_cutoff_names_pass",
+          "a copy whose name's date equals its Preserved date, or one "
+          "named before the cutoff, is rejected",
+          p7)
+
+    def p8():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        name = "preserved/2026-09-25-02.md"
+        binding, entry = hooked(tmp, [(name, None)])
+        assert not entry, f"the claiming dispatch-note is not a valid entry: {entry}"
+        assert any("2026-09-25-02.md" in e and "Preserved" in e
+                   for e in binding), (
+            f"a copy with no Preserved line in its header was accepted: "
+            f"{binding}")
+
+    check("p8_copy_without_preserved_line_fails",
+          "a store copy after the cutoff whose header has no Preserved "
+          "line is accepted",
+          p8)
+
+    total = 8
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
           f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0

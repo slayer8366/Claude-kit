@@ -43,6 +43,14 @@ sit at the repository root.
 3. **Every intent ends.** Close it with exactly one terminal entry:
    completed, superseded, or abandoned.
 4. Run both checkers before every commit that touches `RECORD.md`.
+5. **Store names.** A dispatch's copy in `prompts/preserved/` keeps the name
+   the dispatch hook gave it. A dispatch saved by a hook that numbered within
+   its own worktree (before the shared dispatch counter) takes the store's
+   next free number within the date of its header's `Preserved:` line, and
+   the intent records where it came from: the original path, size and
+   sha256. If the hook's name is already taken in the store by a different
+   file, stop and ask. `check_prompts.py` checks that each name's date equals
+   its header's `Preserved:` date.
 
 ## Non-negotiables
 
