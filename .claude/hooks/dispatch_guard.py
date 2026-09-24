@@ -11,9 +11,15 @@ Code 2.1.63 and still appears in 2.1.280's init tool list).
    ones block, by name.
 4. On pass, writes the prompt verbatim to prompts/preserved/<date>-<seq>.md,
    headed with the HEAD hash, the target subagent and the type. Neither
-   agent writes this file. If it cannot be written, the dispatch is
-   blocked: an unpreserved dispatch is the failure this hook exists to
-   prevent.
+   agent writes this file. <seq> comes from one counter shared by every
+   worktree of the clone, `<git common dir>/claude-kit/dispatch-seq`
+   (one line `YYYY-MM-DD NN`, UTC), read and advanced under an exclusive
+   lock on `dispatch-seq.lock`; it is one above the larger of the
+   counter's number for today and the highest name for today in this
+   worktree's store, so separate worktrees cannot save different
+   dispatches under one name. If the prompt cannot be written or the
+   counter cannot be reached, the dispatch is blocked: an unpreserved
+   dispatch is the failure this hook exists to prevent.
 5. Runs check_prompts.py from the repository root and reports its result. It does
    not block on it: the prompt just written is unclaimed until the coder's
    next sweep writes its dispatch-note, and the planner cannot write that
@@ -26,6 +32,8 @@ The section check is structural. A dispatch can carry every heading and
 still be wrong.
 """
 import datetime
+import fcntl
+import os
 import re
 import subprocess
 import sys
@@ -38,6 +46,8 @@ DISPATCH_TOOLS = {"Agent", "Task"}
 TYPE_LINE = re.compile(r"(?m)^\s*(?:\*\*Type:\*\*|Type:)\s*(\S+)")
 HEADING = re.compile(r"(?m)^#{1,6}\s+(.+?)\s*#*\s*$")
 DELIMITER = "--- verbatim prompt follows ---"
+COUNTER_DIR = "claude-kit"  # under the git common dir, shared by all worktrees
+COUNTER = "dispatch-seq"
 
 
 def missing_sections(text, required):
@@ -54,25 +64,78 @@ def git(cwd, *args):
     return r.stdout.strip()
 
 
+class CounterUnreachable(RuntimeError):
+    def __init__(self, counter, exc):
+        super().__init__(f"the shared dispatch counter could not be reached at "
+                         f"{counter}: {type(exc).__name__}: {exc}")
+
+
+def counter_dir(root):
+    common = Path(git(root, "rev-parse", "--git-common-dir"))
+    if not common.is_absolute():
+        common = Path(root) / common
+    return common / COUNTER_DIR
+
+
+def read_counter(counter, date):
+    """The counter's number for date, or 0 if it holds another date or
+    does not exist yet."""
+    try:
+        line = counter.read_text().strip()
+    except FileNotFoundError:
+        return 0
+    m = re.fullmatch(r"(\d{4}-\d{2}-\d{2}) (\d+)", line)
+    if not m:
+        raise ValueError(f"unreadable counter line {line!r}")
+    return int(m.group(2)) if m.group(1) == date else 0
+
+
+def write_counter(counter, date, seq):
+    tmp = counter.with_name(counter.name + ".tmp")
+    tmp.write_text(f"{date} {seq:02d}\n")
+    os.replace(str(tmp), str(counter))
+
+
 def preserve(root, head, target, type_, text):
     now = datetime.datetime.now(datetime.timezone.utc)
     date = now.strftime("%Y-%m-%d")
     store = Path(root) / "prompts" / "preserved"
     store.mkdir(parents=True, exist_ok=True)
-    taken = [int(m.group(1)) for p in store.glob(f"{date}-*.md")
-             if (m := re.fullmatch(rf"{date}-(\d+)\.md", p.name))]
-    seq = max(taken, default=0) + 1
     header = (f"HEAD: {head}\nTarget subagent: {target}\nType: {type_}\n"
               f"Preserved: {now.strftime('%Y-%m-%dT%H:%M:%SZ')} by "
               f".claude/hooks/dispatch_guard.py\n{DELIMITER}\n")
-    while True:
-        path = store / f"{date}-{seq:02d}.md"
+    try:
+        directory = counter_dir(root)
+    except Exception as exc:
+        raise CounterUnreachable(f"<git common dir>/{COUNTER_DIR}/{COUNTER}", exc)
+    counter = directory / COUNTER
+    try:
+        directory.mkdir(exist_ok=True)
+        lock = open(str(directory / (COUNTER + ".lock")), "a")
+    except Exception as exc:
+        raise CounterUnreachable(counter, exc)
+    with lock:  # closing the file releases the lock
         try:
-            with open(path, "x") as f:  # never overwrite a preserved prompt
-                f.write(header + text)
-            return path
-        except FileExistsError:
-            seq += 1
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            last = read_counter(counter, date)
+        except Exception as exc:
+            raise CounterUnreachable(counter, exc)
+        taken = [int(m.group(1)) for p in store.glob(f"{date}-*.md")
+                 if (m := re.fullmatch(rf"{date}-(\d+)\.md", p.name))]
+        seq = max(last, max(taken, default=0)) + 1
+        while True:
+            path = store / f"{date}-{seq:02d}.md"
+            try:
+                with open(path, "x") as f:  # never overwrite a preserved prompt
+                    f.write(header + text)
+                break
+            except FileExistsError:
+                seq += 1
+        try:
+            write_counter(counter, date, seq)
+        except Exception as exc:
+            raise CounterUnreachable(counter, exc)
+    return path
 
 
 def store_check(root):

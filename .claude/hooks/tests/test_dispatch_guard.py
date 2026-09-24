@@ -230,6 +230,47 @@ class DispatchGuard(unittest.TestCase):
         self.assertEqual(decision, "allow", reason)
         self.assertIn("check_prompts.py not found at the repository root", reason)
 
+    # T1: every worktree of a clone draws saved-dispatch names from one
+    # sequence, a locked counter in the shared git directory.
+    def worktree(self):
+        parent = Path(tempfile.mkdtemp(prefix="dispatch_guard_wt_"))
+        self.addCleanup(shutil.rmtree, parent, ignore_errors=True)
+        path = parent / "wt"
+        subprocess.run(["git", "-C", str(self.repo), "worktree", "add", "-q", str(path)],
+                       check=True)
+        return path
+
+    def test_two_worktrees_draw_distinct_names(self):
+        other = self.worktree()
+        other_store = other / "prompts" / "preserved"
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(other)))
+        self.assertEqual(decision, "allow", reason)
+        names = self.written() + sorted(p.name for p in other_store.glob("*.md"))
+        self.assertEqual(names, [f"{self.today}-01.md", f"{self.today}-02.md"])
+
+    def test_unreachable_counter_blocks(self):
+        # A regular file where the counter directory belongs: it cannot be created.
+        blocker = self.repo.resolve() / ".git" / "claude-kit"
+        blocker.write_text("not a directory\n")
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("shared dispatch counter could not be reached", reason)
+        self.assertIn(str(blocker / "dispatch-seq"), reason)
+        self.assertEqual(self.written(), [])
+
+    def test_counter_starts_above_the_store(self):
+        self.store.mkdir(parents=True)
+        (self.store / f"{self.today}-05.md").write_text("earlier\n")
+        decision, reason = run_hook(HOOK, agent(prompt("build", BUILD_SECTIONS),
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "ask", reason)
+        self.assertEqual(self.written(), [f"{self.today}-05.md", f"{self.today}-06.md"])
+
     def test_outside_a_repository_blocks(self):
         outside = tempfile.mkdtemp(prefix="dispatch_guard_norepo_")
         try:
