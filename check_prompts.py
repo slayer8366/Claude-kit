@@ -169,7 +169,7 @@ def check_binding(repo_dir=None):
                 f"{DISPATCH_FIELD!r} field: {', '.join(ids)}")
     errors.extend(duplicate_errors)
 
-    # Claude-kit addition (Claude-kit RECORD.md 2026-09-23-01): a dispatch-note claims
+    # Claude-kit v0.1 addition: a dispatch-note claims
     # exactly one *preserved* prompt -- the hook's verbatim capture -- never
     # a recovered one.
     for entry_id, value in claims:
@@ -241,7 +241,7 @@ def main():
 
 
 # --------------------------------------------------------------------------
-# Self-tests (Claude-kit addition). Store-level fixtures under a temp dir,
+# Self-tests (Claude-kit v0.1 addition). Store-level fixtures under a temp dir,
 # checked by both this script's binding check and check_record.py's entry
 # validation, because a dispatch-note is only a valid claim if it is also a
 # valid entry.

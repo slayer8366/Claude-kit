@@ -14,13 +14,13 @@ Code 2.1.63 and still appears in 2.1.280's init tool list).
    agent writes this file. If it cannot be written, the dispatch is
    blocked: an unpreserved dispatch is the failure this hook exists to
    prevent.
-5. Runs check_prompts.py from checkers_dir and reports its result. It does
+5. Runs check_prompts.py from the repository root and reports its result. It does
    not block on it: the prompt just written is unclaimed until the coder's
    next sweep writes its dispatch-note, and the planner cannot write that
    note, so blocking would stop the planner dispatching the coder that
    fixes it.
-6. Returns "ask" for build and device (builds and device runs need
-   operator approval) and "allow" for any other type.
+6. Returns "allow" for a type listed in approval_exempt_types and "ask"
+   (operator approval) for every other type: approval fails closed.
 
 The section check is structural. A dispatch can carry every heading and
 still be wrong.
@@ -75,12 +75,10 @@ def preserve(root, head, target, type_, text):
             seq += 1
 
 
-def store_check(root, checkers_dir):
-    checker = Path(root) / checkers_dir / "check_prompts.py"
+def store_check(root):
+    checker = Path(root) / "check_prompts.py"
     if not checker.is_file():
-        where = ("the repository root" if Path(checkers_dir) == Path(".")
-                 else Path(checkers_dir).as_posix())
-        return f"check_prompts.py not found at {where}; the store was not checked."
+        return "check_prompts.py not found at the repository root; the store was not checked."
     r = subprocess.run([sys.executable, str(checker)], capture_output=True,
                        text=True, cwd=root)
     tail = "\n".join(l for l in r.stdout.splitlines() if l.startswith((" -", "PASS", "FAIL")))
@@ -137,13 +135,14 @@ def guard(payload):
         return ("deny", f"dispatch_guard: could not preserve the dispatch, so it "
                         f"is blocked: {type(exc).__name__}: {exc}")
     rel = path.relative_to(root).as_posix()
-    check = store_check(root, config["checkers_dir"])
-    if type_ in ("build", "device"):
-        return ("ask", f"dispatch_guard: {type_} dispatch to {target} preserved at "
-                       f"{rel} (HEAD {head[:10]}). Operator approval required: "
-                       f"builds and device runs need approval.\n{check}")
-    return ("allow", f"dispatch_guard: pulse dispatch to {target} preserved at "
-                     f"{rel} (HEAD {head[:10]}). Pulses run without approval.\n{check}")
+    check = store_check(root)
+    if type_ in config["approval_exempt_types"]:
+        return ("allow", f"dispatch_guard: Type {type_!r} dispatch to {target} "
+                         f"preserved at {rel} (HEAD {head[:10]}). Type {type_!r} is "
+                         f"in approval_exempt_types, so it runs without approval.\n{check}")
+    return ("ask", f"dispatch_guard: Type {type_!r} dispatch to {target} preserved "
+                   f"at {rel} (HEAD {head[:10]}). Operator approval required: Type "
+                   f"{type_!r} is not in approval_exempt_types.\n{check}")
 
 
 if __name__ == "__main__":

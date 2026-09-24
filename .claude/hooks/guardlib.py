@@ -31,8 +31,9 @@ def emit(decision, reason):
 # hook always reads the config that was installed with it.
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "kit.json"
 CONFIG_REQUIRED = ("android_package", "protected_branches", "dispatchable_agents",
-                   "type_targets", "required_sections")
-CONFIG_DEFAULTS = {"checkers_dir": ".", "guard_env_prefix": "KIT_GUARD_"}
+                   "type_targets", "required_sections", "approval_exempt_types",
+                   "agent_roles")
+CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_"}
 CONFIG = None  # set by run() before the guard is called
 
 
@@ -85,10 +86,30 @@ def validate_config(data):
                             "section names")
         elif isinstance(targets, dict) and set(sections) != set(targets):
             problems.append("required_sections and type_targets must name the same types")
-    checkers = data.get("checkers_dir", CONFIG_DEFAULTS["checkers_dir"])
-    if not (isinstance(checkers, str) and checkers and not os.path.isabs(checkers)
-            and ".." not in Path(checkers).parts):
-        problems.append("checkers_dir must be a path relative to the repository root")
+    # Approval fails closed: every Type asks the operator unless it is listed
+    # here. Required, so that every exemption is written down.
+    exempt = data.get("approval_exempt_types")
+    if "approval_exempt_types" in data:
+        if not _string_list(exempt):
+            problems.append("approval_exempt_types must be a list of dispatch types "
+                            "(it may be empty)")
+        elif isinstance(targets, dict):
+            strays = sorted(t for t in exempt if t not in targets)
+            if strays:
+                problems.append(f"approval_exempt_types names type(s) "
+                                f"{', '.join(strays)} not in type_targets")
+    # Agent name -> role. A role name the kit does not define is not a
+    # config error: role_guard denies that agent everything at runtime.
+    roles = data.get("agent_roles")
+    if "agent_roles" in data:
+        if not (isinstance(roles, dict) and _string_list(list(roles))
+                and _string_list(list(roles.values()))):
+            problems.append("agent_roles must be an object of agent name -> role name")
+        elif _string_list(agents):
+            roleless = [a for a in agents if a not in roles]
+            if roleless:
+                problems.append(f"dispatchable agent(s) {', '.join(roleless)} have no "
+                                f"role in agent_roles")
     prefix = data.get("guard_env_prefix", CONFIG_DEFAULTS["guard_env_prefix"])
     if not (isinstance(prefix, str) and re.fullmatch(r"[A-Z_][A-Z0-9_]*", prefix)):
         problems.append("guard_env_prefix must be an upper-case environment-variable prefix")
@@ -140,15 +161,6 @@ def run(guard):
     if result is not None:
         emit(*result)
     return 0
-
-
-def role(payload):
-    """'planner' for the main session, else the subagent's agent_type.
-
-    On Claude Code 2.1.280, agent_type is absent in the main session and set
-    to the subagent's name inside one."""
-    agent_type = payload.get("agent_type")
-    return agent_type if agent_type else "planner"
 
 
 def command_of(payload):

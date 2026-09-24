@@ -163,6 +163,7 @@ class DispatchGuard(unittest.TestCase):
     # Values from .claude/kit.json
     def test_agents_types_and_sections_come_from_config(self):
         config = dict(TEST_CONFIG, dispatchable_agents=["coder", "reader"],
+                      agent_roles={"coder": "coder", "reader": "pulse"},
                       type_targets={"pulse": "reader", "build": "coder", "device": "coder"},
                       required_sections={"pulse": ["Role", "Question"],
                                          "build": ["Role", "Plan"],
@@ -183,20 +184,51 @@ class DispatchGuard(unittest.TestCase):
         self.assertIn("missing 1 required section(s): Question.", reason)
         self.assertEqual(len(self.written()), 2)
 
-    def test_checker_location_comes_from_config(self):
+    # Approval fails closed: a Type asks the operator unless the config
+    # exempts it by name.
+    def test_type_not_exempt_asks(self):
+        config = dict(TEST_CONFIG,
+                      type_targets=dict(TEST_CONFIG["type_targets"], review="coder"),
+                      required_sections=dict(TEST_CONFIG["required_sections"],
+                                             review=["Role", "Plan"]))
+        decision, reason = run_hook(HOOK, agent(prompt("review", ["Role", "Plan"]), "coder",
+                                                cwd=str(self.repo)), config=config)
+        self.assertEqual(decision, "ask", reason)
+        self.assertIn("Type 'review'", reason)
+        self.assertIn("Operator approval required", reason)
+        self.assertNotIn("pulse", reason.split("\n")[0])
+        self.assertEqual(len(self.written()), 1)
+
+    def test_approval_exemptions_come_from_config(self):
+        def decide(config, type_, sections, target):
+            return run_hook(HOOK, agent(prompt(type_, sections), target, cwd=str(self.repo)),
+                            config=config)
+        none_exempt = dict(TEST_CONFIG, approval_exempt_types=[])
+        decision, reason = decide(none_exempt, "pulse", PULSE_SECTIONS, "pulse")
+        self.assertEqual(decision, "ask", reason)
+        self.assertIn("Type 'pulse'", reason)
+        build_exempt = dict(TEST_CONFIG, approval_exempt_types=["pulse", "build"])
+        decision, reason = decide(build_exempt, "build", BUILD_SECTIONS, "coder")
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("Type 'build'", reason)
+        self.assertIn("approval_exempt_types", reason)
+        self.assertNotIn("pulse", reason.split("\n")[0])
+        decision, reason = decide(build_exempt, "device", BUILD_SECTIONS, "coder")
+        self.assertEqual(decision, "ask", reason)
+
+    def test_checkers_are_found_at_the_root_only(self):
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py exit ", reason)
         tools = self.repo / "tools"
         tools.mkdir()
         for name in ("check_record.py", "check_prompts.py"):
             (self.repo / name).rename(tools / name)
-        config = dict(TEST_CONFIG, checkers_dir="tools")
-        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
-                                                cwd=str(self.repo)), config=config)
-        self.assertEqual(decision, "allow", reason)
-        self.assertIn("check_prompts.py exit ", reason)
-        self.assertNotIn("not found", reason)
         decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
                                                 cwd=str(self.repo)))
-        self.assertIn("check_prompts.py not found", reason)
+        self.assertEqual(decision, "allow", reason)
+        self.assertIn("check_prompts.py not found at the repository root", reason)
 
     def test_outside_a_repository_blocks(self):
         outside = tempfile.mkdtemp(prefix="dispatch_guard_norepo_")

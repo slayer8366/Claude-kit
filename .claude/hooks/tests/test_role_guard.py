@@ -2,7 +2,7 @@
 read-only Bash. Run: python3 -m unittest discover -s .claude/hooks/tests"""
 import unittest
 
-from harness import bash, run_hook, tool
+from harness import TEST_CONFIG, bash, run_hook, tool
 
 HOOK = "role_guard.py"
 
@@ -38,10 +38,14 @@ class PlannerTools(unittest.TestCase):
 
     def test_grep_and_glob_not_on_the_planner_allowlist(self):
         # Neither exists as a tool on Claude Code 2.1.280; the design listed
-        # them in error (Claude-kit RECORD.md 2026-09-23-01).
+        # them in error (Claude-kit v0.1 addition).
         for name in ("Grep", "Glob"):
             with self.subTest(name):
                 self.assertDenied(tool(name), name, "planner")
+
+    def test_planner_may_not_hand_back(self):
+        # The hand-back tool is the pulse's only, not the planner's.
+        self.assertDenied(tool("SubagentHandback"), "SubagentHandback", "planner")
 
     def test_malformed_payload_fails_closed(self):
         decision, reason = run_hook(HOOK, "not json")
@@ -143,12 +147,75 @@ class OtherRoles(unittest.TestCase):
                 self.assertEqual(decision, "deny", f"{command!r}: {decision}")
                 self.assertIn("pulse", reason)
 
+    def test_pulse_may_hand_back(self):
+        # SubagentHandback delivers a subagent's report to its caller;
+        # without it a pulse runs and delivers nothing.
+        decision, reason = run_hook(HOOK, tool("SubagentHandback", "pulse",
+                                               {"message": "report"}))
+        self.assertIsNone(decision, reason)
+
     def test_pulse_tools_limited(self):
         for name in ("Write", "Edit", "mcp__example__list"):
             with self.subTest(name):
                 decision, reason = run_hook(HOOK, tool(name, "pulse"))
                 self.assertEqual(decision, "deny")
                 self.assertIn("pulse", reason)
+
+
+class Roles(unittest.TestCase):
+    """Restrictions come from the role agent_roles gives an agent, not from
+    the agent's name. An agent with no role, or with a role the kit does not
+    define, may use no tool at all."""
+
+    def roles(self, **extra):
+        return dict(TEST_CONFIG, agent_roles=dict(TEST_CONFIG["agent_roles"], **extra))
+
+    def test_an_agent_mapped_to_pulse_gets_the_pulse_restrictions(self):
+        config = self.roles(reader="pulse")
+        decision, reason = run_hook(HOOK, tool("Write", "reader"), config=config)
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("role_guard: the pulse role may not use Write", reason)
+        decision, reason = run_hook(HOOK, bash("git commit -m x", "reader"), config=config)
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("role_guard: the pulse role's Bash is read-only", reason)
+        decision, reason = run_hook(HOOK, tool("Read", "reader"), config=config)
+        self.assertIsNone(decision, reason)
+
+    def test_an_agent_mapped_to_planner_gets_the_planner_restrictions(self):
+        config = self.roles(scribe="planner")
+        decision, reason = run_hook(HOOK, tool("Write", "scribe"), config=config)
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("role_guard: the planner role may not use Write", reason)
+
+    def test_restrictions_follow_the_role_not_the_name(self):
+        config = dict(TEST_CONFIG, agent_roles={"coder": "coder", "pulse": "coder"})
+        decision, reason = run_hook(HOOK, tool("Write", "pulse"), config=config)
+        self.assertIsNone(decision, reason)
+
+    def test_an_agent_with_no_role_is_denied_everything(self):
+        for name in ("Read", "Bash", "Write"):
+            with self.subTest(name):
+                payload = (bash("git status", "general-purpose") if name == "Bash"
+                           else tool(name, "general-purpose"))
+                decision, reason = run_hook(HOOK, payload)
+                self.assertEqual(decision, "deny", reason)
+                self.assertIn("role_guard: agent 'general-purpose' has no role in "
+                              "agent_roles", reason)
+
+    def test_an_agent_with_an_unknown_role_is_denied_everything(self):
+        config = self.roles(reader="nosuch")
+        for name in ("Read", "Write"):
+            with self.subTest(name):
+                decision, reason = run_hook(HOOK, tool(name, "reader"), config=config)
+                self.assertEqual(decision, "deny", reason)
+                self.assertIn("role_guard: agent 'reader' has role 'nosuch'", reason)
+                self.assertIn("not one of the kit's roles", reason)
+
+    def test_the_main_session_is_always_the_planner(self):
+        config = self.roles(planner="coder")
+        decision, reason = run_hook(HOOK, tool("Write"), config=config)
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("role_guard: the planner role may not use Write", reason)
 
 
 if __name__ == "__main__":
