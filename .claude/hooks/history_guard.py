@@ -15,6 +15,18 @@ Force, gh pr merge and the filters match the whole command text. Push
 refspecs and the merge branch check are parsed per command segment, so a
 command hidden in a quoted string (sh -c '...') is seen by the first group
 and not by the second.
+
+Before the push check parses a command, heredoc bodies are removed. For
+each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"`, the lines after that
+line, up to and including the first line that is only WORD (after `<<-`,
+leading tabs are allowed), are data, not commands, and are dropped. A
+heredoc with no such closing line is not removed. Newlines outside quotes
+then separate commands as `;` does; a backslash before a newline continues
+the line and does not separate. A command that still cannot be parsed is
+blocked only if it contains a git push call (`git`, git's global options,
+then `push`). Any other unparseable command is let through by this check.
+The force, `gh pr merge`, filter and merge checks above still read the
+whole, unstripped text.
 """
 import re
 import subprocess
@@ -32,6 +44,68 @@ PR_MERGE = re.compile(r"\bgh\b[^;&|]*\spr\s+merge\b")
 FILTERS = re.compile(r"\bgit(?:\s+|-)(filter-(?:repo|branch))\b")
 MERGE = re.compile(r"\bgit\b((?:\s+(?:-C\s+\S+|-c\s+\S+|--no-pager))*)\s+merge\b(?!-)")
 PUSH_OPTS_WITH_VALUE = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
+GIT_PUSH = re.compile(r"\bgit\b" + GIT_OPTS + r"\s+push\b")
+HEREDOC = re.compile(r"<<(-?)(['\"]?)(\w+)\2")
+
+
+def strip_heredocs(command):
+    """The command with heredoc bodies removed, per the module docstring:
+    for each heredoc operator, the lines after its line up to and including
+    the first line that is only WORD (leading tabs allowed after <<-). A
+    heredoc with no closing line is kept."""
+    lines = command.split("\n")
+    drop = set()
+    for i, line in enumerate(lines):
+        if i in drop:
+            continue
+        for m in HEREDOC.finditer(line):
+            tabs_ok, word = m.group(1), m.group(3)
+            for j in range(i + 1, len(lines)):
+                if (lines[j].lstrip("\t") if tabs_ok else lines[j]) == word:
+                    drop.update(range(i + 1, j + 1))
+                    break
+    return "\n".join(line for i, line in enumerate(lines) if i not in drop)
+
+
+def command_lines(text):
+    """text split at newlines that separate commands: those outside single
+    and double quotes, not escaped by a backslash (a continuation), and not
+    inside a # comment's text. The states follow shlex's posix ones, so a
+    quote that shlex would see as open keeps its newlines too."""
+    pieces, cur, quote, i, n = [], [], None, 0, len(text)
+    while i < n:
+        c = text[i]
+        if quote == "'":
+            if c == "'":
+                quote = None
+        elif quote == '"':
+            if c == "\\" and i + 1 < n:
+                cur.append(c)
+                i += 1
+                c = text[i]
+            elif c == '"':
+                quote = None
+        elif c == "\\" and i + 1 < n:
+            cur.append(c)
+            i += 1
+            c = text[i]
+        elif c in "'\"":
+            quote = c
+        elif c == "#":
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            cur.append(text[i:end])
+            i = end
+            continue
+        elif c == "\n":
+            pieces.append("".join(cur))
+            cur = []
+            i += 1
+            continue
+        cur.append(c)
+        i += 1
+    pieces.append("".join(cur))
+    return pieces
 
 
 def current_branch(directory):
@@ -134,10 +208,13 @@ def guard(payload):
             return ("deny", f"history_guard: `git merge` while on {branch} is blocked. "
                             f"Merging into a protected branch is the operator's approval.")
 
+    text = strip_heredocs(command)
     try:
-        tokens = g.shell_tokens(command)
+        tokens = []
+        for piece in command_lines(text):
+            tokens += g.shell_tokens(piece) + [";"]
     except ValueError as exc:
-        if re.search(r"\bpush\b", command):
+        if GIT_PUSH.search(text):
             return ("deny", f"history_guard: could not parse this push ({exc}), "
                             f"so its target cannot be checked.")
         return None
