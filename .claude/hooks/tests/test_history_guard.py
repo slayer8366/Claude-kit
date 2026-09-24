@@ -124,6 +124,29 @@ class HistoryGuard(unittest.TestCase):
             with self.subTest(command):
                 self.assertPasses(command, self.on_main)
 
+    def test_heredoc_message_then_push_to_branch_allowed(self):
+        self.assertPasses("git commit -q --allow-empty -F - <<'EOF'\nDon't block this\nEOF\n"
+                          "git push origin feature", self.on_feature)
+
+    def test_word_push_in_unparseable_text_allowed(self):
+        self.assertPasses("echo don't push yet", self.on_feature)
+
+    def test_push_to_main_after_heredoc_blocked(self):
+        self.assertDenied("cat <<'EOF' > /tmp/x\nit's data\nEOF\ngit push origin main",
+                          self.on_feature, "protected branch")
+
+    def test_newline_separates_commands(self):
+        for command in ("git status\ngit push origin main",
+                        "cat <<EOF\ngit push origin main"):  # no closing line, so kept
+            with self.subTest(command):
+                self.assertDenied(command, self.on_feature, "protected branch")
+
+    def test_unparseable_push_and_continuation_still_blocked(self):
+        for command, word in (("git push origin feature && echo 'oops", "could not parse"),
+                              ("git push \\\norigin main", "main")):
+            with self.subTest(command):
+                self.assertDenied(command, self.on_feature, word)
+
 
 if __name__ == "__main__":
     unittest.main()
