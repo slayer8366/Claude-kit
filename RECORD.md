@@ -228,3 +228,36 @@ Item 6, confirmed by the owner after the ruling: the pulse role's allowlist bloc
 **Observed:** Live exercise case 2 (build to `coder`, awaiting approval), same session. The hook saved this dispatch there as `prompts/preserved/2026-09-23-06.md` (sha256 75ef241e651f7fe3b00daa01c48ea97dab90c51d1454269263b864515d38344f, preserved 2026-09-23T23:13:35Z); copied byte for byte into this store under the same name, sha256 matching on both sides. Session log line 80: `"permissionDecision": "ask"`, reason "Operator approval required: Type 'build' is not in approval_exempt_types."; line 81: "Denied by user". Approval was asked by the hook and declined by the owner. The same reason carries the hook's check_prompts run failing on the then-unrecorded `-05.md` and `-06.md` (expected, non-blocking).
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-23-10
+**Timestamp:** 2026-09-24T05:53:32Z
+**Closes:** 2026-09-23-04
+**Outcome:** completed
+**Report:** docs/audits/2026-09-23-kit-v0.1-fixes-completion-report.md
+**Observed:** Items 3, 1, 2, 6 and 4 committed and pushed on kit-v0.1-fixes: 2834f9d, 09fb92d, 162bd98 (under 2026-09-23-03), 271faad (item 6) and 3ce90e3 (item 4), then item 4b at 0e7f5f9 under 2026-09-23-06. Failing-first and sabotage evidence for items 3, 1, 2, 6 and 4 re-run in scratch (/tmp/kitfix_c04_evidence, backed up in ~/forager-backups/2026-09-24-01), with the messages the commits summarize; the report quotes them. The live exercise ran on 2026-09-23 in ~/Zynergy/Claude-kit, detached at 0e7f5f9: pulse allowed and reported (session log 62f3f7fc-29e7-4c89-8cf4-7279ef048198.jsonl line 49; pulse transcript lines 18-19); build asked and declined (lines 80, 81); Type/target mismatch and general-purpose blocked with toolDenialKind permission-rule (lines 92, 102). Recorded by dispatch-notes 2026-09-23-08 and -09 (3952128). Behaviour diff at 3952128: 49 source tests, only the Grep and Glob subtests fail. Test counts 68 -> 83 hook tests, 16 -> 18 install and release tests. PR kit-v0.1-fixes -> main is opened after the commit carrying this entry; no merge, no tag.
+**Deviations:** This terminal is written under intent 2026-09-23-07, a later dispatch, not by 04's own coder. Item 4b landed under 2026-09-23-06, not this intent. The live exercise's recording took one lost planner session and six stopped re-sends (cited in 2026-09-23-07). Planner prediction for item 4 and item 6 confirmed. Coder prediction (a)-(d) confirmed by the re-runs.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-11
+**Timestamp:** 2026-09-24T05:53:32Z
+**Closes:** 2026-09-23-06
+**Outcome:** completed
+**Report:** docs/audits/2026-09-23-kit-v0.1-fixes-completion-report.md
+**Observed:** Backup ~/forager-backups/2026-09-23-04 made and indexed; this intent at 92b26d3 and item 4b at 0e7f5f9, pushed; ~/Zynergy/Claude-kit was detached at 0e7f5f9 for the live exercise, which the owner ran there. Restored on 2026-09-24 at 05:51Z under 2026-09-23-07: with only claude PIDs 110686 and 110712 (cwd ~/Zynergy/Claude-kit, both running during the switch) and PIDs 100263, 101054 and 110771 gone, `git -C ~/Zynergy/Claude-kit checkout kit-v0.1` succeeded without force; HEAD a544ca9d504782a17b62dc77f82895ec9c0056ba on kit-v0.1. The untracked prompts/preserved/2026-09-23-05.md and -06.md there are untouched (hashes unchanged); check_prompts.py at kit-v0.1 in that checkout reports them unclaimed, as expected, since they are recorded on this branch. No signal sent.
+**Deviations:** This terminal is written under intent 2026-09-23-07, not by 06's own coder. Planner prediction confirmed (18 denylist patterns; detached checkout with the new keys). Coder prediction (e): the hook did number the exercise's dispatches from 05 in that checkout.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-23-12
+**Timestamp:** 2026-09-24T05:53:45Z
+**Closes:** 2026-09-23-07
+**Outcome:** completed
+**Report:** docs/audits/2026-09-23-kit-v0.1-fixes-completion-report.md
+**Observed:** H1 evidence quoted in the report from the exercise log (lines 49, 80, 81, 92, 102) and the pulse transcript (lines 18, 19). H2 backup ~/forager-backups/2026-09-24-01: 930 files, MANIFEST.sha256 d0bbe177b7ecbb44cede7393a9eba692f9e22c0188be1109d24469ebf672a183, verified on both sides at 2026-09-24T05:49:39Z, one INDEX.md line; taken after this intent was appended and before any commit (S2). H3 at 3952128: store copies sha256-matched on both sides; both checkers passed (7 files, 7 dispatch-recording entries). H4: /proc/100263 absent, as the lost planner log's line 512 records; no signal sent. H5: switched, see 2026-09-23-11. H6: terminals 2026-09-23-10, -11 and this one. H7: the report. Behaviour diff: 49 source tests, only the two Grep/Glob failures. Checks on each commit: 83 hook tests, 18 install and release tests, render checks 23/23 and 5/5, release check PASS with 18 patterns. No match for the dispatch's H7 regex in the report, RECORD.md or the store. Planner prediction confirmed in full. Coder prediction (a)-(d) confirmed. H8, the PR and its CI result, follows the commit carrying this entry and is reported in the hand-back.
+**Deviations:** The exercise files -05.md and -06.md were copied into the store with this dispatch's copy, before the intent was appended, rather than after it. The dispatch cited dispatch_guard.py:103-106,121-123; at 0e7f5f9 the denials are at 102-105 and 120-122, and the record and report cite those. Notes carry an Observed field for the text S1 asks for. Terminal IDs -10 to -12 continue R4's series. An extra scratch file, /tmp/.kf_all_unused (a file list), was written by mistake during the backup planning and left in place.
+
+---
