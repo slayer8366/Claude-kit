@@ -15,6 +15,18 @@ Force, gh pr merge and the filters match the whole command text. Push
 refspecs and the merge branch check are parsed per command segment, so a
 command hidden in a quoted string (sh -c '...') is seen by the first group
 and not by the second.
+
+Before the push check parses a command, heredoc bodies are removed. For
+each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"`, the lines after that
+line, up to and including the first line that is only WORD (after `<<-`,
+leading tabs are allowed), are data, not commands, and are dropped. A
+heredoc with no such closing line is not removed. Newlines outside quotes
+then separate commands as `;` does; a backslash before a newline continues
+the line and does not separate. A command that still cannot be parsed is
+blocked only if it contains a git push call (`git`, git's global options,
+then `push`). Any other unparseable command is let through by this check.
+The force, `gh pr merge`, filter and merge checks above still read the
+whole, unstripped text.
 """
 import re
 import subprocess
