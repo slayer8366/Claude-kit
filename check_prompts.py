@@ -50,7 +50,17 @@ asks a different question (dispatch-file binding) than that function
 answers (intent/terminal shape and sentinel handling), and duplicating
 its required-field logic here would only reintroduce a second copy of
 rules that already live in check_record.py.
+
+Store names (Claude-kit v0.2 addition): every file under
+prompts/preserved/ (not recovered/) must be named YYYY-MM-DD-NN.md, and
+the date in its name must equal the UTC date of the Preserved: line in
+its header (the lines before "--- verbatim prompt follows ---"). A file
+with no such line is an error. Files named before 2026-09-24-05,
+compared as (date, number) and not as text, are exempt: they were in
+the store before the rule began. The rule reads only names and headers,
+never git, so it runs the same in CI and in an adopter.
 """
+import re
 import sys
 from pathlib import Path
 
@@ -62,6 +72,57 @@ RECORD_NAME = "RECORD.md"
 PROMPTS_DIR = "prompts"
 DISPATCH_FIELD = "Dispatch-file"
 PROVENANCE_DIRS = ("preserved", "recovered")
+
+# Claude-kit v0.2 addition: the store-name rule (see module docstring).
+STORE_NAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(\d{2,})\.md$")
+HEADER_DELIMITER = "--- verbatim prompt follows ---"
+PRESERVED_PREFIX = "Preserved: "
+# Exempts the files in the store before the rule began: a name whose
+# (date, number) is below this pair is not checked against its header.
+STORE_NAME_CUTOFF = ("2026-09-24", 5)
+
+
+def store_name_errors(repo_dir, on_disk):
+    """Errors for files under prompts/preserved/ that break the store-name
+    rule: a name not of the form YYYY-MM-DD-NN.md, or, for a name at or
+    after STORE_NAME_CUTOFF, a header with no Preserved: line or one whose
+    date differs from the name's date."""
+    errors = []
+    prefix = f"{PROVENANCE_DIRS[0]}/"
+    for rel in sorted(on_disk):
+        if not rel.startswith(prefix):
+            continue
+        name = rel[len(prefix):]
+        match = STORE_NAME_RE.match(name)
+        if not match:
+            errors.append(
+                f"{PROMPTS_DIR}/{rel}: name does not match YYYY-MM-DD-NN.md")
+            continue
+        name_date, number = match.group(1), int(match.group(2))
+        if (name_date, number) < STORE_NAME_CUTOFF:
+            continue
+        text = (Path(repo_dir) / PROMPTS_DIR / rel).read_text(
+            encoding="utf-8", errors="replace")
+        preserved = None
+        for line in text.splitlines():
+            if line == HEADER_DELIMITER:
+                break
+            if line.startswith(PRESERVED_PREFIX):
+                preserved = line[len(PRESERVED_PREFIX):]
+                break
+        if preserved is None:
+            errors.append(
+                f"{PROMPTS_DIR}/{rel}: its header has no "
+                f"{PRESERVED_PREFIX.strip()!r} line before "
+                f"{HEADER_DELIMITER!r}, so its name's date cannot be checked")
+            continue
+        header_date = preserved[:10]
+        if header_date != name_date:
+            errors.append(
+                f"{PROMPTS_DIR}/{rel}: name's date {name_date} differs from "
+                f"its header's Preserved date {header_date}; a store copy's "
+                f"name must carry the UTC date of its Preserved: line")
+    return errors
 
 
 def dispatch_claims(text):
@@ -194,6 +255,8 @@ def check_binding(repo_dir=None):
         errors.append(
             f"{PROMPTS_DIR}/{rel} exists but no RECORD.md entry's "
             f"{DISPATCH_FIELD!r} field names it")
+
+    errors.extend(store_name_errors(repo_dir, on_disk))
 
     if stray:
         errors.append(
