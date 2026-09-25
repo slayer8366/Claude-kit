@@ -61,6 +61,7 @@ it does not change what they say.
   (tests/test_install.py:139-148). A sabotage test fails when the check is
   removed (2026-09-23-02, RECORD.md:80: "sabotage of ... install.py's
   settings check ... failed a test naming the edit").
+- **Superseded-by:** SR-04
 
 ### SR-03. Backups are never deleted by agents
 
@@ -71,6 +72,33 @@ it does not change what they say.
 - **Scope:** Backups only. Worktrees, scratch files and branches are not
   covered here; see B-01.
 - **Enforced by:** Unverified.
+
+### SR-04. An upgrade replaces an adopter's settings only if unedited
+
+- **Ruling:** On an upgrade, `.claude/settings.json` is replaced only if its
+  sha256 equals the old lock's (the adopter never edited it); an edited one
+  stops the upgrade before anything is written. No merge. On a first install,
+  a `.claude/settings.json` that exists and differs from the release's still
+  stops the install.
+- **Source:** The owner's T13 answer "Unedited may update" (planner log
+  791cc457 line 668, 2026-09-25T03:30:16.967Z) to the question at line 662,
+  whose option text reads: "Narrow it: settings.json is replaced only if its
+  sha256 equals the old lock's (the adopter never edited it); any edit still
+  stops the upgrade, as now. This changes an owner ruling, so it would be
+  recorded as superseding 2026-09-23-01 ruling 4(6)." Recorded in intent
+  2026-09-25-18 (RECORD.md:1147, and its Supersedes-ruling field at :1152).
+- **Scope:** `install.py` and any later tool that writes into an adopter.
+- **Enforced by:** Code, `install.py` at 742d10f. An upgrade classifies every
+  path before writing (`plan_upgrade`, install.py:161-180): a kept path whose
+  sha256 differs from the old lock's is a stop (:170-171), an unchanged one is
+  written (:172-173), and any stop raises before the first write (:200-205).
+  A first install keeps the old check (:191-197). Tested by
+  `test_u4_unedited_settings_json_is_replaced` (tests/test_install.py:270-277)
+  and `test_u5_edited_settings_json_stops` (:279-285); the first-install case
+  by `test_differing_settings_json_stops_and_writes_nothing` (:176).
+- **Supersedes:** SR-02, whose ruling reads: "If an adopter's
+  `.claude/settings.json` exists and differs from the kit's, stop and report.
+  No merge, no replacement."
 
 ## Part B. Practices waiting for an owner ruling
 
@@ -98,6 +126,7 @@ owner's yes, no or changed wording before it moves to Part A.
 - **Why ask:** Ruling 3 covers one clone. The `/tmp` exemption is proposed by
   the planner, following the owner's suggestion; T7's cleanup depends on this
   ruling.
+- **Superseded-by:** B-12
 
 ### B-02. Two failed fixes on one symptom, then data only
 
@@ -196,6 +225,7 @@ owner's yes, no or changed wording before it moves to Part A.
     false` on 2026-09-25 at about 03:25Z; the rulesets API answered that
     rulesets are not available on the repository's plan). The GitHub web interface and any tool the hooks do not cover can
     merge.
+- **Superseded-by:** B-11
 
 ### B-08. A push the guard cannot parse stays blocked
 
@@ -238,6 +268,72 @@ owner's yes, no or changed wording before it moves to Part A.
 - **Enforced by:** Convention; no checker. CI checks out a single commit with
   no history (check_record.py:62-66; coder.md:73-74 at 82725c4).
 
+### B-11. Coders merge at the planner's discretion, after a backup
+
+- **Proposed ruling:** In the owner's words (planner log 791cc457 line 712):
+  "coders should be able to merge at the discretion of the planner. All
+  merged work must contain a backup, so any merge should be able to be undone
+  by the owner later on". The backup: before merging, the coder writes a git
+  bundle of the target branch as it stands, with the pre-merge SHA and the PR
+  number, in a new ~/forager-backups folder with MANIFEST.sha256 and one
+  INDEX.md line. history_guard checks it.
+- **Source:** The owner, planner log 791cc457 line 712
+  (2026-09-25T03:33:54.808Z), point 2, and the owner's answers at line 717
+  (03:34:45.988Z) to the questions at line 716: "Bundle in forager-backups
+  (Recommended)", "history_guard checks (Recommended)" and "Next, after T13
+  (Recommended)". The owner approved this entry's ruling wording at line 903
+  (05:07:45.503Z, "That works as written"). Recorded in 2026-09-25-24.
+- **Scope:** Merges of pull requests into the protected branch.
+- **Enforced by:** Not yet. Today history_guard blocks `gh pr merge` for every
+  role, the coder included (history_guard.py:192-194 at 742d10f). Task T17
+  adds the check: the coder only, a backup for that PR indexed with a passing
+  manifest, and its SHA equal to the branch tip.
+- **Evidence:** The handover that opened planner session 791cc457 (line 25,
+  2026-09-24T22:31:06Z) says "Coders never merge or tag."; it is not the
+  owner's (line 712, point 1, as the planner read it at line 715). The owner's
+  own T12 handover (planner log a5d14103 line 25, 2026-09-24T21:32:03Z) said
+  "Coders never merge or tag."; the owner confirmed that handover as theirs
+  ("That one is mine", 791cc457 lines 853 and 882), and line 712 replaces
+  that statement. So B-07's "No owner ruling in the record" was wrong: the
+  owner's statement was in the a5d14103 handover, not in the record.
+- **Supersedes:** B-07, whose proposed ruling reads: "Only the owner merges a
+  pull request. No agent merges."
+
+### B-12. Agents delete nothing
+
+- **Proposed ruling:** No agent deletes a worktree, branch or store file, or
+  any file another agent or the owner may need. Cleanup means stopping
+  processes and recording what was left. An agent may delete its own scratch
+  files under `/tmp`, provided each deletion is reported in its hand-back.
+- **Source:** No owner ruling; proposed by the planner, as B-01 was.
+- **Scope:** Deletion by any agent of worktrees, branches, store files and
+  files another agent or the owner may need. The exception is an agent's own
+  scratch files under `/tmp`, each reported. Backups are SR-03's.
+- **Enforced by:** Partly code, for the planner and the pulse only:
+  role_guard.py blocks `rm` by name (role_guard.py:77) and allows
+  `git worktree` only with `list` (:130-131). The coder is not checked by
+  role_guard (:308-309). Convention for the coder.
+- **Evidence:** Everything in B-01's Evidence, and:
+  - The owner on `/tmp/t9_fd.txt`, answering the planner's "Whose file was
+    `/tmp/t9_fd.txt`?" (planner log 791cc457 line 683): "1 I don't know who
+    wrote it, it's not mine." (line 712, 2026-09-25T03:33:54.808Z). The file
+    was not the owner's; whose it was is unknown.
+  - The T13 coders deleted `/tmp` scratch of their own and reported it.
+    Terminal 2026-09-25-19 (RECORD.md:1221) records its coder making and
+    deleting `/tmp/t13_adhoc_*`; its hand-back (planner log line 738) lists
+    the scratch files it left in place (`/tmp/t13_dump.py`,
+    `/tmp/t13_cmp.py`, `/tmp/t13_terminal.md`, `/tmp/t13_revert_HeqF`).
+    Terminals 2026-09-25-21 (RECORD.md:1326, `/tmp/t13fu_revert_71iZ`) and
+    2026-09-25-23 (RECORD.md:1428, `/tmp/t13fu2_revert_2ZOb`) each record the
+    coder making its revert directory and deleting it.
+- **Supersedes:** B-01, whose proposed ruling reads: "No agent deletes a
+  worktree, branch or store file, or any file another agent or the owner may
+  need. Cleanup means stopping processes and recording what was left. An
+  agent may delete its own scratch files under `/tmp`, provided each deletion
+  is reported in its hand-back."
+
 ## Superseded rulings
 
-None yet.
+- SR-02, superseded by SR-04.
+- B-01, superseded by B-12.
+- B-07, superseded by B-11.
