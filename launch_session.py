@@ -30,11 +30,29 @@ The rule, in the order it runs:
    of the group is left (from /proc: a process whose pgrp is the group and
    whose state is not zombie; without /proc, `os.killpg(pgid, 0)`). Any
    left are named, and the exit is 3 anyway.
-6. Report, one line per fact: session id; the log path Claude Code is
-   expected to write (`~/.claude/projects/<real cwd with / and . turned
-   into ->/<uuid>.jsonl`) and whether it exists; claude's exit code
-   (negative: killed by that signal number); elapsed seconds; signals sent; processes of the group left, if any;
-   the outcome.
+6. Interruption. SIGINT, SIGTERM or SIGHUP to the launcher while the hooks
+   check or the session is running stops that process group as the time
+   limit does (5), prints the report with the outcome "interrupted by
+   <signal>", and exits 130. A signal that arrives while no hook check or
+   session is running (the pre-check, between the hooks check and the
+   launch, or after the session's leader has exited) exits 130 at once
+   with one line on stderr, killing nothing. A signal that arrives while a
+   group is already being stopped is ignored; that stop goes on.
+7. Report, one line per fact: session id; the session log, found by its
+   session id as the one file matching `<projects root>/*/<uuid>.jsonl`
+   (or "not found" with that pattern, or "ambiguous" with every match);
+   claude's exit code (negative: killed by that signal number); elapsed
+   seconds; signals sent; processes of the group left, if any; the
+   outcome.
+
+The projects root is `$LAUNCH_SESSION_PROJECTS_ROOT` when set (for tests),
+else `$CLAUDE_CONFIG_DIR/projects` when CLAUDE_CONFIG_DIR is set (inferred,
+not verified), else `~/.claude/projects`. The launcher does not compute the
+project directory's name. Claude Code names it from the session's cwd:
+every character outside [A-Za-z0-9] becomes `-`; per the installed Claude
+Code 2.1.282, a name over 200 characters is cut and given a hash suffix
+(read from the binary, not verified). The session id is a fresh UUID, so
+the log is found by it instead.
 
 Exit codes:
   0  finished: the session exited on its own before the limit, after a
@@ -45,6 +63,7 @@ Exit codes:
   4  wrong session (a pre-check, the hooks check, or the init's identity)
   5  failed to start (claude not found or not runnable, or no init message
      before claude exited or the limit passed)
+  130 interrupted by SIGINT, SIGTERM or SIGHUP (6)
 
 It writes only `--out` and `<out>.stderr`, both created new at launch, so
 a failed check writes nothing. It deletes no log, no output file and no
@@ -66,10 +85,61 @@ import threading
 import time
 import uuid
 
-FINISHED, USAGE, TIMED_OUT, WRONG, NO_START = 0, 2, 3, 4, 5
+FINISHED, USAGE, TIMED_OUT, WRONG, NO_START, INTERRUPTED = 0, 2, 3, 4, 5, 130
 POLL = 0.1
 KILL_WAIT = 5.0
 GIT_TIMEOUT = 60
+
+
+PROJECTS_ENV = "LAUNCH_SESSION_PROJECTS_ROOT"
+HANDLED = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+
+# The process group a signal would stop: `proc` while a hook check or the
+# session runs; `starting` while one is being started (a signal then waits in
+# `pending`); `stopping` while a group is being stopped.
+STATE = {"proc": None, "starting": False, "pending": None, "stopping": False}
+
+
+class Interrupted(Exception):
+    def __init__(self, signum):
+        Exception.__init__(self, signum)
+        self.signum = signum
+
+
+def signame(signum):
+    try:
+        return signal.Signals(signum).name
+    except ValueError:
+        return "signal %d" % signum
+
+
+def exit_now(signum):
+    """A signal with no hook check or session running: exit 130, kill nothing."""
+    try:
+        sys.stdout.flush()
+        sys.stderr.write("launch_session: interrupted by %s with no hook check or session "
+                         "running; nothing was stopped\n" % signame(signum))
+        sys.stderr.flush()
+    except (OSError, ValueError):
+        pass
+    os._exit(INTERRUPTED)
+
+
+def on_signal(signum, frame):
+    if STATE["stopping"]:
+        return
+    if STATE["proc"] is not None:
+        STATE["stopping"] = True
+        raise Interrupted(signum)
+    if STATE["starting"]:
+        STATE["pending"] = signum
+        return
+    exit_now(signum)
+
+
+def ended():
+    """The running process's leader has exited: a signal now kills nothing."""
+    STATE["proc"] = None
 
 
 class Stop(Exception):
@@ -176,7 +246,16 @@ def reap(proc):
 
 def stop_group(proc, grace):
     """SIGTERM the group, wait up to grace for it to empty, then SIGKILL.
-    Returns (signals sent, PIDs still left)."""
+    Returns (signals sent, PIDs still left). Signals are ignored meanwhile."""
+    STATE["stopping"] = True
+    try:
+        return _stop_group(proc, grace)
+    finally:
+        STATE["proc"] = None
+        STATE["stopping"] = False
+
+
+def _stop_group(proc, grace):
     pgid = proc.pid
     sent = []
     if signal_group(pgid, signal.SIGTERM):
@@ -203,14 +282,27 @@ def stop_group(proc, grace):
         time.sleep(POLL)
 
 
-def start(argv, cwd, data, on_line, stderr, env=None):
+def start(argv, cwd, data, on_line, stderr, env=None, on_start=None):
     """Start argv in its own session and process group. data goes to stdin
     from a thread; each stdout line goes to on_line from a reader thread.
-    stderr is a file object, or a callable given the whole stderr text."""
+    stderr is a file object, or a callable given the whole stderr text.
+    The process is registered for signals (STATE) before start returns; a
+    signal that arrived while it was starting is acted on then."""
     err_target = stderr if not callable(stderr) else subprocess.PIPE
-    proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, stderr=err_target,
-                            start_new_session=True)
+    STATE["starting"] = True
+    try:
+        proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stderr=err_target,
+                                start_new_session=True)
+    except BaseException:
+        STATE["starting"] = False
+        if STATE["pending"] is not None:
+            exit_now(STATE["pending"])
+        raise
+    STATE["proc"] = proc
+    STATE["starting"] = False
+    if on_start is not None:
+        on_start(proc)
 
     def feed():
         try:
@@ -234,6 +326,9 @@ def start(argv, cwd, data, on_line, stderr, env=None):
         threads.append(threading.Thread(target=read_err, daemon=True))
     for t in threads:
         t.start()
+    if STATE["pending"] is not None and not STATE["stopping"]:
+        STATE["stopping"] = True
+        raise Interrupted(STATE["pending"])
     return proc, threads
 
 
@@ -263,6 +358,7 @@ def hooks_check(cwd, real, sid, timeout, grace):
                        % (hook, fmt(timeout), ", ".join(sent) or "nothing",
                           "; processes left: %s" % left if left else ""))
         time.sleep(POLL)
+    ended()
     join(threads, 5)
     text = b"".join(out).decode("utf-8", "replace").strip()
     errtext = b"".join(err).decode("utf-8", "replace").strip()
@@ -276,9 +372,36 @@ def fmt(seconds):
     return ("%g" % seconds)
 
 
-def log_path(real, sid):
-    return os.path.join(os.path.expanduser("~"), ".claude", "projects",
-                        real.replace("/", "-").replace(".", "-"), sid + ".jsonl")
+def projects_root():
+    root = os.environ.get(PROJECTS_ENV)
+    if root:
+        return root
+    config = os.environ.get("CLAUDE_CONFIG_DIR")
+    if config:
+        return os.path.join(config, "projects")  # inferred, not verified
+    return os.path.join(os.path.expanduser("~"), ".claude", "projects")
+
+
+def find_log(root, sid):
+    """(pattern, matches): every <root>/<dir>/<sid>.jsonl that is a file."""
+    name = sid + ".jsonl"
+    pattern = os.path.join(root, "*", name)
+    try:
+        dirs = sorted(os.listdir(root))
+    except OSError:
+        return pattern, []
+    return pattern, [os.path.join(root, d, name) for d in dirs
+                     if os.path.isfile(os.path.join(root, d, name))]
+
+
+def log_line(sid):
+    pattern, matches = find_log(projects_root(), sid)
+    if not matches:
+        return "log: not found (%s)" % pattern
+    if len(matches) > 1:
+        return "log: ambiguous, %d files match %s: %s" % (len(matches), pattern,
+                                                         ", ".join(matches))
+    return "log: %s" % matches[0]
 
 
 class Stream:
@@ -333,14 +456,17 @@ def launch(args, real, sid, prompt, report):
     stream = Stream(out)
     began = time.monotonic()
     report["session id"] = sid
+
+    def registered(proc):
+        report["_began"] = began
+        report["_pgid"] = proc.pid
+
     try:
-        proc, threads = start(argv, args.cwd, prompt, stream.line, err)
+        proc, threads = start(argv, args.cwd, prompt, stream.line, err, on_start=registered)
     except OSError as e:
         raise Stop(NO_START, "failed to start: %s: %s" % (claude, e))
     finally:
         err.close()
-    report["_began"] = began
-    report["_pgid"] = proc.pid
     deadline = began + args.timeout
     checked = False
     while True:
@@ -353,6 +479,7 @@ def launch(args, real, sid, prompt, report):
                 report["claude exit code"] = proc.returncode
                 raise Stop(WRONG, "wrong session: %s" % problem)
         if proc.poll() is not None:
+            ended()
             break
         if time.monotonic() >= deadline:
             sent, left = stop_group(proc, args.grace)
@@ -417,6 +544,8 @@ def parse(argv):
 
 
 def main(argv=None):
+    for sig in HANDLED:
+        signal.signal(sig, on_signal)
     args, prompt = parse(sys.argv[1:] if argv is None else argv)
     real = os.path.realpath(args.cwd)
     sid = str(uuid.uuid4())
@@ -427,11 +556,18 @@ def main(argv=None):
         code, outcome = FINISHED, launch(args, real, sid, prompt, report)
     except Stop as stop:
         code, outcome = stop.code, stop.outcome
+    except Interrupted as intr:
+        proc = STATE["proc"]
+        sent, left = stop_group(proc, args.grace)
+        report["signals"], report["_left"], report["_pgid"] = sent, left, proc.pid
+        during = "" if "_began" in report else " during the hooks check"
+        if "_began" in report:
+            report["claude exit code"] = proc.returncode
+        code, outcome = INTERRUPTED, "interrupted by %s%s" % (signame(intr.signum), during)
     launched = "_began" in report
-    path = log_path(real, sid)
     print("session id: %s" % (sid if launched else "none (not launched)"))
     if launched:
-        print("log: %s (%s)" % (path, "exists" if os.path.exists(path) else "not found"))
+        print(log_line(sid))
     else:
         print("log: none (not launched)")
     rc = report.get("claude exit code")

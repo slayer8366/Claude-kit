@@ -87,7 +87,12 @@ sit at the repository root.
     directory's `INDEX.md`. Then merge by pull request
     number with a merge commit or a squash, and cite the backup folder in
     your terminal. history_guard refuses the merge if any of this is
-    missing.
+    missing. Last, update the main checkout (the checkout on the base
+    branch, where the dispatch hook saves dispatches) with the
+    `update_worktree.py` you just merged: first a dry run,
+    `python3 <your checkout>/update_worktree.py <main checkout>`, then
+    the same with `--apply`. Report both outputs. If either exits 1,
+    report it and do nothing further.
 11. **Re-sends.** A store copy whose header carries `Repeat-of:` is the
     named dispatch sent again, unchanged. If that dispatch's intent is
     still open, record the re-send with a continuation (item 7) citing

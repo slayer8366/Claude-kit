@@ -127,6 +127,14 @@ line in `backup_dir/INDEX.md` naming the folder, `#<N>` and the pre-merge SHA.
 merge.json's `sha` must still be the tip of
 `origin/<branch>`. The planner and the pulse are always denied.
 
+After the merge, the coder updates the main checkout (the checkout on the
+base branch, where the dispatch hook saves dispatches) with the
+`update_worktree.py` it just merged: a dry run, then `--apply` (see
+"Updating a harness worktree"). It reports both outputs and, if either
+exits 1, stops there. In this repository that is
+`python3 ~/Zynergy/Claude-kit-fixes/update_worktree.py ~/Zynergy/Claude-kit`,
+then the same with `--apply`.
+
 To undo a merge, find the backup folder whose `merge.json` has the PR's
 number, then either:
 
@@ -175,7 +183,14 @@ so the operator runs the copy commands. It exits 1 if any item is `stop`.
 
     python3 update_worktree.py <worktree path> [--apply]
 
-A dispatch the hook saved sits untracked in the planner's worktree; once its
+The tool fast-forwards a harness worktree, or the main checkout, to
+`origin/<first protected branch>`. A checkout on that branch itself (the main
+checkout) is updated the same way as a worktree on an unprotected branch;
+coder.md item 10 runs it on the main checkout after every merge. This is not
+a way around history_guard: a fast-forward to origin's own tip changes
+nothing on the remote and merges nothing new into the branch.
+
+A dispatch the hook saved sits untracked in the main checkout; once its
 store copy is on the default branch, that untracked file blocks
 `git merge --ff-only`. By default the tool is a read-only dry run against
 `origin/<first protected branch>` as last fetched: it lists the untracked
@@ -183,8 +198,9 @@ files byte-identical to that branch's copies (to move), the other untracked
 files (left alone) and the fast-forward range. `--apply` fetches, moves the
 identical files into a new `<backup_dir>/<UTC date>-NN/` folder with a
 `MANIFEST.sha256` and one `INDEX.md` line, then runs `git merge --ff-only`.
-It stops before moving anything, exit 1, on a protected branch or a detached
-HEAD, on commits of the worktree's own, on changes to tracked files, on an
+It stops before moving anything, exit 1, on a detached HEAD, on a protected
+branch other than the target, on commits of the worktree's own (not a
+fast-forward), on changes to tracked files, on an
 untracked file that differs from the branch's copy, and (with `--apply`)
 without `backup_dir`. Ignored files are never touched and nothing is deleted.
 The rules are in the script's docstring.
@@ -237,9 +253,12 @@ it sent running, finished or dead. Settle every one of them before
 re-sending anything:
 
 1. Find the lost session's log:
-   `~/.claude/projects/<project>/<sessionId>.jsonl`, where `<project>` is the
-   session's working directory with characters such as `/`, `.` and `_`
-   turned into `-`. Its
+   `~/.claude/projects/<project>/<sessionId>.jsonl`. `<project>` is named
+   from the session's working directory: every character outside
+   [A-Za-z0-9] becomes `-`; per the installed Claude Code 2.1.282, a name
+   over 200 characters is cut and given a hash suffix (read from the
+   binary, not verified). The tools find logs by session id rather than by
+   computing the name: `ls ~/.claude/projects/*/<sessionId>.jsonl`. Its
    subagents' transcripts are in `<sessionId>/subagents/` beside it.
 2. Run `python3 session_agents.py <that log>`. For each Agent call it prints
    the timestamp, tool_use id, type, description, foreground or background,
@@ -309,12 +328,29 @@ It runs these steps in order. Each check stops the run with a reason.
    `claude remote-control --help`, which printed nothing for more than 2
    minutes (RECORD.md 2026-09-23-07) and left its process, PID 100263,
    behind until the next morning (2026-09-23-11).
+6. **Interruption.** SIGINT (Ctrl-C), SIGTERM or SIGHUP to the launcher while
+   the hooks check or the session is running stops that process group the
+   same way as step 5, prints the report with the outcome
+   `interrupted by <signal>`, and exits 130. The session runs in its own
+   process group, so without this a Ctrl-C would end the launcher and leave
+   the session running. A signal that arrives while nothing is running (the
+   pre-check, between the hooks check and the launch, or after the session
+   has exited) exits 130 at once, with one line on stderr, and kills
+   nothing. A signal that arrives while a group is already being stopped is
+   ignored, and that stop goes on.
 
 Then it prints one line per fact:
 - the session id
-- the log path `~/.claude/projects/<cwd with / and . turned into ->/<uuid>.jsonl`,
-  and whether it exists (Claude Code also turns other characters, such as
-  `_`, into `-`, so for such a path the line can say "not found" wrongly)
+- the session log, found by its session id as the one file matching
+  `<projects root>/*/<uuid>.jsonl`, or "not found" with that pattern, or
+  "ambiguous" with every match. The projects root is
+  `$LAUNCH_SESSION_PROJECTS_ROOT` when set (the tests use it), else
+  `$CLAUDE_CONFIG_DIR/projects` when CLAUDE_CONFIG_DIR is set (inferred),
+  else `~/.claude/projects`. The launcher does not compute the directory
+  name. Claude Code names it from the cwd: every character outside
+  [A-Za-z0-9] becomes `-`; per the installed Claude Code 2.1.282, a name over
+  200 characters is cut and given a hash suffix (read from the binary, not
+  verified).
 - claude's exit code (negative means killed by that signal)
 - the elapsed seconds
 - the signals sent and any processes left, when there are any
@@ -329,6 +365,7 @@ Exit codes:
 | 3 | timed out |
 | 4 | wrong session: the checkout, the hooks or the init's identity |
 | 5 | failed to start: claude not found or not runnable, or no init message before claude exited or the limit passed |
+| 130 | interrupted: SIGINT, SIGTERM or SIGHUP (step 6) |
 
 It deletes nothing: no session log, no output file and no worktree. It
 writes only `--out` and `<out>.stderr`, and it creates both new at launch,
