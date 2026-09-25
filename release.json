@@ -19,7 +19,8 @@
     "check_record.py",
     "check_prompts.py",
     "check_kit.py",
-    "find_dispatches.py"
+    "find_dispatches.py",
+    "update_worktree.py"
   ],
   "templates": {
     "templates/kit.json": ".claude/kit.json"
