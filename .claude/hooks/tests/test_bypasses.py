@@ -1,9 +1,11 @@
 """The guards' known bypasses, .claude/hooks/BYPASSES.md.
 
-Each row's test asserts that the bypass still gets through today: the hook
-gives no decision for the row's inputs. A fix that closes a bypass makes its
-test fail, and the table is updated with it. Every input is sent to the hook
-as a payload; nothing is pushed, merged or run on a device.
+An `accepted` row's test asserts that the bypass still gets through: the
+hook gives no decision for the row's inputs. A fix that closes a bypass makes
+that test fail, and the table is updated with it. A `fixed` row's test
+asserts the block instead: each input gets a deny naming the reason. Every
+input is sent to the hook as a payload; nothing is pushed, merged or run on
+a device.
 
 test_table_docstrings_and_tests_agree checks the table against the guards'
 docstrings and this file: each guard's docstring has a "Known bypasses"
@@ -64,6 +66,12 @@ class Bypasses(unittest.TestCase):
         self.assertIsNone(decision, f"{hook} now decides {decision!r} ({reason}); "
                                     f"if this closes the bypass, update BYPASSES.md")
 
+    def assertBlocked(self, hook, payload, words):
+        decision, reason = run_hook(hook, payload)
+        self.assertEqual(decision, "deny", f"{hook} gives {decision!r} ({reason}); "
+                                           f"this row is fixed, so it must deny")
+        self.assertIn(words, reason)
+
     def test_b01_push_through_wrapper_or_git_path(self):
         for command in ("sh -c 'git push origin main'",
                         "env git push origin main",
@@ -91,11 +99,29 @@ class Bypasses(unittest.TestCase):
                 self.assertGetsThrough("history_guard.py",
                                        bash(command, "coder", cwd=str(repo)))
 
-    def test_b03_pr_merge_through_gh_api_as_coder(self):
-        command = "gh api -X PUT repos/o/r/pulls/5/merge -f merge_method=merge"
-        for hook in ("history_guard.py", "role_guard.py"):
-            with self.subTest(hook=hook):
-                self.assertGetsThrough(hook, bash(command, "coder", cwd=str(self.on_feature)))
+    def test_b03_pr_merge_through_gh_api_is_blocked(self):
+        first = "gh api -X PUT repos/o/r/pulls/5/merge -f merge_method=merge"
+        cases = [(first, "coder"), (first, "pulse"), (first, None)]
+        for command in ("gh api --method PUT /repos/o/r/pulls/5/merge",
+                        "gh api repos/o/r/pulls/5/merge -F merge_method=squash",
+                        "gh api repos/o/r/pulls/5/merge --field merge_method=merge",
+                        "gh api repos/o/r/pulls/5/merge --raw-field merge_method=merge",
+                        "gh api repos/o/r/pulls/5/merge --input body.json"):
+            cases.append((command, "coder"))
+        for command, who in cases:
+            with self.subTest(command=command, role=who or "planner"):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, who, cwd=str(self.on_feature)),
+                                   "gh pr merge")
+
+    def test_b03_get_of_merge_endpoint_passes(self):
+        for command in ("gh api repos/o/r/pulls/5/merge",
+                        "gh api /repos/o/r/pulls/5/merge",
+                        "gh api -X GET repos/o/r/pulls/5/merge",
+                        "gh api --method GET repos/o/r/pulls/5/merge"):
+            with self.subTest(command=command):
+                self.assertGetsThrough("history_guard.py",
+                                       bash(command, "coder", cwd=str(self.on_feature)))
 
     def test_b04_refspec_in_shell_variable(self):
         for command in ("B=main; git push origin $B",
@@ -104,9 +130,20 @@ class Bypasses(unittest.TestCase):
                 self.assertGetsThrough("history_guard.py",
                                        bash(command, "coder", cwd=str(self.on_feature)))
 
-    def test_b05_heredoc_marker_in_quotes_or_comment(self):
+    def test_b05_heredoc_marker_in_quotes_or_comment_is_blocked(self):
         for first in ("echo '<<EOF'", "echo \"<<EOF\"", "true # <<EOF"):
             command = first + "\ngit push origin main\nEOF"
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)),
+                                   "protected branch")
+
+    def test_b05_real_heredoc_body_still_dropped(self):
+        # T12: a heredoc body is data, so a push inside one is not checked.
+        for command in ("cat <<EOF\ngit push origin main\nEOF",
+                        "cat <<-EOF\n\tgit push origin main\n\tEOF",
+                        "cat <<'EOF'\ngit push origin main\nEOF",
+                        "cat <<\"EOF\"\ngit push origin main\nEOF"):
             with self.subTest(command=command):
                 self.assertGetsThrough("history_guard.py",
                                        bash(command, "coder", cwd=str(self.on_feature)))

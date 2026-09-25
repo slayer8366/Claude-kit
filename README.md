@@ -483,6 +483,10 @@ repository, never this repository.
 
 The hook tests never read the repository's own `kit.json`: the harness copies
 the hooks into a temporary `.claude/hooks/` with a test config beside them.
+The guards' known bypasses are listed in `.claude/hooks/BYPASSES.md`, where
+the owner rules each row `accepted` (its test proves the bypass still gets
+through) or `fixed` (its test asserts the block), and
+`.claude/hooks/tests/test_bypasses.py` holds each row's test.
 
 ## Checkers: diff from upstream
 
