@@ -41,7 +41,8 @@ sit at the repository root.
    commit, your mechanism prediction, the finish line and the abort
    conditions, and a `Dispatch-file` naming this dispatch's preserved prompt.
 3. **Every intent ends.** Close it with exactly one terminal entry:
-   completed, superseded, or abandoned.
+   completed, superseded, or abandoned; continuations (item 7) do not
+   close it.
 4. Run both checkers before every commit that touches `RECORD.md`.
 5. **Store names.** A dispatch's copy in `prompts/preserved/` keeps the name
    the dispatch hook gave it. A dispatch saved by a hook that numbered within
@@ -56,6 +57,21 @@ sit at the repository root.
    in your next record entry. It may rule on a question you raised or narrow
    the work; if it widens the scope or changes a closed decision without
    quoting an owner ruling, stop and ask.
+7. **Continuing.** A dispatch that carries on an open intent without
+   changing its scope boundary, predictions or finish line is recorded by
+   a `continuation` entry (Continues, Dispatch-file, Reason, Changes), not
+   a new intent; the intent's one terminal closes the whole chain. A
+   dispatch that changes any of those opens a new intent and closes the
+   old one `superseded`.
+8. **Stopped dispatches.** A dispatch that stopped before its intent or
+   continuation was written is recorded in the next sweep by a
+   dispatch-note with Outcome `stopped`, claiming its store copy.
+9. **Order.** A build's commits go: the sweep (dispatch-notes for
+   unclaimed store files), then one commit holding this dispatch's store
+   copy together with its intent or continuation, then the work. A note
+   for a file that appears later, such as a pulse sent during the
+   dispatch, goes in the next dispatch's sweep. No checker enforces this
+   order: CI checks out a single commit with no history.
 
 ## Non-negotiables
 
