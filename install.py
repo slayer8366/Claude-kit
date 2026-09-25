@@ -40,13 +40,16 @@ templates are written as above, and the new lock is written last; each
 removed path is printed. An unreadable or malformed lock also stops the
 upgrade before anything is written; it is never treated as a first install.
 A lock is malformed if any path in its files map is absolute, has a ".."
-part, or is adopter-owned, since an upgrade could otherwise remove it.
+part, is adopter-owned once normalised, or resolves (symlinks followed)
+outside the target or to an adopter-owned path, since an upgrade could
+otherwise remove it.
 
 Everything is checked before anything is written. Not part of a release.
 """
 import argparse
 import hashlib
 import json
+import posixpath
 import re
 import subprocess
 import sys
@@ -112,7 +115,7 @@ def read_lock(target):
             f"{exc}. Nothing was written. Repair or remove the lock by hand, then "
             f"install again.")
     bad = [f"{p}: {reason}" for p in sorted(files)
-           for reason in [lock_path_problem(p)] if reason]
+           for reason in [lock_path_problem(p, target)] if reason]
     if bad:
         raise InstallError(
             f"{lock_path} ({LOCK}) is malformed: it lists paths an upgrade may not "
@@ -121,15 +124,27 @@ def read_lock(target):
     return files
 
 
-def lock_path_problem(path):
-    """Why an old lock may not list this path, or None if it may."""
+def lock_path_problem(path, target):
+    """Why an old lock may not list this path, or None if it may. The path is
+    judged where it lands: normalised, then resolved under the target with
+    symlinks followed."""
     if PurePosixPath(path).is_absolute() or path.startswith("/") or re.match(
             r"[A-Za-z]:", path):
         return "absolute path"
     if ".." in PurePosixPath(path).parts:
         return "has a '..' part"
-    if adopter_owned(path):
-        return "adopter-owned"
+    normal = posixpath.normpath(path)
+    if normal in (".", ""):
+        return "names the target itself"
+    if adopter_owned(normal):
+        return "owned after normalising"
+    root = target.resolve()
+    try:
+        landed = (target / path).resolve().relative_to(root)
+    except ValueError:
+        return "resolves outside the target"
+    if adopter_owned(landed.as_posix()):
+        return "resolves to an owned path"
     return None
 
 
