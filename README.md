@@ -21,10 +21,11 @@ source files unchanged; later steps make them generic.
 | `find_dispatches.py` | lists hook-saved dispatches left untracked in other worktrees, with copy commands and citations; read-only | yes |
 | `update_worktree.py` | fast-forwards a harness worktree to origin/<first protected branch> after moving aside untracked files the branch tracks byte for byte; dry run by default | yes |
 | `session_agents.py` | lists a session log's Agent calls with their outcome, hand-backs and SendMessages, and how far each unfinished agent got; read-only | yes |
+| `launch_session.py` | launches one headless `claude -p` session in a checkout under a wall-clock limit, after checking the checkout, its hooks and the session's identity; writes only its stream files | yes |
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `release_check.py` | scans the release set against the workshop denylist | no |
-| `tests/` | install and drift (`test_install.py`), release_check (`test_release_check.py`), find_dispatches (`test_find_dispatches.py`), update_worktree (`test_update_worktree.py`) and session_agents (`test_session_agents.py`) tests | no |
+| `tests/` | install and drift (`test_install.py`), release_check (`test_release_check.py`), find_dispatches (`test_find_dispatches.py`), update_worktree (`test_update_worktree.py`), session_agents (`test_session_agents.py`) and launch_session (`test_launch_session.py`) tests | no |
 | `workshop/` | private sources, drafts and the release denylist | no |
 | `RECORD.md`, `prompts/`, `docs/` | this repository's own record | no |
 
@@ -265,6 +266,75 @@ an API error after its last message, "Opening the PR now so CI runs on the
 fix commit." Its pull request was open and green, so a new coder continued
 its intent (2026-09-25-63) rather than re-sending it.
 
+## Launching a session
+
+`launch_session.py` starts one headless Claude Code session in a checkout,
+under a wall-clock limit, and only after checking that it is the session
+you meant to start:
+
+    python3 launch_session.py --cwd <checkout> --prompt-file <file> \
+        --out <stream file> [--expect-commit <sha>] [--timeout 600] \
+        [--max-budget-usd <n>] [--model <m>] [--claude <path>] [--grace 15]
+
+It runs these steps in order. Each check stops the run with a reason.
+
+1. **The checkout.** `--cwd` must be a git work tree with no tracked
+   changes, and its HEAD must equal `--expect-commit`. The default is
+   `origin/<first protected branch in .claude/kit.json>` as last fetched;
+   the launcher never fetches. This guards against the v0.1 failure: the
+   first live-exercise sessions each started in a new harness worktree at
+   `9390407`, so they ran v0.1's hooks instead of the fixes (RECORD.md
+   2026-09-23-07; store 2026-09-23-10.md).
+2. **The hooks.** It runs `python3 <cwd>/.claude/hooks/session_check.py`
+   itself, with the SessionStart input Claude Code would give it. Any
+   output, a nonzero exit, or a missing hook file means a stale or
+   unexpected checkout, and nothing starts. `claude --init-only` does run
+   the hook, but on Claude Code 2.1.282 it shows the hook's output only in a
+   `--debug-file` log, and the flag is not in `claude --help` (RECORD.md
+   2026-09-25-71).
+3. **The launch.** `claude -p --session-id <new uuid> --output-format
+   stream-json --verbose --permission-prompts none`, plus `--max-budget-usd`
+   and `--model` when given. The prompt goes on stdin, and the session runs
+   in its own process group. Nobody can answer a permission prompt, so any
+   prompt is denied. The stream is written to `--out` line by line, verbatim,
+   and stderr to `<out>.stderr`.
+4. **The identity.** The stream's first `system`/`init` message must show the
+   launcher's uuid as `session_id` and the real path of `--cwd` as `cwd`.
+   Otherwise the group is stopped as in step 5.
+5. **The time limit.** `--timeout` seconds from launch, 600 by default. At the
+   limit: SIGTERM to the whole process group, up to `--grace` seconds (15 by
+   default) for it to exit, then SIGKILL. Then it confirms that no process of
+   the group is left, and names any that are. A timed-out command is killed
+   with everything it started. This guards against the hung pre-check
+   `claude remote-control --help`, which printed nothing for more than 2
+   minutes (RECORD.md 2026-09-23-07) and left its process, PID 100263,
+   behind until the next morning (2026-09-23-11).
+
+Then it prints one line per fact:
+- the session id
+- the log path `~/.claude/projects/<cwd with / and . turned into ->/<uuid>.jsonl`,
+  and whether it exists (Claude Code also turns other characters, such as
+  `_`, into `-`, so for such a path the line can say "not found" wrongly)
+- claude's exit code (negative means killed by that signal)
+- the elapsed seconds
+- the signals sent and any processes left, when there are any
+- the outcome
+
+Exit codes:
+
+| Code | Outcome |
+|---|---|
+| 0 | finished: the session exited on its own before the limit, after a correct init. Claude's own exit code is on its report line. |
+| 2 | usage error: bad arguments, an existing `--out` or `<out>.stderr`, a missing `--out` directory, or an unreadable `--prompt-file` |
+| 3 | timed out |
+| 4 | wrong session: the checkout, the hooks or the init's identity |
+| 5 | failed to start: claude not found or not runnable, or no init message before claude exited or the limit passed |
+
+It deletes nothing: no session log, no output file and no worktree. It
+writes only `--out` and `<out>.stderr`, and it creates both new at launch,
+so a failed check writes nothing and an existing file is never overwritten.
+A session killed at the limit keeps its log and stream as evidence.
+
 ## Tests
 
     python3 -m unittest discover -s .claude/hooks/tests
@@ -272,11 +342,13 @@ its intent (2026-09-25-63) rather than re-sending it.
     python3 check_prompts.py --render-check
     python3 -m unittest discover -s tests
 
-`tests/` is not released. It holds five test files: `test_install.py`
+`tests/` is not released. It holds six test files: `test_install.py`
 (install and drift), `test_release_check.py` (release_check),
 `test_find_dispatches.py` (find_dispatches), `test_update_worktree.py`
-(update_worktree) and `test_session_agents.py` (session_agents, on
-hand-built session logs). The install tests tag only a throwaway copy of this
+(update_worktree), `test_session_agents.py` (session_agents, on
+hand-built session logs) and `test_launch_session.py` (launch_session, with
+fake `claude` executables, including one that hangs with a sleeping child
+and one that ignores SIGTERM). The install tests tag only a throwaway copy of this
 repository, never this repository.
 
 The hook tests never read the repository's own `kit.json`: the harness copies

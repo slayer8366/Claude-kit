@@ -23,7 +23,8 @@
     "check_kit.py",
     "find_dispatches.py",
     "update_worktree.py",
-    "session_agents.py"
+    "session_agents.py",
+    "launch_session.py"
   ],
   "templates": {
     "templates/kit.json": ".claude/kit.json"
