@@ -1182,3 +1182,62 @@ PR kit-v0.2-t13 -> main open, with CI green on its final commit. No merge, no ta
 - two failed fixes on one symptom (then data only)
 - a denylist hit
 - an owner message after line 702 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-19
+**Timestamp:** 2026-09-25T03:44:10Z
+**Closes:** 2026-09-25-18
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T13, `preserved/2026-09-25-12.md`)
+**Observed:** Pushed on kit-v0.2-t13 (a new remote branch):
+- 3c15689: the sweep. Store copy of the planner's pulse `2026-09-25-11.md` (byte-identical, sha256 4cff14be...c6df) and dispatch-note 2026-09-25-17 (Type pulse, Outcome answered).
+- f355188: store copy `2026-09-25-12.md`, byte-identical to the planner worktree's (sha256 7ec9dbe7...cdcc), and intent 2026-09-25-18.
+- 6ea558c: tests only. tests/test_install.py gains `TAG2` ("v0.0.1-test"), `make_second_tag` (drop `find_dispatches.py`, append a line to `.claude/hooks/role_guard.py`, append a newline to settings.json, add `kit_new_tool.py`, each on request; it commits and tags the temporary kit copy only), `snapshot` (every file under the adopter, bytes and presence) and a new `Upgrade` class with u1-u8.
+- e31f0df: the fix.
+  - install.py gains `read_lock`, `on_disk` and `plan_upgrade`.
+  - With no lock, `install` keeps the first-install path unchanged: the same settings.json stop and the same write order.
+  - With a lock, it classifies every path. It either stops before any write, listing each path with "edited since the installed tag" or "exists and is not the kit's", or applies the writes, then the removals, then the templates, then the lock.
+  - `main` prints "removed <path>" for each removal.
+  - The docstring states rules 1-4, including that an upgrade removes files. README "Install and drift" describes upgrades.
+
+Tests-only commit, against install.py at 3a5a13d: "Ran 37 tests", "FAILED (failures=6)". Each failed on its first assertion, as the intent predicted:
+- u1: "AssertionError: True is not false" on `assertFalse((self.adopter / DROPPED).exists())` (exit 0; the dropped file remains)
+- u2, u3, u6, u8: "AssertionError: 0 != 1 : install.py: installed v0.0.1-test into ..."
+- u4: "AssertionError: 1 != 0 : install.py: STOPPED: .../.claude/settings.json exists and differs from the release's .claude/settings.json. ..."
+- u5 and u7 passed. Hook tests: "Ran 106 tests" OK.
+
+After the fix (e31f0df):
+- tests/: "Ran 37 tests" OK
+- hook tests: "Ran 106 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match." (unchanged)
+- find_dispatches.py: "Counts: in-store 16, record 15, refused 2, stop 0" (refused: D2 and D5)
+- both checkers: PASS before each RECORD.md commit (44 entries and preserved=26 after the intent; 45 entries with this terminal)
+
+Revert check: e31f0df's tree was extracted to /tmp/t13_revert_HeqF, with install.py replaced by 3a5a13d's. Result: "Ran 37 tests", "FAILED (failures=6)", the same six tests with the same first assertions and messages.
+
+Ad hoc, not committed: one run had an edited kept file, an edited dropped file and a foreign file at a new path. It printed all three paths, sorted, each with its reason, under one "install.py: STOPPED:" message, and exited 1. After those three files were deleted, the upgrade exited 0 and listed `kit_new_tool.py` among the written files. This coder made that run's temporary directory (`/tmp/t13_adhoc_*`) with the test helpers, and deleted it.
+
+Owner messages after this dispatch's Agent call (line 702): the planner log, read at 03:43Z, has 734 lines. It holds four owner messages or answers. None tells this coder to do or not do anything in T13's scope, and none changes a decision in the intent, so each is recorded here and the work continued:
+- line 712 (2026-09-25T03:33:54.808Z), answering the planner's three points at line 683: "1 I don't know who wrote it, it's not mine. / 2 coders should be able to merge at the discretion of the planner. All merged work must contain a backup, so any merge should be able to be undone by the owner later on / 3 I'll read them".
+  - Point 2 is a general ruling. The planner's reply at line 715 says the hooks block coder merges today and makes it a new task (T17).
+  - Line 720 says "Until it merges, you merge as now." This dispatch's "No merge" stands.
+- line 717 (03:34:45.988Z): the owner's answers to the planner's T17 questions (a bundle backup, history_guard checks it, built after T13).
+- line 723 (03:36:10.906Z): "Make the corrections I gave, run the B5 to B10 with the necessary adjustments " (about the rulings file, outside this scope).
+- line 731 (03:39:51.579Z): "Adjust, keep as proposals", for B-05 to B-10.
+
+No planner message reached this coder.
+**Deviations:**
+- None from the finish line up to this entry. The PR and CI status on the final commit are reported in the hand-back.
+- The planner's prediction and the intent's mechanism prediction held, including every count.
+- Ruling 4(6) is at RECORD.md:55-57, not :56-57 (the "(6)" line is :55). This is recorded in the intent.
+- One Bash call writing this terminal was denied by history_guard, because its text named the GitHub CLI merge command. Nothing was written by that call, and the entry was rewritten without the literal command.
+- Choices the dispatch did not make are listed in the hand-back under Decisions I made:
+  - which files the second tag drops, changes and adds
+  - u5 does not assert the reason text
+  - what counts as a malformed lock: anything other than a JSON object with a string `tag` and a `files` map of strings to strings
+  - a path that exists but is not a regular file counts as differing
+  - the stop message's wording
+  - the order: writes, removals, templates, lock
