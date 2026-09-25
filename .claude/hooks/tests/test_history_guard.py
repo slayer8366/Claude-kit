@@ -143,6 +143,35 @@ class HistoryGuard(unittest.TestCase):
             with self.subTest(command):
                 self.assertDenied(command, self.on_feature, "protected branch")
 
+    def test_tilde_in_dash_c_expanded_for_push(self):
+        # The shell expands ~ in `git -C ~/repo`; the hook, given the
+        # unexpanded text, expands it the same way (HOME is a temporary one).
+        home = Path(tempfile.mkdtemp(prefix="history_guard_home_"))
+        self.addCleanup(shutil.rmtree, home, ignore_errors=True)
+        shutil.copytree(self.on_feature, home / "repo")
+        env = {"HOME": str(home)}
+        for command, expect in (("git -C ~/repo push origin feature", None),
+                                ("git -C ~/repo push origin main", "deny")):
+            with self.subTest(command):
+                decision, reason = run_hook(HOOK, bash(command, "coder"), env=env)
+                self.assertEqual(decision, expect, f"{command!r}: {reason}")
+                if expect:
+                    self.assertIn("protected branch", reason, command)
+
+    def test_tilde_in_dash_c_expanded_for_merge(self):
+        home = Path(tempfile.mkdtemp(prefix="history_guard_home_"))
+        self.addCleanup(shutil.rmtree, home, ignore_errors=True)
+        shutil.copytree(self.on_feature, home / "feature_repo")
+        shutil.copytree(self.on_main, home / "main_repo")
+        env = {"HOME": str(home)}
+        for command, expect in (("git -C ~/feature_repo merge main", None),
+                                ("git -C ~/main_repo merge feature", "deny")):
+            with self.subTest(command):
+                decision, reason = run_hook(HOOK, bash(command, "coder"), env=env)
+                self.assertEqual(decision, expect, f"{command!r}: {reason}")
+                if expect:
+                    self.assertIn("while on main", reason, command)
+
     def test_unparseable_push_and_continuation_still_blocked(self):
         for command, word in (("git push origin feature && echo 'oops", "could not parse"),
                               ("git push \\\norigin main", "main")):

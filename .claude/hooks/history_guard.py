@@ -58,13 +58,20 @@ refspecs and the merge branch check are parsed per command segment, so a
 command hidden in a quoted string (sh -c '...') is seen by the first group
 and not by the second.
 
+The branch is read in the repository that `git -C <dir>` names, or else in
+the payload's cwd. A leading `~` or `~user` in that directory is expanded
+with os.path.expanduser, as the shell would, before the branch is read, for
+the push check and the `git merge` check alike. Nothing else is expanded:
+`$VAR` stays as written (B-04).
+
 Before the push check parses a command, heredoc bodies are removed. For
 each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"` that stands outside
 single quotes, double quotes and `#` comments (the states that separate
 commands below, carried from one kept line to the next; a marker inside
-quotes or a comment opens nothing), the lines after that
-line, up to and including the first line that is only WORD (after `<<-`,
-leading tabs are allowed), are data, not commands, and are dropped. A
+quotes or a comment opens nothing), and that is not part of a `<<<`
+here-string (a `<<` preceded or followed by `<` is no marker), the lines
+after that line, up to and including the first line that is only WORD
+(after `<<-`, leading tabs are allowed), are data, not commands, and are dropped. A
 heredoc with no such closing line is not removed. Newlines outside quotes
 then separate commands as `;` does; a backslash before a newline continues
 the line and does not separate. A command that still cannot be parsed is
@@ -73,7 +80,7 @@ then `push`). Any other unparseable command is let through by this check.
 The force, `gh pr merge`, filter and merge checks above still read the
 whole, unstripped text.
 
-Known bypasses: .claude/hooks/BYPASSES.md B-01, B-02, B-04
+Known bypasses: .claude/hooks/BYPASSES.md B-01, B-02, B-04, B-09
 """
 import hashlib
 import json
@@ -138,8 +145,11 @@ def heredoc_markers(line, quote):
         else:
             code.add(i)
         i += 1
+    # A `<<` preceded or followed by `<` is part of a `<<<` here-string.
     return ([m for m in HEREDOC.finditer(line)
-             if m.start() in code and m.start() + 1 in code], quote)
+             if m.start() in code and m.start() + 1 in code
+             and line[m.start() - 1:m.start()] != "<"
+             and line[m.start() + 2:m.start() + 3] != "<"], quote)
 
 
 def strip_heredocs(command):
@@ -493,7 +503,7 @@ def guard(payload):
 
     for m in MERGE.finditer(command):
         dash_c = re.search(r"-C\s+(\S+)", m.group(1) or "")
-        directory = dash_c.group(1).strip("'\"") if dash_c else cwd
+        directory = os.path.expanduser(dash_c.group(1).strip("'\"")) if dash_c else cwd
         branch, err = current_branch(directory)
         if err:
             return ("deny", f"history_guard: `git merge` blocked: could not read "
@@ -517,7 +527,7 @@ def guard(payload):
         if not inv or inv[1] != "push":
             continue
         directory, _, args = inv
-        branch, err = current_branch(directory or cwd)
+        branch, err = current_branch(os.path.expanduser(directory) if directory else cwd)
         if err:
             return ("deny", f"history_guard: push blocked: could not read the "
                             f"current branch ({err}).")

@@ -454,6 +454,21 @@ class SessionAgents(Base):
         b = self.block(p.stdout, tid)
         self.assertEqual(self.field(b, "outcome"), "denied: by user")
 
+    def test_v_denial_matching_no_rule_shows_first_line(self):
+        # None of the four rules: not "Denied by user", no ask, no <guard>.
+        tid = "toolu_V1"
+        text = "Permission was withheld for another reason\nsecond line of the text"
+        self.write_log([
+            agent_call(tid, ts(1), "Other denial", False),
+            denied(tid, ts(1, 1), text),
+        ])
+        p = self.run_ok()
+        b = self.block(p.stdout, tid)
+        self.assertEqual(self.field(b, "outcome"),
+                         "denied: Permission was withheld for another reason")
+        self.assertNotIn("second line of the text", p.stdout)
+        self.assertIn("denied 1", p.stdout.splitlines()[-1])
+
 
 if __name__ == "__main__":
     unittest.main()

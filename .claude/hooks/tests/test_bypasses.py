@@ -148,6 +148,14 @@ class Bypasses(unittest.TestCase):
                 self.assertGetsThrough("history_guard.py",
                                        bash(command, "coder", cwd=str(self.on_feature)))
 
+    def test_b05_here_string_is_not_a_heredoc_marker(self):
+        # `<<<EOF` is a here-string, not a heredoc: the lines after it are
+        # commands, so the push to main among them is checked.
+        command = "cat <<<EOF\ngit push origin main\nEOF"
+        self.assertBlocked("history_guard.py",
+                           bash(command, "coder", cwd=str(self.on_feature)),
+                           "protected branch")
+
     def test_b06_adb_through_variable_quoting_or_alias(self):
         for command in ("A=adb; $A uninstall com.example.kittest",
                         "ad''b uninstall com.example.kittest",
@@ -173,6 +181,17 @@ class Bypasses(unittest.TestCase):
         for name, payload in cases:
             with self.subTest(case=name):
                 self.assertGetsThrough("role_guard.py", payload)
+
+    def test_b09_pr_merge_through_curl(self):
+        # Payloads only: nothing is sent to GitHub.
+        url = "https://api.github.com/repos/o/r/pulls/5/merge"
+        auth = "-H \"Authorization: Bearer x\""
+        for command in (f"curl -X PUT {auth} {url}",
+                        f"curl -X PUT {auth} -d '{{\"merge_method\":\"merge\"}}' {url}"):
+            for hook in ("history_guard.py", "role_guard.py"):
+                with self.subTest(command=command, hook=hook):
+                    self.assertGetsThrough(hook,
+                                           bash(command, "coder", cwd=str(self.on_feature)))
 
     def test_table_docstrings_and_tests_agree(self):
         self.assertTrue(TABLE.is_file(), f"{TABLE} does not exist")
