@@ -2375,3 +2375,47 @@ This was the re-send with rulings R1-R7. It stopped at S2, and the planner answe
 **Observed:** `prompts/preserved/2026-09-24-19.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-08.md (19038 bytes, sha256 ecab1b76d606db1b63963bab3aea6fd68309fe3d6ae193ebfd6fb30ff066da65; header "Preserved: 2026-09-24T04:55:33Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
 
 This was the re-send with rulings R1-R8. It stopped at Verify on the unnamed 01Ftd file, and the planner answered it with R9 (2026-09-23-07). The next re-send, at 05:44:30Z, became intent 2026-09-23-07. The stop report begins: "STOPPED at step 1 (Verify). I wrote, committed, copied, backed up, switched and signalled nothing." It gives the reason as "There is a harness worktree the dispatch does not cover."
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-56
+**Timestamp:** 2026-09-25T11:10:00Z
+**Closes:** 2026-09-25-40
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T3 backlog, `preserved/2026-09-25-23.md`)
+**Observed:**
+- **First run, stopped:** this coder stopped before writing anything and handed back at 10:49:53Z. It asked whether a build that stopped before its intent but sent back a stop report is `answered` or `stopped`. The owner ruled B, `stopped` (quoted in intent 2026-09-25-40), and the planner relayed the ruling at 10:58:37.972Z (planner log line 858).
+- **9b7091f:** this dispatch's store copy `2026-09-25-23.md`, byte-identical to W's by cmp and sha256, with intent 2026-09-25-40. Both checkers PASS (66 entries, 37 preserved files).
+- **find_dispatches after 9b7091f:** "Counts: in-store 13, record 15, refused 2, stop 0". `-23` became in-store, as the intent predicted.
+- **c994589:** the 15 copies, made with find_dispatches' copy commands. Each is identical to its source by cmp and by sha256, and none of the target names existed before the copy.
+  - The 23rd: 2026-09-23-08 to -12.
+  - The 24th: 2026-09-24-10 to -19.
+  - Dispatch-notes 2026-09-25-41 to -55, one per copy, in name order.
+  - Outcomes: 13 `stopped` (23-08, -10, -11, -12, 24-11 to -19), 1 `answered` (24-10), 1 `exercise` (23-09).
+  - Both checkers PASS: 81 entries, 52 preserved files, each claimed exactly once. check_prompts' store-name check passed, since every name's date equals its header's Preserved date.
+- **find_dispatches after c994589:** "Counts: in-store 28, record 0, refused 2, stop 0". The refused files are 2026-09-25-02 and -05 (D2, D5).
+- **Tests at c994589:** unchanged from the baseline.
+  - Hook tests: "Ran 125 tests", OK.
+  - tests/: "Ran 47 tests", OK.
+  - Render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed".
+  - release_check: "PASS: 22 release file(s), 5927 line(s), 18 denylist pattern(s), no match."
+- **PR #23** (kit-v0.2-backlog -> main) opened. CI was green on c994589 in both the push and pull_request runs, for Python 3.8 and 3.14.
+- **Merge backup (coder.md item 10):** written after CI was green on c994589 and before this entry, after `git fetch origin` (origin/main 05a56ef2f73880a2219323c98843c01106c7900a). /home/zynergy-labs/forager-backups/2026-09-25-09/ holds:
+  - `main.bundle`, a `git bundle create` of refs/remotes/origin/main (599415 bytes)
+  - `merge.json`, {"pr": 23, "branch": "main", "sha": "05a56ef2f73880a2219323c98843c01106c7900a", "bundle": "main.bundle"}
+  - MANIFEST.sha256 (sha256 3052ee6940fe9516cb48e098636d4f8d7d1de1f4adb4b40d280fcaa6a3340379)
+
+  Verification:
+  - `sha256sum -c` gave OK for both files at 11:08:05Z.
+  - `git bundle list-heads` gave "05a56ef2f73880a2219323c98843c01106c7900a refs/remotes/origin/main".
+  - `git bundle verify` gave "The bundle records a complete history."
+
+  One row was added to ~/forager-backups/INDEX.md (24 to 25 lines), naming 2026-09-25-09, #23 and the SHA. The merge runs after CI is green on this entry's commit, so its result is in the hand-back, not here.
+- **Harness worktrees and W:** read and copied from only. W's `git status` is unchanged.
+- **Planner log:** read before each record commit: 861 lines before the intent and notes commits, and 862 before this entry. After the SendMessage at line 858 there were no further owner or planner messages to this coder. Lines 859-861 are the SendMessage result and the planner telling the owner the coder had resumed. Line 862 (11:06:26.571Z) is PR #23's pr-link metadata.
+**Deviations:**
+- The dispatch predicted that after the copies find_dispatches would still list this dispatch as refused. It lists it as `in-store`, because its store copy is committed on the branch the tool runs from, so refused is 2, not 3. The intent predicted this.
+- The owner's ruling, the option text and the planner's message say "nine stopped builds". The file-by-file list names ten (23-08, -10, -11, -12 and 24-14 to -19). The miscount was this coder's, in the stop report. The list was followed, and it agrees with ruling B.
+- The dispatch asks for the backup after coder.md item 10, and for the merge once CI is green on the final commit. coder.md asks the terminal to cite the backup folder. So the backup was written after CI was green on c994589 and before this terminal, as in 2026-09-25-37 and -39.
+- Scratch left in place, nothing deleted: /tmp/backlog_agents.py, /tmp/backlog_fd_before.txt, /tmp/backlog_fd_after1.txt, /tmp/backlog_fd_after2.txt, /tmp/backlog_cp.txt, /tmp/kitv02_backlog_intent.md, /tmp/kitv02_backlog_notes.md, /tmp/kitv02_backlog_terminal.md.
