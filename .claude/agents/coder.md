@@ -83,7 +83,8 @@ sit at the repository root.
     holding a bundle of `origin/<base branch>` (`git bundle create`),
     `merge.json` (`pr`, `branch`, `sha` of `origin/<base branch>`,
     `bundle`), and `MANIFEST.sha256` over both, with one line naming the
-    folder added to that directory's `INDEX.md`. Then merge by pull request
+    folder, the pull request number and the pre-merge SHA added to that
+    directory's `INDEX.md`. Then merge by pull request
     number with a merge commit or a squash, and cite the backup folder in
     your terminal. history_guard refuses the merge if any of this is
     missing.

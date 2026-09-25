@@ -113,8 +113,9 @@ A coder merges a pull request only when its dispatch's `Merge` section reads
 for the `coder` role, in one form (`gh pr merge <N>` with `--merge` or
 `--squash`), and only after the coder has written a backup for PR N under
 `backup_dir`: a folder holding a git bundle of `origin/<base branch>`,
-`merge.json` (`pr`, `branch`, `sha`, `bundle`) and `MANIFEST.sha256`, named by
-a line in `backup_dir/INDEX.md`. merge.json's `sha` must still be the tip of
+`merge.json` (`pr`, `branch`, `sha`, `bundle`) and `MANIFEST.sha256`, with one
+line in `backup_dir/INDEX.md` naming the folder, `#<N>` and the pre-merge SHA.
+merge.json's `sha` must still be the tip of
 `origin/<branch>`. The planner and the pulse are always denied.
 
 To undo a merge, find the backup folder whose `merge.json` has the PR's

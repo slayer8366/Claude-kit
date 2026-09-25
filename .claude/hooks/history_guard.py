@@ -21,7 +21,10 @@ every condition holds, and each denial names the condition that failed:
     in that folder). In that folder, MANIFEST.sha256 lists at least
     merge.json and the bundle, and every listed file's sha256 matches;
     `git bundle list-heads <bundle>` lists `sha`; and backup_dir/INDEX.md
-    has a line containing the folder's name.
+    has one line containing all three of the folder's name, `#<N>` (not
+    followed by another digit) and `sha` (the pre-merge SHA, as the
+    owner's chosen option put it: "an INDEX.md line naming PR N and the
+    pre-merge SHA").
 (e) Freshness. `git rev-parse origin/<branch>` in the payload's cwd equals
     `sha`. The hook does not fetch; coder.md tells the coder to fetch
     first.
