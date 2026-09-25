@@ -13,6 +13,7 @@ invoked. Not released.
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -90,6 +91,28 @@ time.sleep(120)
     "no_init": '''
 save_pids(os.getpid())
 time.sleep(120)
+''',
+    # (o), (o3): write the session log where the projects-root override says,
+    # under directory names no sanitising of the cwd gives.
+    "log_one": '''
+root = os.environ["LAUNCH_SESSION_PROJECTS_ROOT"]
+for name in ["unrelated-project-name"]:
+    os.makedirs(os.path.join(root, name), exist_ok=True)
+    with open(os.path.join(root, name, sid + ".jsonl"), "w") as f:
+        f.write("{}\\n")
+init()
+emit(json.dumps({"type": "result", "subtype": "success", "session_id": sid}))
+sys.exit(0)
+''',
+    "log_two": '''
+root = os.environ["LAUNCH_SESSION_PROJECTS_ROOT"]
+for name in ["unrelated-project-name", "another name_here.x"]:
+    os.makedirs(os.path.join(root, name), exist_ok=True)
+    with open(os.path.join(root, name, sid + ".jsonl"), "w") as f:
+        f.write("{}\\n")
+init()
+emit(json.dumps({"type": "result", "subtype": "success", "session_id": sid}))
+sys.exit(0)
 ''',
 }
 
@@ -169,16 +192,19 @@ class LaunchSessionTest(unittest.TestCase):
         fake.chmod(0o755)
         return fake
 
-    def launch(self, *extra, claude=None, timeout="30", grace="2", cwd=None):
+    def launch_args(self, *extra, claude=None, timeout="30", grace="2", cwd=None):
         args = [sys.executable, str(TOOL), "--cwd", str(cwd or self.repo),
                 "--prompt-file", str(self.prompt), "--out", str(self.out),
                 "--timeout", timeout, "--grace", grace]
         if claude is not None:
             args += ["--claude", str(claude)]
-        args += list(extra)
+        return args + list(extra)
+
+    def launch(self, *extra, claude=None, timeout="30", grace="2", cwd=None, env=None):
+        args = self.launch_args(*extra, claude=claude, timeout=timeout, grace=grace, cwd=cwd)
         start = time.monotonic()
         p = subprocess.run(args, cwd=str(self.tmp), capture_output=True, text=True,
-                           timeout=120)
+                           timeout=120, env=env)
         p.elapsed = time.monotonic() - start
         return p
 
@@ -364,6 +390,75 @@ class LaunchSessionTest(unittest.TestCase):
         self.assertEqual(sorted(set(before) - set(after)), [])
         changed = [k for k in before if before[k] != after[k]]
         self.assertEqual(changed, [])
+
+    # (m), (n)
+    def interrupt(self, sig):
+        self.make_repo()
+        args = self.launch_args(claude=self.make_fake("hang"), timeout="60", grace="3")
+        launcher = subprocess.Popen(args, cwd=str(self.tmp), stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, text=True)
+        try:
+            pidfile = self.side / "pids.txt"
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline and not (
+                    pidfile.exists() and len(pidfile.read_text().split()) == 2):
+                time.sleep(0.1)
+            pids = self.pids()
+            self.assertEqual(len(pids), 2)
+            launcher.send_signal(sig)
+            out, err = launcher.communicate(timeout=60)
+        finally:
+            if launcher.poll() is None:
+                launcher.kill()
+                launcher.wait()
+        self.assertGone(pids)
+        self.assertEqual(launcher.returncode, 130,
+                         "exit %d\nstdout:\n%s\nstderr:\n%s" % (launcher.returncode, out, err))
+        self.assertIn("outcome: interrupted", out)
+
+    def test_m_sigint_stops_group(self):
+        self.interrupt(signal.SIGINT)
+
+    def test_n_sigterm_stops_group(self):
+        self.interrupt(signal.SIGTERM)
+
+    # (o), (o2), (o3)
+    def projects_env(self):
+        root = self.tmp / "projects root"
+        root.mkdir()
+        return root, dict(os.environ, LAUNCH_SESSION_PROJECTS_ROOT=str(root))
+
+    def session_id(self):
+        argv = self.argv_calls()[0]
+        return argv[argv.index("--session-id") + 1]
+
+    def test_o_log_found_by_session_id(self):
+        self.make_repo()
+        root, env = self.projects_env()
+        p = self.launch(claude=self.make_fake("log_one"), env=env)
+        self.assertExit(p, 0)
+        path = root / "unrelated-project-name" / (self.session_id() + ".jsonl")
+        self.assertTrue(path.exists())
+        self.assertIn("log: %s" % path, p.stdout)
+        self.assertNotIn("not found", p.stdout)
+
+    def test_o2_log_not_found_names_glob(self):
+        self.make_repo()
+        root, env = self.projects_env()
+        p = self.launch(claude=self.make_fake("ok"), env=env)
+        self.assertExit(p, 0)
+        self.assertIn("not found", p.stdout)
+        self.assertIn(os.path.join(str(root), "*", self.session_id() + ".jsonl"), p.stdout)
+
+    def test_o3_two_logs_ambiguous(self):
+        self.make_repo()
+        root, env = self.projects_env()
+        p = self.launch(claude=self.make_fake("log_two"), env=env)
+        self.assertExit(p, 0)
+        sid = self.session_id()
+        self.assertIn("ambiguous", p.stdout)
+        for name in ("unrelated-project-name", "another name_here.x"):
+            self.assertIn(str(root / name / (sid + ".jsonl")), p.stdout)
 
 
 if __name__ == "__main__":
