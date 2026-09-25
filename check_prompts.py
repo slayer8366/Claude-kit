@@ -59,6 +59,15 @@ with no such line is an error. Files named before 2026-09-24-05,
 compared as (date, number) and not as text, are exempt: they were in
 the store before the rule began. The rule reads only names and headers,
 never git, so it runs the same in CI and in an adopter.
+
+Re-sends (Claude-kit v0.2 addition, T10): the dispatch hook saves a
+prompt identical to a stored dispatch's text with one more header line,
+"Repeat-of: preserved/<name>". For every file under prompts/preserved/
+whose header (the lines before "--- verbatim prompt follows ---") has a
+Repeat-of: line, the file it names must exist under prompts/ and hold
+the same bytes after its first delimiter line as this file does after
+its own; otherwise it is an error naming both. This applies to every
+file, whatever its name's date: the cutoff above does not exempt it.
 """
 import re
 import sys
@@ -80,6 +89,52 @@ PRESERVED_PREFIX = "Preserved: "
 # Exempts the files in the store before the rule began: a name whose
 # (date, number) is below this pair is not checked against its header.
 STORE_NAME_CUTOFF = ("2026-09-24", 5)
+# Claude-kit v0.2 addition (T10): the re-send header line.
+REPEAT_PREFIX = "Repeat-of: "
+
+
+def _text_after_delimiter(data):
+    """The bytes after the first line equal to HEADER_DELIMITER, or None."""
+    marker = HEADER_DELIMITER.encode("utf-8")
+    offset = 0
+    for line in data.splitlines(keepends=True):
+        offset += len(line)
+        if line.rstrip(b"\r\n") == marker:
+            return data[offset:]
+    return None
+
+
+def repeat_errors(repo_dir, on_disk):
+    """Errors for files under prompts/preserved/ whose header names, in a
+    Repeat-of: line, a file that does not exist under prompts/ or whose
+    text after its delimiter differs from this file's."""
+    errors = []
+    prompts_root = (Path(repo_dir) / PROMPTS_DIR).resolve()
+    prefix = f"{PROVENANCE_DIRS[0]}/"
+    for rel in sorted(on_disk):
+        if not rel.startswith(prefix):
+            continue
+        data = (Path(repo_dir) / PROMPTS_DIR / rel).read_bytes()
+        named = None
+        for line in data.decode("utf-8", errors="replace").splitlines():
+            if line == HEADER_DELIMITER:
+                break
+            if line.startswith(REPEAT_PREFIX):
+                named = line[len(REPEAT_PREFIX):].strip()
+                break
+        if named is None:
+            continue
+        target = (prompts_root / named).resolve()
+        label = (f"{PROMPTS_DIR}/{rel}: its header's "
+                 f"{REPEAT_PREFIX.strip()!r} line names {PROMPTS_DIR}/{named}")
+        if prompts_root not in target.parents or not target.is_file():
+            errors.append(f"{label}, which does not exist under {PROMPTS_DIR}/")
+            continue
+        body = _text_after_delimiter(data)
+        if body is None or _text_after_delimiter(target.read_bytes()) != body:
+            errors.append(f"{label}, whose text after {HEADER_DELIMITER!r} "
+                          f"differs from this file's")
+    return errors
 
 
 def store_name_errors(repo_dir, on_disk):
@@ -258,6 +313,7 @@ def check_binding(repo_dir=None):
             f"{DISPATCH_FIELD!r} field names it")
 
     errors.extend(store_name_errors(repo_dir, on_disk))
+    errors.extend(repeat_errors(repo_dir, on_disk))
 
     if stray:
         errors.append(
