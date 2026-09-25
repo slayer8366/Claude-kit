@@ -31,8 +31,9 @@ Outcome is one of:
   no result                        the log ends before any result
 
 A denial's <how> is decided by the first of these rules that matches. The
-text is the result's toolUseResult when that is a string, else its content,
-with an optional leading "Error: " stripped:
+text is the result's toolUseResult when that is a string, else its content.
+Rules 1 and 3 read it with an optional leading "Error: " stripped; the
+fallback prints its first line as it is, prefix included:
 
   by user              the text is "Denied by user": an explicit decline,
                        which wins even when a hook asked

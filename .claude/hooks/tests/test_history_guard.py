@@ -179,6 +179,50 @@ class HistoryGuard(unittest.TestCase):
                 self.assertDenied(command, self.on_feature, word)
 
 
+def init_repo(path, branch):
+    """A repository at path (created) with one commit, checked out on branch."""
+    path.mkdir(parents=True, exist_ok=True)
+    g = ["git", "-C", str(path), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+    subprocess.run(["git", "init", "-q", "-b", branch, str(path)], check=True)
+    subprocess.run(g + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
+
+
+class RelativeDashC(unittest.TestCase):
+    """A relative `git -C` directory is read against the payload's cwd, not
+    the hook process's own directory. The payload cwd is `outer`, on
+    feature, holding `sub` on main and `sub2` on feature. The hook process
+    runs in the harness's default directory (the test runner's), not outer."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.outer = Path(tempfile.mkdtemp(prefix="history_guard_outer_"))
+        init_repo(cls.outer, "feature")
+        init_repo(cls.outer / "sub", "main")
+        init_repo(cls.outer / "sub2", "feature")
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.outer, ignore_errors=True)
+
+    def decide(self, command):
+        return run_hook(HOOK, bash(command, "coder", cwd=str(self.outer)))
+
+    def test_relative_dash_c_push_from_main_denied(self):
+        decision, reason = self.decide("git -C sub push origin")
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("protected branch", reason)
+        self.assertIn("which is main", reason)
+
+    def test_relative_dash_c_merge_on_main_denied(self):
+        decision, reason = self.decide("git -C sub merge x")
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("while on main", reason)
+
+    def test_relative_dash_c_push_from_feature_allowed(self):
+        decision, reason = self.decide("git -C sub2 push origin feature")
+        self.assertIsNone(decision, reason)
+
+
 def git_in(repo, *args):
     return subprocess.run(["git", "-C", str(repo), "-c", "user.name=t",
                            "-c", "user.email=t@example.invalid"] + list(args),
