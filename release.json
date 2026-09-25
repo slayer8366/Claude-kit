@@ -22,7 +22,8 @@
     "check_prompts.py",
     "check_kit.py",
     "find_dispatches.py",
-    "update_worktree.py"
+    "update_worktree.py",
+    "session_agents.py"
   ],
   "templates": {
     "templates/kit.json": ".claude/kit.json"

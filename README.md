@@ -20,10 +20,11 @@ source files unchanged; later steps make them generic.
 | `check_kit.py` | drift check against `.claude/kit.lock` | yes |
 | `find_dispatches.py` | lists hook-saved dispatches left untracked in other worktrees, with copy commands and citations; read-only | yes |
 | `update_worktree.py` | fast-forwards a harness worktree to origin/<first protected branch> after moving aside untracked files the branch tracks byte for byte; dry run by default | yes |
+| `session_agents.py` | lists a session log's Agent calls with their outcome, hand-backs and SendMessages, and how far each unfinished agent got; read-only | yes |
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `release_check.py` | scans the release set against the workshop denylist | no |
-| `tests/` | install and drift (`test_install.py`), release_check (`test_release_check.py`), find_dispatches (`test_find_dispatches.py`) and update_worktree (`test_update_worktree.py`) tests | no |
+| `tests/` | install and drift (`test_install.py`), release_check (`test_release_check.py`), find_dispatches (`test_find_dispatches.py`), update_worktree (`test_update_worktree.py`) and session_agents (`test_session_agents.py`) tests | no |
 | `workshop/` | private sources, drafts and the release denylist | no |
 | `RECORD.md`, `prompts/`, `docs/` | this repository's own record | no |
 
@@ -228,6 +229,42 @@ Anything that reads a session log for blocked calls must match on
 where a Type/target mismatch and a general-purpose dispatch were each blocked
 and logged with `toolDenialKind` permission-rule.
 
+## Resuming after a disconnect
+
+A session that drops (a network error, a closed terminal) can leave agents
+it sent running, finished or dead. Settle every one of them before
+re-sending anything:
+
+1. Find the lost session's log:
+   `~/.claude/projects/<project>/<sessionId>.jsonl`, where `<project>` is the
+   session's working directory with characters such as `/`, `.` and `_`
+   turned into `-`. Its
+   subagents' transcripts are in `<sessionId>/subagents/` beside it.
+2. Run `python3 session_agents.py <that log>`. For each Agent call it prints
+   the timestamp, tool_use id, type, description, foreground or background,
+   agentId, the outcome (`completed`, `failed: ...`, `denied: ...`,
+   `launched, no completion notice`, `no result`), hand-backs and
+   SendMessages, and for an unfinished agent how far its transcript got.
+3. Run `python3 find_dispatches.py` for dispatches the hook saved that no
+   store copy holds yet.
+4. Settle each agent, before re-sending anything:
+   - Handed back: read the hand-back.
+   - Completed with no hand-back: read its transcript.
+   - Failed, or no completion notice: check its branch, pull request and CI
+     (`git ls-remote origin <branch>`, `gh pr view <branch>`), then decide
+     whether to continue its intent (coder.md item 7) or re-send the
+     dispatch (item 11).
+5. Cite calls by tool_use id and timestamp, not line number: resuming a
+   session can rewrite its log, which shifts line numbers, sorts keys and
+   drops queue-operation records.
+
+Example (T14-T16, RECORD.md 2026-09-25-60 to -64): the coder died at 15:26Z
+with an API error and no hand-back. The helper shows its call as
+`failed: ... (EAI_AGAIN) ...`, with hand-backs 0 and a transcript ending in
+an API error after its last message, "Opening the PR now so CI runs on the
+fix commit." Its pull request was open and green, so a new coder continued
+its intent (2026-09-25-63) rather than re-sending it.
+
 ## Tests
 
     python3 -m unittest discover -s .claude/hooks/tests
@@ -235,10 +272,11 @@ and logged with `toolDenialKind` permission-rule.
     python3 check_prompts.py --render-check
     python3 -m unittest discover -s tests
 
-`tests/` is not released. It holds four test files: `test_install.py`
+`tests/` is not released. It holds five test files: `test_install.py`
 (install and drift), `test_release_check.py` (release_check),
-`test_find_dispatches.py` (find_dispatches) and `test_update_worktree.py`
-(update_worktree). The install tests tag only a throwaway copy of this
+`test_find_dispatches.py` (find_dispatches), `test_update_worktree.py`
+(update_worktree) and `test_session_agents.py` (session_agents, on
+hand-built session logs). The install tests tag only a throwaway copy of this
 repository, never this repository.
 
 The hook tests never read the repository's own `kit.json`: the harness copies
