@@ -2077,3 +2077,104 @@ The injected context's first two lines are "Claude-kit session_check: this sessi
 - The dispatch asks for the backup "after coder.md item 10" and the merge once CI is green on the final commit; coder.md asks the terminal to cite the backup folder. So the backup was written after CI was green on the fix commit and before this terminal, as in 2026-09-25-37. The merge still waits for CI to be green on this entry's commit.
 - The first revert-check copy was incomplete (see above) and was redone in a full copy.
 - Scratch left in place: /tmp/kitv02_batch1_intent.md, /tmp/kitv02_batch1_terminal.md, /tmp/batch1_revert_TorH, /tmp/batch1_revert2_xjgK. Nothing deleted.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-40
+**Timestamp:** 2026-09-25T11:02:00Z
+**Title:** Claude-kit v0.2 T3 backlog: store copies and dispatch-notes for the 15 pre-T1 hook-saved dispatches still untracked in harness worktrees, found with find_dispatches.py
+**Dispatch-file:** preserved/2026-09-25-23.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in W, ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB (at 3847590), as `prompts/preserved/2026-09-25-23.md` (6129 bytes, sha256 beb3030cc83de3a0f0b1506c85a68e6997f91886578bb52fc9acc851c586fbe6; header "Preserved: 2026-09-25T10:42:22Z by .claude/hooks/dispatch_guard.py", HEAD 3847590469634ed45759e429ce7900be07a4d169, target coder, type build). The name was free in the store at origin/main, and its date equals the header's. The store copy is byte-identical (cmp; same sha256).
+**Sweep:** None needed. Both checkers PASS at 05a56ef with every store file claimed (36 preserved files, 65 entries). W's untracked `-21` and `-22` are on origin/main byte for byte (find_dispatches: in-store). D2 and D5 (`2026-09-25-02.md`, `-05.md`) are dated today, so find_dispatches refuses them; they are out of scope.
+**Change:** Copy the 15 files that `python3 find_dispatches.py` lists as `record` into `prompts/preserved/` byte for byte, using its copy commands, under its proposed names: 2026-09-23-08 to -12 and 2026-09-24-10 to -19. Append one dispatch-note per copy, 2026-09-25-41 to -55, in the order of the proposed names. Close this intent with terminal 2026-09-25-56.
+**Scope boundary:** On kit-v0.2-backlog from origin/main 05a56ef in ~/Zynergy/Claude-kit-fixes. Only RECORD.md and `prompts/preserved/` change: this dispatch's copy and the 15 copies. There are three commits: (1) this store copy with this intent, (2) the 15 copies with the 15 notes, (3) the terminal. Then a PR and its merge under coder.md item 10. Harness worktrees and W are read and copied from only. No code, docs or config change. Out of scope: D2 and D5, updating W, T10, other PRs, tags.
+**Baseline:** origin/main 05a56ef2f73880a2219323c98843c01106c7900a (PR #22 merge), checked after a fetch. No tags. The record's last entry is 2026-09-25-39, and no intent is open. The fixes checkout was on kit-v0.2-batch1, clean, before branching. At 05a56ef:
+- Hook tests: "Ran 125 tests", OK.
+- tests/: "Ran 47 tests", OK.
+- Render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed".
+- release_check: "PASS: 22 release file(s), 5927 line(s), 18 denylist pattern(s), no match."
+- Both checkers PASS.
+
+`python3 find_dispatches.py` at 05a56ef, before any copy, reported "Counts: in-store 12, record 15, refused 3, stop 0". Its 15 `record` items match the dispatch's list exactly, with the same sources and proposed names. Its `refused` items are 2026-09-25-02, -05 and -23, all "dated today". The full output is in the hand-back.
+
+~/forager-backups/INDEX.md has 24 lines, and its last folder is 2026-09-25-08.
+
+W is at 3847590469634ed45759e429ce7900be07a4d169, with `2026-09-25-02.md`, `-05.md`, `-21.md`, `-22.md` and `-23.md` untracked.
+**Evidence sources:** RECORD.md 2026-09-23-07, fields "Cited, not copied" and "Observations", matched by sha256. The harness planner logs under ~/.claude/projects/, cited by timestamp and then line:
+- 01JDb: `-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01JDbTJ4Gj9C6xygXM5tPdHz/8c77054d-3517-59bc-9ad1-dde101a01572.jsonl`, the lost planner session.
+- 01Ftd: `-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01FtdNjEDPodJQK4fcRRigJp/e91b356c-6ff5-5922-8e43-53e01622020d.jsonl`.
+- 01Vss: `-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01VssxEZCn7qBnENwZjcVycP/ac03f257-0aff-541c-9135-20bb81e09317.jsonl`. Its first line is 2026-09-24T04:12:55Z, so its line numbers count from that point.
+**Closed decisions:**
+- Owner, in the planner log 791cc457 (cited by timestamp first; the log was renumbered when the session resumed):
+  - "Run the backlog now. It was scheduled to run yesterday at 7pm" (2026-09-25T10:38:40.775Z, line 812).
+  - "do 1 and 2 together sequentially, then 3" (10:25:43.347Z, line 785).
+- T3's rulings, recorded in 2026-09-24-14: find_dispatches is read-only, and the backlog is recorded in a separate dispatch after UTC midnight.
+- coder.md item 5 (store names) and item 8 (the `stopped` outcome).
+- The planner's outcome rule as written in the dispatch, and "Follow 2026-09-23-07's descriptions where they cover a file."
+- The Merge section: authorised for this PR only (kit-v0.2-backlog -> main), with `--merge`, once CI is green on its final commit, after coder.md item 10's backup.
+**Stop and owner ruling:** This coder first stopped before writing anything. It handed back at 2026-09-25T10:49:53.922Z (planner log line 839) and asked whether builds that stopped before their intent, but whose stop report reached the planner, are `answered` or `stopped`.
+
+The planner asked the owner with AskUserQuestion at 10:50:01.291Z (line 846). The question was "Nine builds stopped before their intent but sent a stop report back to the planner. Which outcome do they get?", with two options:
+- "B: stopped (Recommended)": "A build that stopped before writing its intent is `stopped`, whether or not its stop report came back (coder.md item 8, T4). `answered` means the dispatch ran to its end and reported. The close-session build (24-10) is `answered`: it completed. The live-exercise pulse (23-09) stays `exercise`. Nine notes say `stopped`; each note's Observed quotes the stop report, so the report isn't lost."
+- "A: answered": "Any dispatch whose report reached the planner is `answered`, even if the report was a stop. Only the lost dispatch and the two pulses that delivered nothing are `stopped`. This conflicts with coder.md item 8's wording, which would need amending."
+
+The owner's answer, 10:58:00.010Z (line 848): "Your questions have been answered: "Nine builds stopped before their intent but sent a stop report back to the planner. Which outcome do they get?"="B: stopped (Recommended)"."
+
+The owner then said "Send it" (10:58:34.013Z, line 856).
+**Planner message (coder.md item 6):** SendMessage to this coder, 2026-09-25T10:58:37.972Z (planner log line 858), verbatim:
+
+"Owner ruling (AskUserQuestion answer 'B: stopped (Recommended)', ~10:5xZ): a build that stopped before writing its intent is `stopped`, whether or not its stop report came back (coder.md item 8); `answered` means the dispatch ran to its end and reported. So: the nine stopped builds (23-08, 23-10, 23-11, 23-12, 24-14 to 24-19) are `stopped`, each note's Observed quoting its stop report; 24-10 (close-session) is `answered`; 23-09 is `exercise`; 24-11, 24-12, 24-13 are `stopped`. Quote the owner's answer and the option text in the intent. Continue the dispatch as written. Record this message per coder.md item 6."
+
+It rules on the question raised and quotes the owner's ruling. It does not widen the scope.
+
+It lists ten builds, not nine: 23-08, -10, -11, -12 and 24-14 to -19. "Nine" is this coder's miscount in the stop report, and the planner and the option text repeated it. The file-by-file list is followed, and it agrees with the rule in option B.
+
+The outcomes that result:
+- `stopped`: 13 notes (the ten stopped builds, plus 24-11, 24-12 and 24-13).
+- `answered`: 1 note (24-10).
+- `exercise`: 1 note (23-09).
+**Planner prediction (stated in the dispatch, not withheld):**
+- check_prompts.py PASS with 15 more preserved files, each claimed by exactly one note. check_record.py PASS with 17 more entries.
+- The store-name check passes.
+- Counts unchanged: 125 hook tests, 47 tests/, render checks 30/30 and 10/10, release_check PASS with 22 files.
+- After the copies are committed, find_dispatches shows 0 `record` items, with D2, D5 and this dispatch refused.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+- **After commit (1):**
+  - check_prompts.py counts 37 preserved files and 39 dispatch-recording entries, with `-23` claimed by this intent.
+  - check_record.py counts 66 entries, with this intent open.
+  - find_dispatches.py still lists the 15 as `record`. `-23` moves from `refused` to `in-store`, because W's file is now byte-identical to a tracked store file, which the tool checks before the date rule. So the count is refused 2 (D2, D5), not 3.
+
+  This departs from the dispatch's prediction that this dispatch stays refused: the copy is committed on the branch that find_dispatches runs from.
+- **After commit (2):**
+  - The 15 copies are byte-identical to their sources by cmp and sha256.
+  - check_prompts.py counts 52 preserved files, each claimed exactly once: 15 by the notes and `-23` by this intent.
+  - Each copy's name date equals its header's Preserved date (23-08 to -12 are 2026-09-23 and 24-10 to -19 are 2026-09-24), so the store-name check passes.
+  - check_record.py accepts the notes without a Timestamp field, because NOTE_REQUIRED at check_record.py:118 does not list one, and accepts the Outcomes `stopped`, `answered` and `exercise` (NOTE_OUTCOMES, :120).
+  - find_dispatches.py gives "in-store 28, record 0, refused 2, stop 0".
+- **After commit (3):** check_record.py counts 82 entries (65 + 17), with this intent closed.
+- **Tests:** only RECORD.md and store files change, so the counts stay as at the baseline. release_check stays at 22 files, since neither RECORD.md nor the store is released.
+- **Merge backup:** after `git fetch`, a new folder, ~/forager-backups/2026-09-25-09, holds:
+  - main.bundle, a bundle of origin/main.
+  - merge.json with pr, branch main, sha 05a56ef… (unless main has moved) and bundle.
+  - MANIFEST.sha256.
+
+  One INDEX.md row names the folder, the PR number and the SHA. Then `gh pr merge <N> --merge`, which history_guard lets through.
+**Finish line:** Pushed on kit-v0.2-backlog:
+1. this store copy and intent;
+2. one commit with the 15 copies and 15 notes;
+3. terminal 2026-09-25-56.
+
+Then the PR, with CI green on its final commit, and the merge with `--merge` after coder.md item 10's backup. The merge commit is reported. No tag.
+**Abort conditions:**
+- Any Base-and-state mismatch other than the dispatch's name.
+- find_dispatches' `record` list differing from the dispatch's, or showing any `stop`.
+- A cmp or sha256 mismatch on any copy.
+- A name collision.
+- Either checker rejecting the entries.
+- CI not green: no merge.
+- history_guard denying the merge after the backup: quoted.
+- Two failed fixes on one symptom.
+- An owner message after the Agent call that tells the coder to do or not do something in this scope, or changes a decision here.
+- A planner message that widens the scope or changes a closed decision without quoting an owner ruling.
