@@ -232,12 +232,13 @@ def check_binding(repo_dir=None):
 
     # Claude-kit v0.1 addition: a dispatch-note claims
     # exactly one *preserved* prompt -- the hook's verbatim capture -- never
-    # a recovered one.
+    # a recovered one. Claude-kit v0.2 addition: so does a continuation.
     for entry_id, value in claims:
         kind = kind_closes.get(entry_id, ("", ""))[0]
-        if kind == cr.NOTE_KIND and not value.startswith(f"{PROVENANCE_DIRS[0]}/"):
+        if (kind in (cr.NOTE_KIND, cr.CONT_KIND)
+                and not value.startswith(f"{PROVENANCE_DIRS[0]}/")):
             errors.append(
-                f"entry {entry_id}: a {cr.NOTE_KIND} may only claim a prompt "
+                f"entry {entry_id}: a {kind} may only claim a prompt "
                 f"under {PROMPTS_DIR}/{PROVENANCE_DIRS[0]}/, but its "
                 f"{DISPATCH_FIELD!r} names {value!r}")
 
