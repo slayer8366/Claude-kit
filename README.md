@@ -18,10 +18,11 @@ source files unchanged; later steps make them generic.
 | `.claude/kit.json` | this repository's own adopter config | no |
 | `check_record.py`, `check_prompts.py` | the record checkers, at the repository root | yes |
 | `check_kit.py` | drift check against `.claude/kit.lock` | yes |
+| `find_dispatches.py` | lists hook-saved dispatches left untracked in other worktrees, with copy commands and citations; read-only | yes |
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `release_check.py` | scans the release set against the workshop denylist | no |
-| `tests/` | install, drift and release-check tests | no |
+| `tests/` | install, drift, release-check and find_dispatches tests | no |
 | `workshop/` | private sources, drafts and the release denylist | no |
 | `RECORD.md`, `prompts/`, `docs/` | this repository's own record | no |
 
@@ -80,6 +81,22 @@ Scans every file in the release set (`release.json`) against the patterns in
 matches. The denylist stays in the workshop and is never released, since it
 names what must not be published. A release is a tag, made by the owner after
 reading the release diff.
+
+## Finding unrecorded dispatches
+
+    python3 find_dispatches.py
+
+Run from a checkout's root. Lists every untracked file under
+`prompts/preserved/` in the clone's other worktrees (`git worktree list`),
+with its size, sha256 and hook header, and gives each one a status:
+`in-store` (its sha256 equals a tracked store file's, which it names),
+`record` (a proposed store name, a copy command and a citation line),
+`refused` (the proposed name is dated today, UTC; rerun after UTC midnight)
+or `stop` (stop and ask: not hook-saved, an unknown header HEAD, or a name
+clash). A file saved by a hook with the shared counter keeps its name; an
+older one is numbered after the store's highest for its Preserved date. The
+tool writes nothing and never reads the dispatch counter; it copies nothing,
+so the operator runs the copy commands. It exits 1 if any item is `stop`.
 
 ## Tests
 
