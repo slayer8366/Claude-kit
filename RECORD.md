@@ -3149,3 +3149,93 @@ It rules on the question this coder raised. It changes how Fix 2 is built, not a
 - **Two stops before the intent**, both answered by the planner (quoted in -79): test_e's old expectation (option A); the precedence and the `<guard>` pattern (1B plus 1C, 2C). Predictions were corrected from four failures to six, and test (u) added.
 - **history_guard refused one push call** because it read `git -C ~/Zynergy/Claude-kit-fixes push …` with `~` unexpanded ("could not read the current branch (fatal: cannot change to '~/Zynergy/Claude-kit-fixes'…)"); nothing in that call ran. The same command was run with the absolute path /home/zynergy-labs/Zynergy/Claude-kit-fixes.
 - **Choices this coder made that the dispatch does not** (listed in the hand-back): (r)'s fixture uses the "starts `<guard>:`" form ("Error: role_guard: …") and (q) the "hook error" form, so each form has one test; `<Tool>` in "PreToolUse:<Tool> hook error:" is matched as `\w+`; "Denied by user" is compared after stripping surrounding whitespace; an attachment's stdout that is not JSON counts as no decision; the test fixtures' toolDenialKind for a user decline is "permission-rule", as B's Bash decline logged; the B-08 row's wording; the PR opened before this terminal so that the terminal can name it.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-81
+**Timestamp:** 2026-09-25T21:34:00Z
+**Title:** Claude-kit v0.2 bypass rulings: BYPASSES.md statuses set (B-01, B-02, B-04, B-06, B-07, B-08 `accepted`; B-03, B-05 `fixed`); history_guard denies `gh api` writes to a pull request's merge endpoint (B-03) and opens a heredoc only at a `<<WORD` outside quotes and comments (B-05)
+**Dispatch-file:** preserved/2026-09-25-41.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the main checkout ~/Zynergy/Claude-kit as `prompts/preserved/2026-09-25-41.md` (7966 bytes, sha256 b96dc3c0ffbbec0d45f2ddaf1eaf9f8bde3ede92c4d911c47d6aefc522ba1c71; header "Preserved: 2026-09-25T21:10:58Z by .claude/hooks/dispatch_guard.py", HEAD 9425ef7b5989a3e8e887c826c7b2379680896f08, target coder, type build). This is the hook's name, free in this store. It was copied byte for byte (cmp) into this store. Planner's Agent call: B line 693, `toolu_015P324Jt6ixgUYuYX75nXn8`, 2026-09-25T21:10:58.604Z.
+**Sweep:** none. On origin/main 9425ef7, every store file is claimed. check_prompts.py in C failed only on -41, this dispatch's copy.
+**Change:**
+- `.claude/hooks/BYPASSES.md`:
+  - Statuses: B-01, B-02, B-04, B-06, B-07 and B-08 become `accepted`; B-03 and B-05 become `fixed`.
+  - The header's Status paragraph defines both values. `accepted`: known, ruled acceptable; the guard stays as is and the test keeps proving the bypass. `fixed`: closed; the row stays as history and its test now asserts the block.
+  - The Test column names the renamed tests for B-03 and B-05.
+- `.claude/hooks/history_guard.py`:
+  - B-03: for every role, a `gh api` call to `repos/<owner>/<repo>/pulls/<N>/merge` (with or without a leading `/`) is denied when it would write: `-X`/`--method` other than GET, a field flag (`-f`, `-F`, `--field`, `--raw-field`), or `--input`. The match is on the whole text, as `PR_MERGE`'s is. A plain GET passes. The reason names `gh pr merge` under T17's rule as the one allowed route.
+  - B-05: in `strip_heredocs`, a `<<WORD` marker opens a heredoc only when it is outside single quotes, double quotes and `#` comments. The quote and comment states are those of `command_lines`, carried across the lines that are not dropped.
+  - The docstring states both rules. Its "Known bypasses:" line drops B-03 and B-05.
+- `.claude/hooks/role_guard.py`: the "Known bypasses:" line drops B-03 and nothing else changes.
+- `.claude/hooks/tests/test_bypasses.py`:
+  - test_b03 and test_b05 are renamed `test_b03_pr_merge_through_gh_api_is_blocked` and `test_b05_heredoc_marker_in_quotes_or_comment_is_blocked`, and assert a deny with a reason.
+  - New `test_b03_get_of_merge_endpoint_passes`.
+  - New `test_b05_real_heredoc_body_still_dropped`.
+  - The module docstring describes both kinds of row test.
+- README: one sentence saying that rows are ruled `accepted` or `fixed`, and where the table is.
+**Scope boundary:**
+- Files: `.claude/hooks/history_guard.py` (behaviour for B-03 and B-05, and its docstring), `.claude/hooks/role_guard.py` (the "Known bypasses:" docstring line only), `.claude/hooks/BYPASSES.md`, `.claude/hooks/tests/test_bypasses.py`, README.md (one sentence), RECORD.md, and this store copy.
+- Not changed: any other guard's behaviour, guardlib.py, `command_lines`, the push-check logic apart from heredoc detection, the `gh pr merge` rule (a)-(e), the checkers, CI, kit.json, release.json, and session_agents.py.
+- Out of scope: fixing any `accepted` row; the `~` expansion in history_guard's push check; D2 and D5; other PRs, tags, and deleting anything.
+- The consistency test needs no extension. It requires each cited ID to be a row and each row's Test to exist (test_bypasses.py:152-163). It does not require every row to be cited.
+- The merge: this PR only (kit-v0.2-bypass-rulings -> main), with `--merge`, after CI is green on the final commit and after coder.md item 10's backup. Then C is updated by update_worktree.py (dry run, then `--apply`).
+**Baseline:**
+- ~/Zynergy/Claude-kit-fixes (a worktree of C) is on the new local branch `kit-v0.2-bypass-rulings`, made from origin/main 9425ef7b5989a3e8e887c826c7b2379680896f08 (PR #30 merge) after `git fetch`. There are no tags locally or on origin (`git ls-remote --tags origin` is empty).
+- The record's last entry is 2026-09-25-80. No intent is open (37 intents, 37 terminals), and check_record reports PASS.
+- C is on main at 9425ef7. Untracked: `.claude/worktrees/` and `prompts/preserved/2026-09-25-41.md`.
+- BYPASSES.md rows B-01 to B-08 are all `open`. The header at :15-16 is as the dispatch quotes it.
+- "Known bypasses:" lines: history_guard "B-01, B-02, B-03, B-04, B-05", role_guard "B-03, B-08", device_guard "B-06", dispatch_guard "B-07", session_check "none".
+- `PR_MERGE` (history_guard.py:88) is a whole-text regex. `HEREDOC`/`strip_heredocs` (:93-112) match `<<WORD` anywhere on a line.
+- Premise correction: the existing T12 heredoc tests are test_history_guard.py:129-143. They cover `<<'EOF'` (twice), unquoted `<<EOF` unclosed, and a closed real heredoc. None of them uses `<<-` or `<<"WORD"`, although Scope item 3 lists both.
+**Closed decisions:** From B:
+- The owner at 2026-09-25T20:49:45.411Z (line 620), verbatim: "Do the two T8 findings as small tasks, then the bypass-table rulings".
+- The owner's AskUserQuestion answer for B-08 (tool_use `toolu_01C9z1dBdDS1SJTV1uJWRKZ1`, 20:50:06.418Z; answered 20:50:24.550Z), option text verbatim: "Record it, don't restrict (Recommended)".
+- The owner's AskUserQuestion answers (tool_use `toolu_017Ycc9nwfC6QSGii67DGyUh`, B line 650, 20:51:23.962Z; answered at line 651, 20:52:13.198Z). Option labels and descriptions, verbatim:
+  - B-01/B-02 "Accept (Recommended)": "Documented, no fix. Closing every wrapper and interpreter form is open-ended; the guard is a tripwire for the usual forms. The real backstop for main is on GitHub (branch protection), which is outside the kit."
+  - B-03 "Fix (Recommended)": "history_guard treats a `gh api` call to `pulls/<N>/merge` like `gh pr merge`: denied unless it passes the same merge rule, or denied outright. Small and now relevant, since coders merge every task."
+  - B-04/B-05 "Fix B-05, accept B-04 (Recommended)": "B-05 is a parser bug with a small fix: only count `<<WORD` outside quotes and comments (the parser already tracks both). B-04 needs shell expansion, which the guard can't do safely; accept it."
+  - B-06/07/08 "Accept all three (Recommended)": "B-06: device_guard is off in the kit (null package) and the forms are deliberate evasion. B-07: SendMessage is how rulings reach a running coder (T9); its text is already recorded verbatim under coder.md item 6. B-08: Claude Code's own permission check limited the out-of-checkout read in T8, and pulses need to read session logs."
+- The planner's choices, per the dispatch:
+  - Deny write calls outright, not through T17's rule.
+  - GET stays allowed.
+  - The `accepted`/`fixed` wording.
+  - `fixed` rows may go uncited.
+- B-11/B-13 are Part B entries of docs/standing-rulings.md, not standing rulings. The merge rests on the dispatch's Merge section ("authorised: this PR only").
+- Owner messages in B after the dispatch call (line 693), read through line 708 before this entry: one. Line 705 (2026-09-25T21:31:18.979Z), verbatim: "Do both small follow-ups as a task after this merges". The planner's reply at line 708 makes that a later task: a test for session_agents' fallback wording, and the `~` expansion. It tells this coder nothing to do or not do in this scope, so it does not trigger the abort. The `~` expansion stays out of scope here.
+**Prediction (outcome — planner):** not authored
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit: test_b03_…_is_blocked and test_b05_…_is_blocked fail (today: no decision). The B-03 GET test and the B-05 regression test pass. All other hook tests pass (counts start from 138), and tests/ stays at 93 OK. The consistency test passes with the table unchanged, unless renaming breaks the column lookup (to be reported).
+- After the fix: all hook tests OK and 93 tests/ OK. Render checks 30/30 and 13/13, both checkers PASS, and release_check PASS with 27 files and no denylist hit.
+- Revert: history_guard.py from 9425ef7 gives the same two failures. Reverting only the B-05 change fails only test_b05.
+**Prediction (mechanism — coder):**
+- Tests-only commit, hook tests: "Ran 140 tests" (138 + the GET test + the B-05 regression test), "FAILED (failures=13)", in three test methods:
+  - test_b03_…_is_blocked: 8 subTest failures (six write forms as coder, plus the first form as pulse and as the planner), each "None != 'deny'". Today `PR_MERGE` (history_guard.py:88) needs `pr merge`, and the push check sees no git segment.
+  - test_b05_…_is_blocked: 3 subTest failures. `HEREDOC` (history_guard.py:93) matches `<<EOF` inside quotes and comments, so `strip_heredocs` drops the push line.
+  - test_table_docstrings_and_tests_agree: 2 subTest failures (rows B-03 and B-05). The unchanged table names the old test names, which no longer exist (test_bypasses.py:161-163). This is the column-lookup break that the dispatch asked to have reported. It is not a separate cause.
+  - The GET test passes (no rule matches it today), and so does the B-05 regression test (T12's heredoc stripping).
+- Tests-only commit, tests/: "Ran 93 tests", "FAILED (failures=1)", test_vendored_hook_tests_pass_in_the_adopter. It runs the vendored hook tests in an adopter (tests/test_install.py:200-204), and release.json vendors test_bypasses.py. This differs from the planner's "93 OK", and T12's record (2026-09-24-12) shows the same mechanism.
+- After the fix: hook tests "Ran 140 tests" OK; tests/ "Ran 93 tests" OK; render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 13 checks failed"; both checkers PASS; release_check "PASS: 27 release file(s)", no denylist match.
+- Revert check 1: history_guard.py from 9425ef7 over the fixed tests and table gives "FAILED (failures=11)", only test_b03_…_is_blocked (8) and test_b05_…_is_blocked (3). The consistency test passes, because 9425ef7's docstring cites B-03 and B-05 and both rows still exist.
+- Revert check 2: only `strip_heredocs`'s marker detection reverted gives "FAILED (failures=3)", only test_b05_…_is_blocked.
+- The T12 tests pass after the fix. Each of their markers is outside quotes and comments. The `'` of `<<'EOF'` opens and closes a quote after the `<<`, which the scanner passes through. The body "it's data" is a dropped line, so it is not scanned.
+**Finish line:**
+1. Pushed on kit-v0.2-bypass-rulings: (a) this store copy and intent; (b) the tests-only commit; (c) the fix (history_guard.py, BYPASSES.md, role_guard.py's docstring line, README); (d) the terminal.
+2. CI green on the final commit.
+3. coder.md item 10's backup.
+4. The merge of this PR with `--merge`, from C without `--repo`. Report the merge commit and its parents.
+5. C updated by update_worktree.py (dry run, then `--apply`), with both outputs reported.
+6. No tag.
+**Abort conditions:**
+- Any Base-and-state mismatch other than the dispatch's name.
+- A T12 heredoc test failing after the B-05 fix.
+- A needed change to any guard other than history_guard's behaviour (docstring lines are allowed).
+- A failure for any reason other than the predicted one.
+- Two failed fixes on one symptom.
+- A denylist hit.
+- CI not green (no merge).
+- The merge denied by anything (quoted).
+- The dry run or `--apply` exiting 1.
+- An owner message after the dispatch that tells this coder to do or not do something in this scope.
+- A planner message that widens the scope without quoting an owner ruling.
