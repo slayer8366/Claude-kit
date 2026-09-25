@@ -1514,3 +1514,45 @@ Then PR kit-v0.2-rulings2 -> main open, with CI green on its final commit. No me
 - a denylist hit
 - any change outside scope
 - an owner message after line 905 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-25
+**Timestamp:** 2026-09-25T05:13:35Z
+**Closes:** 2026-09-25-24
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (rulings file, second update, `preserved/2026-09-25-15.md`)
+**Observed:** Pushed on kit-v0.2-rulings2:
+- b27b322: store copy `2026-09-25-15.md`, byte-identical to the planner worktree's (sha256 bca10229...5729), and intent 2026-09-25-24.
+- 015c055: `docs/standing-rulings.md`:
+  - SR-04 at the end of Part A, no `Accepted:` line.
+  - B-11 and B-12 at the end of Part B.
+  - `- **Superseded-by:**` lines added as the last line of SR-02 (SR-04), B-01 (B-12) and B-07 (B-11).
+  - "None yet." replaced by three lines: SR-02 by SR-04, B-01 by B-12, B-07 by B-11.
+  - B-11's Proposed ruling opens with the owner's line-712 words as written there (no final full stop), per the planner's ruling at line 905.
+- PR #15 (kit-v0.2-rulings2 -> main) opened at https://github.com/slayer8366/Claude-kit/pull/15. CI on 015c055: runs 36097572593 (push) and 36097585702 (pull_request) succeeded.
+
+Checks after 015c055:
+- `git diff --stat origin/main -- docs/standing-rulings.md`: "1 file changed, 97 insertions(+), 1 deletion(-)"; the one removed line is "None yet.". The file is 339 lines (243 before).
+- `grep -c '^\*\*Accepted:\*\*' docs/standing-rulings.md`: 0. Three lines contain "Accepted:" (:9, :19, :32), all in the header, unchanged; the diff has no line containing "Accepted".
+- hook tests "Ran 106 tests" OK; tests/ "Ran 39 tests" OK; render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed".
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match." (unchanged).
+- find_dispatches.py: "Counts: in-store 19, record 15, refused 2, stop 0" (refused -02 and -05).
+- both checkers PASS before each RECORD.md commit (50 entries and preserved=29 after the intent; 51 entries with this terminal).
+
+B-05, B-06, B-08, B-09, B-10, re-checked at 742d10f (Source, Scope, Enforced by):
+- B-05: nothing wrong. Planner-log lines 324 and 330 hold the quoted owner text; RECORD.md:564 (2026-09-25-07), :653 (2026-09-25-11, which calls the TaskStop extension the planner's) and :742 (2026-09-25-12) are as cited; role_guard.py:22-27 and :33-35 state the approval rule. No entry added.
+- B-06: nothing wrong. Line 310 holds "Only its own agents (Recommended)"; RECORD.md:564 and :652 as cited; role_guard.py `check_send_message` :237-256, `check_task_stop` :265-290, `own_agent_ids` :207-234, `guard` :322-329, shell_id denied :270-272. No entry added.
+- B-08: nothing wrong. a5d14103 line 25 holds "an unparseable push is still blocked. The owner accepted this."; the owner confirmed that handover as theirs (791cc457 lines 853 and 882), and the planner's ruling at line 905 says B-08 is unchanged. RECORD.md:418 as cited; history_guard.py:212-219 and docstring :19-29 as cited. No entry added.
+- B-09: nothing wrong. a5d14103 line 138 and a4155372 line 231 hold the quoted answers; RECORD.md:387 as cited; check_prompts.py `store_name_errors` :85-125, cutoff :82, call :260, docstring :54-60 as cited. Line drift only: coder.md item 5 is at :52-59 at 742d10f (cited as :47-54 at 82725c4, which the entry says). No entry added.
+- B-10: nothing wrong. Line 489 holds "coder.md + amend (Recommended)"; RECORD.md:801 and :803 as cited; check_record.py:62-66 as cited. Line drift only: coder.md item 9 is at :74-79 and its last two lines at :78-79 at 742d10f (cited as :69-74 and :73-74 at 82725c4). No entry added.
+The cited hook and checker files are unchanged between 82725c4 and 742d10f; coder.md gained 5 lines at :29-33 (the standing-ruling paragraph), which is the only drift.
+
+Messages after this dispatch's Agent call (line 835): the planner log, read before this entry, has 909 lines. The owner's messages at lines 853-903 and the planner's ruling at line 905 are recorded in the intent. Lines 906-908 hold the SendMessage result and the planner's note to the owner that the coder resumed, and line 909 is the PR #15 link record (05:12:23.605Z); no further owner message and no further planner message to this coder.
+**Deviations:**
+- This coder stopped before the intent over the handover citation (planner-log line 845). The planner's ruling at line 905, approved by the owner at line 903, changed B-11's ruling text (the owner's words at line 712, then the backup form) and Evidence (791cc457 line 25 not the owner's; a5d14103 line 25 the owner's, replaced by line 712; B-07's "No owner ruling in the record" wrong). The intent records it.
+- The dispatch's B-12 Evidence asked for the T13 coders "deleting their own `/tmp` scratch directories and reporting it". Terminal 2026-09-25-19's coder deleted only `/tmp/t13_adhoc_*` and left other scratch files, as its hand-back (line 738) lists; B-12 says so.
+- The release denylist's patterns, run over `docs/standing-rulings.md` as an extra check (docs/ is not in the release set, and release_check passes), match `(?i)forager` and `(?i)forager-backups` at :70 (SR-03, already on main) and at :278 and :282 (B-11's `~/forager-backups`, the path the dispatch and the owner's chosen option name). This coder read the abort condition "a denylist hit" as a release_check failure and did not abort; that reading is listed in the hand-back.
+- Otherwise none. The planner's and the intent's predictions held, except that find_dispatches reported in-store 19, a count the intent did not predict.
+- Choices the dispatch did not make are listed in the hand-back under Decisions I made.
