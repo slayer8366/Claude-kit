@@ -62,7 +62,12 @@ The branch is read in the repository that `git -C <dir>` names, or else in
 the payload's cwd. A leading `~` or `~user` in that directory is expanded
 with os.path.expanduser, as the shell would, before the branch is read, for
 the push check and the `git merge` check alike. Nothing else is expanded:
-`$VAR` stays as written (B-04).
+`$VAR` stays as written (B-04). After that expansion, a relative directory
+is resolved against the payload's cwd, where git would run it, not the hook
+process's own directory; an absolute one, or one starting with `~`, is used
+as it is. A quoted `~` (`git -C '~/x'`) is expanded as well, unlike in the
+shell: such a command fails in git anyway, so the check errs toward reading
+the home-directory repo.
 
 Before the push check parses a command, heredoc bodies are removed. For
 each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"` that stands outside
@@ -214,6 +219,15 @@ def command_lines(text):
         i += 1
     pieces.append("".join(cur))
     return pieces
+
+
+def dash_c_directory(directory, cwd):
+    """The directory a `git -C <directory>` run from cwd works in: `~`
+    expanded first, then a relative path joined to cwd."""
+    expanded = os.path.expanduser(directory)
+    if directory.startswith("~") or os.path.isabs(expanded):
+        return expanded
+    return os.path.join(cwd, expanded)
 
 
 def current_branch(directory):
@@ -503,7 +517,7 @@ def guard(payload):
 
     for m in MERGE.finditer(command):
         dash_c = re.search(r"-C\s+(\S+)", m.group(1) or "")
-        directory = os.path.expanduser(dash_c.group(1).strip("'\"")) if dash_c else cwd
+        directory = dash_c_directory(dash_c.group(1).strip("'\""), cwd) if dash_c else cwd
         branch, err = current_branch(directory)
         if err:
             return ("deny", f"history_guard: `git merge` blocked: could not read "
@@ -527,7 +541,7 @@ def guard(payload):
         if not inv or inv[1] != "push":
             continue
         directory, _, args = inv
-        branch, err = current_branch(os.path.expanduser(directory) if directory else cwd)
+        branch, err = current_branch(dash_c_directory(directory, cwd) if directory else cwd)
         if err:
             return ("deny", f"history_guard: push blocked: could not read the "
                             f"current branch ({err}).")
