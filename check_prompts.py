@@ -513,7 +513,77 @@ def render_check():
           "is accepted as a claim",
           p10)
 
-    total = 10
+    # p11-p13 (Claude-kit v0.2 addition, T10): a store copy whose header
+    # carries Repeat-of: must name an existing file with identical text.
+    def repeated(tmp, specs):
+        """specs: list of (rel, repeat_of or None, body). Writes each file
+        with a hook-style header and claims it with its own note."""
+        notes = []
+        for n, (rel, repeat_of, body) in enumerate(specs, 5):
+            header = ["HEAD: fixture-head", "Target subagent: pulse",
+                      "Type: pulse",
+                      "Preserved: 2026-09-25T10:00:00Z by the dispatch hook"]
+            if repeat_of is not None:
+                header.append(f"Repeat-of: {repeat_of}")
+            header.append("--- verbatim prompt follows ---")
+            path = Path(tmp) / PROMPTS_DIR / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(header) + "\n" + body)
+            notes.append(cr._minimal_note(
+                id_=f"2026-01-01-{n:02d}", **{"Dispatch-file": rel}))
+        text = cr._minimal_record(*notes)
+        (Path(tmp) / RECORD_NAME).write_text(text)
+        _, binding_errors, _, _ = check_binding(tmp)
+        _, entry_errors, _, _ = cr.validate_entries(text)
+        return binding_errors, entry_errors
+
+    original = "preserved/2026-09-25-01.md"
+    repeat = "preserved/2026-09-25-02.md"
+
+    def p11():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = repeated(tmp, [
+            (original, None, "# Dispatch\n\nSame text.\n"),
+            (repeat, original, "# Dispatch\n\nSame text.\n"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert not binding, f"a valid re-send was rejected: {binding}"
+
+    check("p11_valid_repeat_passes",
+          "a re-send naming an existing file with identical text is rejected",
+          p11)
+
+    def p12():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = repeated(tmp, [
+            (original, None, "# Dispatch\n\nSame text.\n"),
+            (repeat, original, "# Dispatch\n\nSame text!\n"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert any("2026-09-25-01.md" in e and "2026-09-25-02.md" in e
+                   and "Repeat-of" in e for e in binding), (
+            f"a re-send whose text differs from the named file was "
+            f"accepted: {binding}")
+
+    check("p12_repeat_text_mismatch_fails",
+          "a re-send whose text differs from the file it names is accepted",
+          p12)
+
+    def p13():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = repeated(tmp, [
+            (repeat, original, "# Dispatch\n\nSame text.\n"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert any("2026-09-25-01.md" in e and "2026-09-25-02.md" in e
+                   and "Repeat-of" in e for e in binding), (
+            f"a re-send naming a missing file was accepted: {binding}")
+
+    check("p13_repeat_of_missing_file_fails",
+          "a re-send naming a file that does not exist is accepted",
+          p13)
+
+    total = 13
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
           f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0
