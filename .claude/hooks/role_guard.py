@@ -44,6 +44,8 @@ whose role is not one of the kit's roles below, is denied every tool.
 The Bash checks are patterns over the command text. They hold the command
 forms an agent usually writes, not every program that could do the same
 thing.
+
+Known bypasses: .claude/hooks/BYPASSES.md B-03
 """
 import json
 import re

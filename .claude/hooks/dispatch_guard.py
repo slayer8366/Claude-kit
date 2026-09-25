@@ -41,6 +41,8 @@ still be wrong.
 A dispatch that this hook or role_guard blocks is logged in the session log
 with `toolDenialKind` (for example "permission-rule") on the tool_result,
 not with a `deny` decision.
+
+Known bypasses: .claude/hooks/BYPASSES.md B-07
 """
 import datetime
 import fcntl
