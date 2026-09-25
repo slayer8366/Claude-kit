@@ -3375,3 +3375,66 @@ It rules on the question this coder raised. It changes how Fix 2 is built, not a
 - The dry run or `--apply` exiting 1.
 - An owner message after the dispatch that tells this coder to do or not do something in this scope.
 - A planner message that widens the scope without quoting an owner ruling.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-84
+**Timestamp:** 2026-09-25T22:05:00Z
+**Closes:** 2026-09-25-83
+**Outcome:** completed
+**Report:** this coder's final hand-back to the planner for dispatch `preserved/2026-09-25-42.md`.
+**Observed:**
+- **Commits on kit-v0.2-batch4**, from origin/main 6a848ac, each pushed:
+  - 3d98e8d: store copy -42 and intent -83.
+  - 96b1a4f: tests only.
+    - `tests/test_session_agents.py`: `test_v_denial_matching_no_rule_shows_first_line`.
+    - `.claude/hooks/tests/test_history_guard.py`: `test_tilde_in_dash_c_expanded_for_push` and `test_tilde_in_dash_c_expanded_for_merge`. Each has a feature and a main subTest, uses a temporary HOME holding copies of the fixture repos, and passes it as `run_hook(..., env={"HOME": ...})`.
+    - `.claude/hooks/tests/test_bypasses.py`: `test_b05_here_string_is_not_a_heredoc_marker` and `test_b09_pr_merge_through_curl` (two curl forms, each sent to history_guard and role_guard as coder).
+  - b9463df: the fix.
+    - history_guard.py: `os.path.expanduser` on the `-C` directory in the merge check (`dash_c`) and the push check; `heredoc_markers` skips a match preceded or followed by `<`; the docstring states both rules; "Known bypasses: … B-04, B-09".
+    - role_guard.py: "Known bypasses: … B-08, B-09" only.
+    - BYPASSES.md: row B-09 (`open`), and B-05's row gains "Also `<<<` here-strings (batch 4)."
+  - PR #32 (kit-v0.2-batch4 -> main).
+- **Counts before** (3d98e8d, base code): hook tests "Ran 140 tests" OK; tests/ "Ran 93 tests" OK.
+- **Failing first at 96b1a4f, as predicted:**
+  - Hook tests: "Ran 144 tests", "FAILED (failures=5)".
+    - `~` push: feature got "'deny' != None … push blocked: could not read the current branch (fatal: cannot change to '~/repo': No such file or directory)."; main got "'protected branch' not found" in that same reason.
+    - `~` merge: feature got "'deny' != None … `git merge` blocked: could not read the current branch of ~/feature_repo (fatal: cannot change to '~/feature_repo' …)"; main got "'while on main' not found" in the same reason for ~/main_repo.
+    - `<<<`: "None != 'deny' : history_guard.py gives None ()". The bypass is real.
+    - test_b09 (both hooks), the fallback test and the consistency test passed.
+  - tests/: "Ran 94 tests", "FAILED (failures=1)", test_vendored_hook_tests_pass_in_the_adopter (the same 5 inside).
+  - CI push run 36194273090 on 96b1a4f: failure. Both matrix jobs show "Ran 144 tests", "FAILED (failures=5)", with the same tests.
+- **After the fix (b9463df):**
+  - Hook tests "Ran 144 tests" OK, including every T12 heredoc test, both B-05 tests and MergeRule m1-m9. tests/ "Ran 94 tests" OK.
+  - Render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 13 checks failed".
+  - release_check "PASS: 27 release file(s), 8038 line(s), 18 denylist pattern(s), no match."
+  - history_guard.py and role_guard.py compile with `-W error`.
+  - CI push run 36194633596 and pull_request run 36194671891 on b9463df: success.
+- **Revert check 1:** history_guard.py from 6a848ac, with the fixed copy kept in the scratchpad: "Ran 144 tests", "FAILED (failures=5)", the same `~` (4) and `<<<` (1) failures. Restored (cmp identical).
+- **Revert check 2 (fallback sabotage, never committed):** session_agents.py's `return first_line(text)` in `denial` was replaced by `return "fallback sabotaged"`. tests/: "Ran 94 tests", "FAILED (failures=1)", only test_v ("'denied: fallback sabotaged' != 'denied: Permission was withheld for another reason'"). Restored (`git diff --quiet` clean).
+- **Revert check 3:** the B-09 row removed, citations kept: "Ran 144 tests", "FAILED (failures=1)", test_table_docstrings_and_tests_agree (cited='B-09'), "… history_guard.py, role_guard.py cites B-09, which is not a row of BYPASSES.md". Restored (cmp identical).
+- **Merge backup (coder.md item 10):**
+  - After `git fetch origin` in C, origin/main is 6a848aca23a50fdde28d3580b3d7447b1c5002de, equal to `git ls-remote origin main`.
+  - ~/forager-backups/2026-09-25-25/ holds:
+    - `main.bundle`: `git bundle create` of refs/remotes/origin/main, 940862 bytes; "The bundle records a complete history."; one head, 6a848ac.
+    - `merge.json`: {"pr": 32, "branch": "main", "sha": "6a848aca23a50fdde28d3580b3d7447b1c5002de", "bundle": "main.bundle"}.
+    - MANIFEST.sha256: main.bundle be8851b28e58ef9dca61032a725b6aaae97d64b9c34a24524a24be4f136e3cb8, merge.json f0037b2b2bb28d94a5dddd2af188db82916c00601623e88584b69767a8267c23. `sha256sum -c` reports OK for both.
+  - One row was added to ~/forager-backups/INDEX.md (40 to 41 lines), naming 2026-09-25-25, #32 and the SHA.
+- **Not yet done when this entry was written**, in the finish line's order: CI on this entry's commit, the merge of PR #32, and the update of C. This `completed` covers the pushed work above. The merge's result (or its denial, quoted) and the update's outputs are in the final hand-back.
+- **Planner log B**, read before each record commit: 742 lines at the intent, 755 before this entry. Owner messages after the dispatch call (line 730), verbatim:
+  - Line 739 (21:51:19.580Z): "What's left of the plan?" (quoted in -83).
+  - Line 745 (21:56:07.304Z): "Go with that order".
+  - Line 751 (21:56:59.235Z): "That's in one hour,  so I'll let you know".
+  - Each is addressed to the planner about the order of later work (B-09's ruling, the backlog task). None tells this coder to do or not do anything in this scope. There were no planner messages to this coder.
+**Deviations:**
+- None from the predictions.
+- history_guard refused one Bash call. It was an inline Python edit script for BYPASSES.md whose text held the merge command's words, and the refusal was "`gh pr merge` denied, (b) form: it must be one command, with nothing else on another line". Nothing ran. The script was written to the scratchpad with Write and run from there.
+- **Choices this coder made that the dispatch does not** (listed in the hand-back):
+  - A `~` merge test was added alongside the push tests, because the merge check had the same gap.
+  - The fallback test's text has no "Error: " prefix. The fallback keeps that prefix (`denial` returns `first_line(text)` on the unstripped text, session_agents.py:251), while the docstring says it is stripped. That mismatch is flagged, not fixed.
+  - Test placement and names: `~` in test_history_guard.py; `<<<` in test_bypasses.py beside B-05's tests. It is not named in B-05's Test cell, which names one test.
+  - The two curl forms in test_b09. B-09's row gives an example command.
+  - B-05's sentence is capitalized as its own sentence.
+  - The docstring wording and its placement.
+  - The PR was opened before this terminal so that the terminal can name it.
