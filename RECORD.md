@@ -2487,3 +2487,17 @@ This was the re-send with rulings R1-R8. It stopped at Verify on the unnamed 01F
 - README had no prose section on the dispatch hook, so the sentence went after the "Fixed in code, not config" paragraph that names the prompt store.
 - The backup was written after CI was green on 7a081d5 and before this terminal, as in 2026-09-25-56.
 - Scratch left in place, nothing deleted: /tmp/t10_intent.md, /tmp/t10_terminal.md, /tmp/t10_release_files.txt, /tmp/t10_tests_only_uncommitted.patch.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-59
+**Dispatch-file:** preserved/2026-09-25-25.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl: the owner's "Send it" at 2026-09-25T14:56:12.279Z (line 934); the Agent call to `pulse` at 14:56:25.739Z (line 940, tool_use `toolu_01W7bz5w23wYhE1fptfdYR97`, description "Re-send pulse 2026-09-24-03"); its report, delivered as "[Subagent hand-back]" and enqueued at 14:56:37.493Z (line 944); the Agent result at 14:56:41.893Z (line 943).
+**Observed:** `prompts/preserved/2026-09-25-25.md` from the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB (W, at 1599a53), under the hook's name (701 bytes, sha256 8950edab029001a3f93b1ab56c76efb13154e539d581e3bbc86e634531d8f9ec; header "Preserved: 2026-09-25T14:56:25Z by .claude/hooks/dispatch_guard.py", HEAD 1599a53975b8f980035c594d52f7d125de768370, target pulse, type pulse, "Repeat-of: preserved/2026-09-24-03.md"). Copied byte for byte (cmp). Its text after the delimiter equals the Agent call's prompt (482 characters) and the text of the original, `preserved/2026-09-24-03.md` (Preserved 2026-09-24T19:30:20Z, HEAD 45f053b), byte for byte.
+
+This is the planner's end-to-end test of T10 (intent 2026-09-25-57, terminal -58): the planner re-sent pulse 2026-09-24-03 unchanged. The hook's reason, in the PreToolUse attachment at 14:56:25.866Z (line 942), reads "dispatch_guard: Type 'pulse' dispatch to pulse preserved at prompts/preserved/2026-09-25-25.md (HEAD 1599a53975), repeat of preserved/2026-09-24-03.md (identical text)." So T10's end-to-end result is that the hook matched the re-send against the stored original and marked it. Per coder.md item 11, the original's dispatch was a pulse that opens no intent, so this re-send is recorded as its own dispatch, citing the original.
+
+The pulse answered its one question with W's HEAD: "1599a53975b8f980035c594d52f7d125de768370". It also reported a premise mismatch, since the unchanged text expects worktree bridge-cse_01TVuxEhXQ9gEiCqR5vw4nGZ at 45f053b: "Premise mismatch: the dispatch expected worktree bridge-cse_01TVuxEhXQ9gEiCqR5vw4nGZ on branch worktree-bridge-cse_01TVuxEhXQ9gEiCqR5vw4nGZ at 45f053b."
