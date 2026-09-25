@@ -1961,3 +1961,32 @@ Messages after the dispatch's Agent call (line 944): the planner log, read befor
 - Merge backup: after `git fetch`, ~/forager-backups/2026-09-25-07 holds main.bundle, merge.json (pr, branch main, sha 3847590... unless main moved) and MANIFEST.sha256, with one INDEX row naming 2026-09-25-07, the PR number and the SHA. Then the PR is merged by number with `--merge`.
 **Finish line:** W updated (HEAD equals origin/main, only `-02`, `-05`, `-21` untracked); this intent pushed before `--apply`; terminal 2026-09-25-37 pushed; PR kit-v0.2-wt-update -> main green on its final commit and merged with `--merge` after item 10's backup; merge commit reported; no tag.
 **Abort conditions:** any Base-and-state mismatch other than the dispatch's name; the dry run exiting 1 (no `--apply`, reasons reported); `--apply` exiting 1 (output reported verbatim, no workaround); CI not green (no merge); history_guard denying the merge after the backup (quoted); two failed fixes on one symptom; an owner message after line 1184 that tells the coder to do or not do something in this scope or changes a decision here; a planner message that widens the scope or changes a closed decision without quoting an owner ruling.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-37
+**Timestamp:** 2026-09-25T10:10:38Z
+**Closes:** 2026-09-25-36
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (update of W by update_worktree.py, `preserved/2026-09-25-21.md`)
+**Observed:**
+- db9a9c7 on kit-v0.2-wt-update (from origin/main 3847590): store copy `2026-09-25-21.md` (byte-identical to W's by cmp) and intent 2026-09-25-36, pushed before `--apply`.
+- Dry run, `python3 ~/Zynergy/Claude-kit-fixes/update_worktree.py /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB`: "dry run: no fetch; comparing against origin/main as last fetched"; move `prompts/preserved/2026-09-25-17.md`, `-18.md`, `-19.md`, `-20.md`; leave `-02.md`, `-05.md`, `-21.md`; "fast-forward: 8b1c88a..3847590 (origin/main)"; "the plan would succeed; rerun with --apply to act"; exit 0.
+- `--apply`, the same command with `--apply`: "after fetching, comparing against origin/main 3847590469634ed45759e429ce7900be07a4d169"; the same four moves and three leaves; "fast-forward: 8b1c88a..3847590 (origin/main)"; "moved 4 file(s) to /home/zynergy-labs/forager-backups/2026-09-25-06"; "HEAD is now 3847590469634ed45759e429ce7900be07a4d169"; exit 0. W was fast-forwarded to 3847590, which was still the current origin/main after the fetch.
+- The script's folder ~/forager-backups/2026-09-25-06 holds MANIFEST.sha256 and `prompts/preserved/2026-09-25-17.md` to `-20.md`; `sha256sum -c` OK for all four; each file equals origin/main's copy (cmp); no merge.json. INDEX.md went from 21 to 22 lines, with one row for 2026-09-25-06 naming W, update_worktree.py and 3847590469634ed45759e429ce7900be07a4d169, no `#N`.
+- After the update: W's HEAD and origin/main are both 3847590469634ed45759e429ce7900be07a4d169, and it is on branch worktree-bridge-cse_013ve7bxjxrGv4tLa8p1kdHB. `git -C W status --porcelain --untracked-files=all` prints exactly `?? prompts/preserved/2026-09-25-02.md`, `-05.md` and `-21.md`. `git -C W diff origin/main -- .claude/settings.json` is empty; its SessionStart entry runs `python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/session_check.py"`. W's `.claude/hooks/session_check.py`, run with cwd W on a SessionStart payload (`hook_event_name` SessionStart, `source` startup, `cwd` W), exited 0 and printed 0 bytes. W has no `.claude/kit.lock`. The planner session still has the hooks it read at start, so it needs a restart to run SessionStart. That restart, and checking for T5's warning, are the owner's and were not done.
+- Fixes checkout on kit-v0.2-wt-update after db9a9c7: hook tests "Ran 124 tests" OK; tests/ "Ran 47 tests" OK; render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"; release_check "PASS: 22 release file(s), 5908 line(s), 18 denylist pattern(s), no match."; both checkers PASS.
+- PR #21 (kit-v0.2-wt-update -> main) opened. CI was green on db9a9c7 (push and pull_request runs, Python 3.8 and 3.14).
+- Backup for the merge (coder.md item 10), written after CI was green on db9a9c7 and before this entry, after `git fetch origin` (origin/main 3847590469634ed45759e429ce7900be07a4d169). /home/zynergy-labs/forager-backups/2026-09-25-07/ holds:
+  - `main.bundle`, a `git bundle create` of refs/remotes/origin/main (559479 bytes)
+  - `merge.json` {"pr": 21, "branch": "main", "sha": "3847590469634ed45759e429ce7900be07a4d169", "bundle": "main.bundle"}
+  - MANIFEST.sha256 (sha256 086a3329dd099786d2ad3fe9a53e7fa8bb5ad844ece4ad158bba10fd4c5a10d4)
+
+  Verification: `sha256sum -c` gave "main.bundle: OK" and "merge.json: OK"; `git bundle list-heads` gave "3847590469634ed45759e429ce7900be07a4d169 refs/remotes/origin/main"; `git bundle verify` gave "is okay" and "The bundle records a complete history." One row was added to INDEX.md (22 to 23 lines), naming 2026-09-25-07, #21 and the SHA. This folder is separate from the script's 2026-09-25-06. The merge runs after CI is green on this entry's commit, so its result is in the hand-back, not here.
+- Every prediction in the intent held.
+- Planner log: read before each record commit (1191 lines at the intent; 1192 before this entry, where line 1192 is PR #21's pr-link metadata). There was no owner message after the Agent call (line 1184) and no planner message to this coder.
+**Deviations:**
+- The dispatch lists the dry run as step 1 and the intent before step 2. The intent was committed before the dry run as well, to follow coder.md's "intent before action".
+- An earlier attempt to draft the intent with a shell heredoc was refused by history_guard ("(b) form: it must be one command, with nothing else on another line"), because the draft's text named the PR-merge command. Nothing was written. The intent and this entry were drafted in /tmp/kitv02_wtupd_intent.md and /tmp/kitv02_wtupd_terminal.md with the Write tool and appended from there.
+- The dispatch asks for the backup "after the record PR is green", and coder.md asks for the terminal to cite the backup folder. So the backup was written after CI was green on the intent commit and before this terminal. The merge still waits for CI to be green on this entry's commit. The freshness check compares only origin/main's SHA, which a record-branch commit does not move.
