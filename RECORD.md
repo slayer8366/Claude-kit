@@ -608,3 +608,98 @@ Item 6, confirmed by the owner after the ruling: the pulse role's allowlist bloc
 **Report:** the coder's hand-back to the planner for this dispatch (`preserved/2026-09-25-07.md`)
 **Observed:** Pushed on kit-v0.2-wt-ff (new remote branch): fee2d90 (store copy `2026-09-25-07.md`, byte-identical to the planner worktree's, sha256 2995a015...9444285; intent 2026-09-25-09). K1: each of the six in W, `2026-09-24-08.md` a7706892b7380b9bcd248c1c6386e4afa8446f7afc8f0c4c8dd665d108862459, `2026-09-24-09.md` c724fa3ae4f9bb37ba9f25b08e157f2795f4eca56ee02a0b78a88139fd940fc4, `2026-09-25-01.md` 624cf92d59f133e62f6b7e411424490031a1bcd0240532ecb7ef80b17cdde202, `2026-09-25-03.md` a49be45a9ac2c416c304514e3484582be064276a8a4d074df2485798d335eea7, `2026-09-25-04.md` ddd685b4c44b17b74f127a77cd2f4553166f3d8bc6be26b1a46424845d6601b3, `2026-09-25-06.md` df0600785d3f31afefb40c0c226ff2b4246bab055acc6e8e60db46f02c5b8589, equal to `git show origin/main:prompts/preserved/<name> | sha256sum`. K2: the six moved (`mv -n`) into the new ~/forager-backups/2026-09-25-01/prompts/preserved/; MANIFEST.sha256 (sha256 2744dfe88dca27f6e3214ee36de410dd256868c8e6c774a4df8c742de125a1e7, written 2026-09-25T01:56:21Z) passes `sha256sum -c` in that folder (6 OK) and is byte-identical (cmp) to a manifest built from origin/main's hashes; the folder holds only those seven files; one line appended to ~/forager-backups/INDEX.md (now 17 lines). K3: in W, `git fetch origin` then `git merge --ff-only origin/main`: "Updating cda554b..d59280f", "Fast-forward", no refusal. W's HEAD d59280fceb136d04d2165d3851bdd2466a04ace6 on branch `worktree-bridge-cse_013ve7bxjxrGv4tLa8p1kdHB`; `git status --porcelain` shows only `?? prompts/preserved/2026-09-25-02.md`, `-05.md` and `-07.md`; the six are tracked (`git ls-files --error-unmatch`) at the K1 hashes. W's `.claude/hooks/role_guard.py` is identical (cmp) to origin/main's, and PLANNER_TOOLS (lines 52-54) includes "SendMessage". That the fast-forward would have refused with the six in place was inferred and not tested. `git diff cda554b d59280f -- .claude/settings.json` is empty. K4, read-only: W's role_guard.py run as a script from W with a PreToolUse SendMessage payload whose `transcript_path` is the real planner log: `to` `a02810510ac421daf` (this coder's ID, `toolUseResult.agentId` on line 386, the result of the Agent call at line 384, isAsync true) gave no output and exit 0 (None); `to` `main` gave deny, "role_guard: the planner may SendMessage only to an agent this session started (an ID that toolUseResult.agentId gives on the transcript line holding the result of one of the session's own Agent calls). Blocked: target 'main' is not one of them. If its Agent call has only just returned, send again once the result is on disk." The coder sent no message. Checks here at fee2d90: hook tests "Ran 99 tests" OK; tests/ "Ran 29 tests" OK; render checks "PASS: 0 of 23 checks failed" and "PASS: 0 of 8 checks failed"; both checkers PASS (check_prompts.py: 21 preserved files); release_check.py "PASS: 19 release file(s), 4428 line(s), 18 denylist pattern(s), no match." Owner messages after line 384, read at 01:58Z (405 lines): line 394 (2026-09-25T01:57:00.350Z) "All approved", answering the planner's line 391 (01:52:45.209Z), which asked approval for this dispatch and offered one test message, "Confirm receipt; no action." It approves; it tells the coder to do nothing in this scope and changes no decision, so it is recorded here and the work continued. Planner message (coder.md item 6), received by this coder during the work, the SendMessage at planner log line 402 (2026-09-25T01:57:07.518Z, to `a02810510ac421daf`; line 403 "Message queued for delivery"), verbatim: "Planner test of SendMessage, approved by the owner in the planner log ("All approved", replying to the planner's offer to send "Confirm receipt; no action."). Confirm receipt; no action. This message changes no part of your dispatch. Per coder.md item 6, quote it and cite its planner-log line in your terminal." Receipt is confirmed in the hand-back. It neither widens the scope nor changes a closed decision.
 **Deviations:** None from the finish line up to this entry; the PR and CI status on the final commit are reported in the hand-back. The planner's and this intent's predictions held throughout. The first attempt at the fetch and fast-forward was one Bash command with the worktree path in a shell variable; history_guard blocked it before anything ran ("could not read the current branch of $W"), and it was rerun with the literal path. The intent, this entry and the INDEX line were written to /tmp/kitv02_wtff_intent.md and /tmp/kitv02_wtff_terminal.md (and a heredoc for INDEX) and appended from there; the two scratch files are left in /tmp.
+
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-11
+**Timestamp:** 2026-09-25T02:13:41Z
+**Title:** Claude-kit v0.2 T11: role_guard allows the planner TaskStop on agents this session started, with tests
+**Dispatch-file:** preserved/2026-09-25-08.md
+**Dispatch source:** The dispatch hook (shared counter, `2026-09-25 08`) saved this dispatch in the harness worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB as `prompts/preserved/2026-09-25-08.md` (7256 bytes, sha256 d80093fae660595ccd0828e620aa148138c32fae7dbeeb6a02765fb0b71ec5fa; header "Preserved: 2026-09-25T02:10:21Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The text after the delimiter equals the prompt of the Agent call at line 432 (2026-09-25T02:10:21.498Z, tool_use `toolu_01F6PXkkv3bb7dcBELHCaXGm`, description "T11: planner TaskStop own agents", run_in_background true) of the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl (7075 characters on both sides, exact). The hook's name was free in this store, and the copy is byte for byte (cmp reports them identical).
+**Sweep:** None needed. Both checkers PASS at 501c7c3 with every store file claimed (23 dispatch-recording entries, 21 preserved files). D2 (`2026-09-25-02.md`) and D5 (`2026-09-25-05.md`) in the planner worktree stay cited, not copied (R5). `-07.md` there is identical to the store's `2026-09-25-07.md`.
+**Change:** `.claude/hooks/role_guard.py` gets four changes:
+- TaskStop added to `PLANNER_TOOLS`.
+- A new `STOP_RULE` and `check_task_stop(payload)`, which applies T9's target rule to `task_id` through the existing `own_agent_ids`. guard() calls it for a planner TaskStop after the allowlist check.
+- The dispatch's TaskStop paragraph, added verbatim to the module docstring after T9's SendMessage paragraph.
+- No refactor of T9's code. `own_agent_ids` (role_guard.py:200-227 at 501c7c3) is already a standalone function, and `check_send_message` (:230-249) stays unchanged.
+
+`.claude/hooks/tests/test_role_guard.py` gets a new class `PlannerTaskStop` with tests s1-s7. It reuses `PlannerSendMessage.call` and `.result` (static methods) to build fixture lines. `PlannerSendMessage` itself is unchanged.
+**Scope boundary:** Files: `.claude/hooks/role_guard.py` and `.claude/hooks/tests/test_role_guard.py`. Record: this dispatch's store copy, this intent, and terminal 2026-09-25-12. No change to:
+- coder.md
+- README (it does not list the tools)
+- other hooks, guardlib or kit.json
+- the checkers, install or CI
+
+T9's behaviour and tests stay unchanged. Also out of scope: T10, T4, the T3 backlog, history_guard items, test_install's stderr tail, any harness worktree, merge, tag, and deleting anything.
+**Baseline:** ~/Zynergy/Claude-kit-fixes, local `kit-v0.2-t11` created from origin/main 501c7c37e4e7d0e2fa237a09ce05226fb677e63a (PR #10 merge, committed 2026-09-24T19:09:12-07:00, which is 02:09:12Z). The tree was clean. `git fetch` at about 02:11Z showed no tags. The record's last entry is 2026-09-25-10, and no intent is open. Counts at 501c7c3:
+- hook tests: "Ran 99 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 23 checks failed" and "PASS: 0 of 8 checks failed"
+- both checkers: PASS
+- release_check.py: "PASS: 19 release file(s), 4428 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 11, record 15, refused 3, stop 0" (refused: 2026-09-25-02, -05, -08, each "T1+: the hook's name; dated today"), exit 0
+
+The planner worktree is at d59280f, with D2, D5, -07 and -08 untracked. role_guard.py:52-54 at 501c7c3: `PLANNER_TOOLS` lacks TaskStop, so guard() (:270-274) denies it with "role_guard: the planner role may not use TaskStop. ...".
+**P1 (proved from the planner log before any code):** A background agent's task ID equals its agent ID. Evidence for the worktree-update coder:
+- Line 384 (2026-09-25T01:41:01.876Z) is the Agent tool_use `toolu_01C8qpmjnMMNfkTvBWtJzyGV` ("Fast-forward planner worktree", run_in_background true).
+- Line 386 (01:52:40.215Z) holds its single tool_result, with `toolUseResult.agentId` `a02810510ac421daf`.
+- Line 417 (02:01:17.779Z), a user line, carries `<task-notification>` with `<task-id>a02810510ac421daf</task-id>`, `<tool-use-id>toolu_01C8qpmjnMMNfkTvBWtJzyGV</tool-use-id>` and `<status>completed</status>`. The queue-operation line 413 (02:01:07.112Z) carries the same task-id.
+
+The log holds no TaskStop tool_use. TaskStop appears only in the tool-list attachment at line 6, in the ToolSearch result at line 425 and in the deferred_tools_record at line 429. Line 429's `input_schema` has `task_id` (string) and `shell_id` (string, "Deprecated: use task_id instead"), with additionalProperties false. That matches the dispatch's schema, so the check reads `tool_input["task_id"]` and `tool_input["shell_id"]`. The same record's description also says "To stop a background agent spawned with a name, pass that name as task_id". Under this rule a name is not one of the IDs, so it is denied.
+**Closed decisions:**
+- Targets: the T9 AskUserQuestion at line 309 (2026-09-25T01:16:49.798Z) asked "T9: which targets may the planner SendMessage? (The same answer would carry to T11's TaskStop.)". Line 310 (01:21:10.489Z) answered "Only its own agents (Recommended)".
+- Approval, on messages: line 324 (01:23:48.052Z), "There is an approval step for a message, but it's already established before the message is sent. So it does exist, but not in the order you first proposed.", and line 330 (01:24:51.926Z), "Almost. The message is approved before being sent, upon the operator constructing it. Or the planner offers first. Never on a whim." The planner applies the same rule to TaskStop; that is the planner's extension. The dispatch says the planner told the owner so "just before this dispatch". In the log, the planner's text to the owner stating it comes at line 439 (02:10:29.241Z, "Your approval rule for stops, as I applied it above"). That is 8 seconds after the Agent call at line 432, not before it. Lines 421-431 hold the owner's "Merged", a ToolSearch, a Bash call, attachments and thinking only. The rule's wording is in the dispatch's verbatim docstring text, which is what the dispatch's approval covered.
+- This task: line 415 (02:01:16.119Z), the planner, proposed "Then I suggest T11 (the planner's TaskStop, limited to its own agents)". Line 418 (02:01:19.984Z) said "Once it's merged I'll start T11." Line 421 (02:09:34.415Z) is the owner's "Merged" (PR #10).
+- The planner's rules, as the dispatch states them: a planner TaskStop is allowed only when `tool_input["task_id"]`, stripped, is in `own_agent_ids(transcript_path)`, compared exactly. It is denied, with a reason naming the rule and the target, when:
+  - `shell_id` is present and non-empty, whatever `task_id` holds
+  - `task_id` is missing or blank
+  - the transcript is missing or unreadable
+  - the target is not one of the IDs
+
+  The deny text starts "role_guard: the planner may TaskStop only an agent this session started". The pulse still may not use TaskStop, and the coder stays unrestricted.
+- Owner messages after line 432: an abort only if one tells the coder to do or not do something in T11's scope, or changes a decision above (including a different approval rule for stops). Any other message is recorded in the terminal by line and timestamp, and the work continues. If unsure, stop. A planner SendMessage follows coder.md item 6.
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit: s1 fails with the tool-not-allowed deny; s2-s6 fail on the reason assertion; s7 passes. Hook tests run 99 + 7 = 106. test_install's vendored-tests case fails with the same failures, possibly cut off.
+- After the fix: 106 hook tests OK, including T9's unchanged tests; 29 tests/ OK; render checks 23/23 and 8/8; both checkers PASS; release_check PASS with 19 files.
+- Revert check: the same failures.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+(a) Tests-only commit. `PlannerTaskStop` writes each fixture transcript the way T9's class does: an assistant line with an Agent `tool_use`, then a user line with one `tool_result` and a top-level `toolUseResult.agentId`. It sends `tool("TaskStop", agent_type, tool_input)` with a top-level `transcript_path`. Each deny test asserts the phrase "may TaskStop only an agent this session started", plus the target (or "shell_id") where there is one.
+
+At 501c7c3, guard() (role_guard.py:270-274) denies every planner TaskStop before any transcript is read, with "role_guard: the planner role may not use TaskStop. The planner allowlist is ...". So:
+- s1 fails with "AssertionError: 'deny' is not None".
+- These get "deny" and fail on the first assertIn: s2; s3; s4 (3 subTests: `task_id` absent, empty, whitespace only); s5 (2 subTests: `shell_id` "x" with the valid `task_id`, and `shell_id` "x" with no `task_id`); s6 (3 subTests: a missing file, a directory, `transcript_path` absent). Their message is "'may TaskStop only an agent this session started' not found in 'role_guard: the planner role may not use TaskStop. ...'".
+- s7 passes, because `PULSE_TOOLS` (:57) lacks TaskStop.
+
+That makes 11 failure records: "Ran 106 tests", "FAILED (failures=11)". T9's 8 tests and the other 91 are unaffected. In tests/, test_install's `test_vendored_hook_tests_pass_in_the_adopter` runs the vendored copies and fails with those failures in its stderr tail, possibly cut to its last 3000 characters: "Ran 29 tests", "FAILED (failures=1)".
+
+(b) Fix. TaskStop joins `PLANNER_TOOLS`. After the allowlist check, guard() sends a planner TaskStop to `check_task_stop`, which checks in this order:
+1. A `shell_id` that is present and not empty is denied, whatever `task_id` holds.
+2. A `task_id` that is not a non-empty string after strip is denied.
+3. A missing `transcript_path` is denied, naming the target.
+4. `own_agent_ids(path)` raising OSError is denied, naming the target. This covers a missing file and a directory.
+5. A stripped `task_id` not in the set is denied, naming the target.
+
+Otherwise it returns None. s3's ID sits only in a Read result's text, and that line's toolUseResult has no agentId, so it is denied. s7 is unchanged, and T9's path is untouched. So hook tests "Ran 106 tests" OK and tests/ 29 OK. The vendored copies change with the sources, and no file is added, so release_check stays at 19 files.
+
+Revert check: role_guard.py from origin/main against the committed tests gives the same 11 failures with the same messages.
+
+Live check: the real planner log has line 384's Agent tool_use and line 386's single tool_result with agentId `a02810510ac421daf`. So a `task_id` of `a02810510ac421daf` gives None (no output, exit 0), and `main` and a `shell_id` of `x` each give a deny. Nothing is stopped.
+**Finish line:** Pushed on kit-v0.2-t11:
+1. this dispatch's store copy and this intent
+2. the tests-only commit
+3. the fix (role_guard.py with its docstring)
+4. terminal 2026-09-25-12
+
+PR kit-v0.2-t11 -> main open, with CI green on its final commit. No merge, no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name
+- P1 false
+- a needed change outside scope
+- a new test failing first for another reason
+- any T9 test changing result
+- two failed fixes on one symptom
+- a denylist hit
+- an owner message after line 432 that qualifies under the rule in Closed decisions
