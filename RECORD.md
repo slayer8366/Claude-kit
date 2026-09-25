@@ -2178,3 +2178,200 @@ Then the PR, with CI green on its final commit, and the merge with `--merge` aft
 - Two failed fixes on one symptom.
 - An owner message after the Agent call that tells the coder to do or not do something in this scope, or changes a decision here.
 - A planner message that widens the scope or changes a closed decision without quoting an owner ruling.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-41
+**Dispatch-file:** preserved/2026-09-23-08.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01JDb planner log ~/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01JDbTJ4Gj9C6xygXM5tPdHz/8c77054d-3517-59bc-9ad1-dde101a01572.jsonl: the Agent call at 2026-09-23T13:26:08.059Z (line 130, to `coder`, description "Finish kit fixes items 6 and 4"), and its stop report, delivered as "[Subagent hand-back]" at 13:29:01.058Z (line 140; enqueued at line 138)
+**Observed:** `prompts/preserved/2026-09-23-08.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01JDbTJ4Gj9C6xygXM5tPdHz/prompts/preserved/2026-09-23-02.md (4224 bytes, sha256 688764e5aa3b7a45c6e95990213898bb78e7d4d369c6922d71610d674503c019; header "Preserved: 2026-09-23T13:26:08Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the kit v0.1 fixes build that was to finish items 6 and 4. Its coder stopped at its first step because the record rules then had no way to continue an intent, and it wrote nothing. The planner's continuation with rulings followed at 13:54:23Z; it is the store's 2026-09-23-03. 2026-09-23-07 does not cover this file. The stop report begins: "I've stopped at step 1, as the dispatch says to when the record rules don't cover a continuation. Nothing has been edited, committed or pushed in any checkout, and no scratch was made."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-42
+**Dispatch-file:** preserved/2026-09-23-09.md
+**Type:** pulse
+**Outcome:** exercise
+**Report:** none; no report was delivered. The 01Ftd session log ~/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01FtdNjEDPodJQK4fcRRigJp/e91b356c-6ff5-5922-8e43-53e01622020d.jsonl has three relevant lines:
+- the owner's prompt "Live exercise 3: Type/target mismatch", enqueued at 2026-09-23T22:34:00.151Z (line 1)
+- the Agent call to `pulse` at 22:34:08.601Z (line 29, description "Pulse: read HEAD")
+- the call's result at 22:35:03.226Z (line 31): "The subagent ended without delivering a report through SubagentHandback, so no report was delivered."
+**Observed:** `prompts/preserved/2026-09-23-09.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01FtdNjEDPodJQK4fcRRigJp/prompts/preserved/2026-09-23-02.md (888 bytes, sha256 f69f317a37ed104941636a1be158947f4a74377b73015becfdd97e2d5c15a4cb; header "Preserved: 2026-09-23T22:34:08Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target pulse, type pulse; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This is the mismatch prompt from the owner's failed first live-exercise attempt, rerouted to `pulse`. The pulse delivered no report (2026-09-23-07, "Cited, not copied", and R9 of 2026-09-24).
+
+2026-09-23-07 inferred from the title and time, without checking, that this file is that pulse. The 01Ftd session log now confirms it: the owner's prompt at line 1 and the dispatch at 22:34:08Z, the file's preserved time.
+
+The outcome is `exercise`, as the owner ruled at 10:58:00Z on 2026-09-25 (intent 2026-09-25-40).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-43
+**Dispatch-file:** preserved/2026-09-23-10.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01JDb planner log 8c77054d-3517-59bc-9ad1-dde101a01572.jsonl (path as in 2026-09-25-41): the Agent call at 2026-09-23T22:39:08.545Z (line 326, to `coder`, description "Start phone-reachable exercise session"), and its stop report, delivered as "[Subagent hand-back]" at 22:42:33.663Z (line 343; enqueued at line 339)
+**Observed:** `prompts/preserved/2026-09-23-10.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01JDbTJ4Gj9C6xygXM5tPdHz/prompts/preserved/2026-09-23-05.md (6432 bytes, sha256 009446d4672d76fbdc3a93848b74715ef13c21be4021beb92115c4b121072c8c; header "Preserved: 2026-09-23T22:39:08Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was a launcher build to start a Remote Control session for the live exercise. It stopped with no commit because `claude remote-control --help` hung (2026-09-23-07). The stop report begins: "STOPPED at the F2 check. The server was not started, nothing was committed, and no file was changed in either checkout."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-44
+**Dispatch-file:** preserved/2026-09-23-11.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01JDb planner log 8c77054d-3517-59bc-9ad1-dde101a01572.jsonl (path as in 2026-09-25-41): the Agent call at 2026-09-23T22:49:56.717Z (line 364, to `coder`, description "Launch exercise session via tmux"), and its stop report, delivered as "[Subagent hand-back]" at 22:50:45.060Z (line 373; enqueued at line 371)
+**Observed:** `prompts/preserved/2026-09-23-11.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01JDbTJ4Gj9C6xygXM5tPdHz/prompts/preserved/2026-09-23-06.md (6565 bytes, sha256 d4a0a5648ad2bf744df52e0654b98477493930a01f24026914cacc769277f35a; header "Preserved: 2026-09-23T22:49:56Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was a launcher build to start the exercise session under tmux. It stopped with no commit (2026-09-23-07: tmux not installed). Its report says a "Kit live exercise" session (PID 101054) was already running. The stop report's heading is `Stopped at "Verify all of this first": the machine doesn't match the dispatch`, and it says "I made no sweep, no intent, no copy and no commit, and `~/Zynergy/Claude-kit` has not moved from `0e7f5f9`."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-45
+**Dispatch-file:** preserved/2026-09-23-12.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01JDb planner log 8c77054d-3517-59bc-9ad1-dde101a01572.jsonl (path as in 2026-09-25-41): the Agent call at 2026-09-23T23:21:01.372Z (line 465, to `coder`, description "Record exercise, restore, report, PR"), and its stop report, delivered as "[Subagent hand-back]" at 2026-09-24T00:38:10.064Z (line 494; enqueued at line 492)
+**Observed:** `prompts/preserved/2026-09-23-12.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01JDbTJ4Gj9C6xygXM5tPdHz/prompts/preserved/2026-09-23-07.md (9393 bytes, sha256 875beb7b5130ef22685c8291dac03743ad5865d293bf6da62ce1e92e23ffd6ff; header "Preserved: 2026-09-23T23:21:01Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the first kit v0.1 "final" dispatch (record the live exercise, restore, report, PR). It stopped at H3 before any write (2026-09-23-07), asking which outcome the exercise notes get. It is a different file from the store's 2026-09-23-07.md. The stop report begins: "STOPPED at H3, before any write. I have changed nothing: no backup, no file copied, no RECORD.md entry, no commit, no signal sent, no checkout. Everything I did was reading."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-46
+**Dispatch-file:** preserved/2026-09-24-10.md
+**Type:** build
+**Outcome:** answered
+**Report:** the 01JDb planner log 8c77054d-3517-59bc-9ad1-dde101a01572.jsonl (path as in 2026-09-25-41): the Agent call at 2026-09-24T00:36:26.804Z (line 476, to `coder`, description "Close Kit live exercise session"), and its report, delivered as "[Subagent hand-back]" at 00:37:20.888Z (line 483; enqueued at line 481)
+**Observed:** `prompts/preserved/2026-09-24-10.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01JDbTJ4Gj9C6xygXM5tPdHz/prompts/preserved/2026-09-24-01.md (2396 bytes, sha256 9ba4b2fe8e7b3f58789103cbf6bddb4e821a4947ba667a74f6f4884e427ac675; header "Preserved: 2026-09-24T00:36:26Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the close-session build, a no-file action. It ran to its end and reported. It found PID 101054 already exited and sent no signal (2026-09-23-07). The report begins: "PID 101054 is gone, but my signal did not end it. It exited on its own in the roughly 10 seconds between my check and my SIGTERM."
+
+The outcome is `answered`, as the owner ruled at 10:58:00Z on 2026-09-25 (intent 2026-09-25-40).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-47
+**Dispatch-file:** preserved/2026-09-24-11.md
+**Type:** build
+**Outcome:** stopped
+**Report:** none; no report was delivered. The 01JDb planner log 8c77054d-3517-59bc-9ad1-dde101a01572.jsonl (path as in 2026-09-25-41) shows the Agent call at 2026-09-24T00:56:52.737Z (line 508, to `coder`, description "Final dispatch with rulings"). No hand-back follows. The log's last entries are the task-notification for task `btz9v3e6i`, enqueued at 01:17:08.059Z (line 512), which 2026-09-23-07 records as `killed`.
+**Observed:** `prompts/preserved/2026-09-24-11.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01JDbTJ4Gj9C6xygXM5tPdHz/prompts/preserved/2026-09-24-02.md (10418 bytes, sha256 445d1109f9136f1f1e29b42e39f221cdba45438e4a45900d33b096f18fd5d735; header "Preserved: 2026-09-24T00:56:52Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the kit v0.1 final dispatch with rulings. It was lost with its planner session, and its coder wrote nothing (2026-09-23-07). The new planner in 01Vss re-sent it as the files recorded in 2026-09-25-50 to -55 and the store's 2026-09-23-07.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-48
+**Dispatch-file:** preserved/2026-09-24-12.md
+**Type:** pulse
+**Outcome:** stopped
+**Report:** none; no report was delivered. The 01Vss planner log is ~/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01VssxEZCn7qBnENwZjcVycP/ac03f257-0aff-541c-9135-20bb81e09317.jsonl, whose line numbers count from its first line at 2026-09-24T04:12:55Z. It shows:
+- the Agent call to `pulse` at 2026-09-24T04:15:21.469Z (line 116, description "Check the stopped final coder")
+- its result at 04:18:40.098Z (line 118): "The subagent ended without delivering a report through SubagentHandback, so no report was delivered."
+**Observed:** `prompts/preserved/2026-09-24-12.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-01.md (2005 bytes, sha256 f838640827eca2b55a1fffda3b99c710e4be7921deec3d337494483f306e96ca; header "Preserved: 2026-09-24T04:15:21Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target pulse, type pulse; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the new planner's pulse asking whether the lost 24-02 coder was still alive. It delivered no report, because v0.1's role_guard in that worktree denies SubagentHandback to pulse (2026-09-23-07).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-49
+**Dispatch-file:** preserved/2026-09-24-13.md
+**Type:** pulse
+**Outcome:** stopped
+**Report:** none; no report was delivered. The 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48) shows:
+- the Agent call to `pulse` at 2026-09-24T04:18:52.054Z (line 124, description "Recheck the stopped final coder")
+- its result at 04:20:02.386Z (line 126): "The subagent ended without delivering a report through SubagentHandback, so no report was delivered."
+**Observed:** `prompts/preserved/2026-09-24-13.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-02.md (2099 bytes, sha256 f7016545af161ad0e885b7fa997d915959188ca70bdaf1ef5733b8931987c0a4; header "Preserved: 2026-09-24T04:18:52Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target pulse, type pulse; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the planner's second pulse on the same question. It also delivered no report, for the same role_guard reason (2026-09-23-07).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-50
+**Dispatch-file:** preserved/2026-09-24-14.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48): the Agent call at 2026-09-24T04:21:51.720Z (line 170, to `coder`, description "Final dispatch, continued"), and its stop report, delivered as "[Subagent hand-back]" at 04:27:04.125Z (line 195; enqueued at line 193)
+**Observed:** `prompts/preserved/2026-09-24-14.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-03.md (14442 bytes, sha256 b539c06ff319a8643925c69bbd6e270566bc6ed10bde3b00c8a8701e62e53249; header "Preserved: 2026-09-24T04:21:51Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the first re-send of the lost final dispatch. It stopped with nothing committed; the planner answered it with R1-R3 (2026-09-23-07). The stop report begins: "STOPPED at step 1 (Verify). Nothing was written: no RECORD entry, no copy, no backup, no signal, no checkout, no commit."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-51
+**Dispatch-file:** preserved/2026-09-24-15.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48): the Agent call at 2026-09-24T04:30:23.138Z (line 209, to `coder`, description "Final dispatch with owner rulings R1-R3"), and its stop report, delivered as "[Subagent hand-back]" at 04:41:24.448Z (line 230; enqueued at line 228)
+**Observed:** `prompts/preserved/2026-09-24-15.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-04.md (15728 bytes, sha256 920f4360f0873cf45f5b778a2e3c39eed33ce21112796421c91144dc64aa32df; header "Preserved: 2026-09-24T04:30:23Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the re-send with rulings R1-R3. It stopped with nothing committed; the planner answered it with R4 (2026-09-23-07). The stop report begins: "I stopped at step 1 (Verify) and wrote nothing. The dispatch doesn't say what name this dispatch's copy gets in the fix store, and the answer also decides the three new entry IDs."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-52
+**Dispatch-file:** preserved/2026-09-24-16.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48): the Agent call at 2026-09-24T04:43:57.033Z (line 244, to `coder`, description "Final dispatch with rulings R1-R5"), and its stop report, delivered as "[Subagent hand-back]" at 04:46:23.147Z (line 275; enqueued at line 273)
+**Observed:** `prompts/preserved/2026-09-24-16.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-05.md (16093 bytes, sha256 b57d6302d27f252addd891adbd69dde1270f666a58028afdc43ff119665b8498; header "Preserved: 2026-09-24T04:43:57Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the re-send with rulings R1-R5. It stopped with nothing committed, on an owner message sent after it was saved, and the planner answered it with R5 (2026-09-23-07). The stop report begins: "I stopped at step 1 (Verify) and wrote nothing: no store copy, no RECORD entry, no backup, no commit, no checkout, no signal." It gives the reason as "The owner gave an instruction after this dispatch was saved that conflicts with R5."
+
+The line numbers cited inside the report are from the log as it stood then.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-53
+**Dispatch-file:** preserved/2026-09-24-17.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48): the Agent call at 2026-09-24T04:47:25.999Z (line 282, to `coder`, description "Final dispatch with rulings R1-R6"), and its stop report, delivered as "[Subagent hand-back]" at 04:49:49.439Z (line 305; enqueued at line 303)
+**Observed:** `prompts/preserved/2026-09-24-17.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-06.md (16717 bytes, sha256 d29d455afda803f543c97ae8cc2cbdd66302fa5fbdd90fddc2441b833fbc3ec2; header "Preserved: 2026-09-24T04:47:26Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the re-send with rulings R1-R6. It stopped with nothing committed, on the owner's "Add the fix in" sent 24 seconds after it was saved, and the planner answered it with R7 (2026-09-23-07). The stop report begins: "I stopped at step 1 (Verify) and wrote nothing. There's no store copy, no RECORD.md entry, no backup, no commit, no checkout and no signal."
+
+The line numbers cited inside the report are from the log as it stood then.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-54
+**Dispatch-file:** preserved/2026-09-24-18.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48): the Agent call at 2026-09-24T04:50:51.508Z (line 310, to `coder`, description "Final dispatch with rulings R1-R7"), and its stop report, delivered as "[Subagent hand-back]" at 04:53:44.667Z (line 329; enqueued at line 327)
+**Observed:** `prompts/preserved/2026-09-24-18.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-07.md (17374 bytes, sha256 4bc0db10b3238e109d8344f0edc6fba651a9318c71bbe48ca9f0f40c80ca423b; header "Preserved: 2026-09-24T04:50:51Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the re-send with rulings R1-R7. It stopped at S2, and the planner answered it with R8 (2026-09-23-07). Its untracked copy in the fix store was overwritten under R8 and never committed, so this is the first committed copy. The stop report begins: "STOPPED at step 2 (S2). The dispatch contradicts itself on R5 versus H3, so I stopped."
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-55
+**Dispatch-file:** preserved/2026-09-24-19.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the 01Vss planner log ac03f257-0aff-541c-9135-20bb81e09317.jsonl (path as in 2026-09-25-48): the Agent call at 2026-09-24T04:55:33.085Z (line 342, to `coder`, description "Final dispatch with rulings R1-R8"), and its stop report, delivered as "[Subagent hand-back]" at 05:30:13.338Z (line 360; enqueued at line 358)
+**Observed:** `prompts/preserved/2026-09-24-19.md` from /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01VssxEZCn7qBnENwZjcVycP/prompts/preserved/2026-09-24-08.md (19038 bytes, sha256 ecab1b76d606db1b63963bab3aea6fd68309fe3d6ae193ebfd6fb30ff066da65; header "Preserved: 2026-09-24T04:55:33Z by .claude/hooks/dispatch_guard.py", HEAD 93904076a95498b3a877438f6d354fc1b1b88419, target coder, type build; pre-T1). Copied byte for byte (cmp and sha256 match).
+
+This was the re-send with rulings R1-R8. It stopped at Verify on the unnamed 01Ftd file, and the planner answered it with R9 (2026-09-23-07). The next re-send, at 05:44:30Z, became intent 2026-09-23-07. The stop report begins: "STOPPED at step 1 (Verify). I wrote, committed, copied, backed up, switched and signalled nothing." It gives the reason as "There is a harness worktree the dispatch does not cover."
