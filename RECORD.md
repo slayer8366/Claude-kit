@@ -2546,3 +2546,29 @@ The pulse answered its one question with W's HEAD: "1599a53975b8f980035c594d52f7
 - Revert check: BYPASSES.md moved to /tmp (no stash, nothing deleted) and the hook tests run: "Ran 137 tests", "FAILED (failures=1)", the consistency test only; moved back: 137 OK.
 **Finish line:** Pushed on kit-v0.2-t14-16: (1) d710a86 the sweep; (2) this store copy and this intent; (3) the docs commit; (4) the tests-only commit; (5) the fix; (6) terminal 2026-09-25-61. Then PR kit-v0.2-t14-16 -> main with CI green on the terminal commit, the merge with `--merge` after coder.md item 10's backup, the merge commit reported. No tag.
 **Abort conditions:** any Base-and-state mismatch other than the dispatch's name; a needed behaviour change to any guard; a failure for any reason other than the predicted one; two failed fixes on one symptom; a denylist hit; CI not green (no merge); history_guard denying the merge after the backup (quoted, no workaround); an owner message after line 990 that tells the coder to do or not do something in this scope or changes a decision here; a planner message that widens the scope or changes a closed decision without quoting an owner ruling.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-61
+**Dispatch-file:** preserved/2026-09-25-27.md
+**Type:** build
+**Outcome:** stopped
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the Agent call at 2026-09-25T16:31:54.763Z (line 154, to `coder`, tool_use `toolu_014MSfvoG3MWAk1UvwbXNyAk`, description "Finish T14-16: update checkout, merge #25", run in the background), and its stop report, enqueued at 16:39:33.290Z (line 162) and delivered as "[Subagent hand-back]" from agent aebe6100dc60f209b at 16:39:33.319Z (line 164); task notification "completed" at 16:39:45.025Z (line 171).
+**Observed:** `prompts/preserved/2026-09-25-27.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (7732 bytes, sha256 5a3538b2fe339ffe20f9385085d7f018bd824085cb8effe0f85b6d38e69e09b9; header "Preserved: 2026-09-25T16:31:54Z by .claude/hooks/dispatch_guard.py", HEAD cda554b0a77bca36469193987ee5925188ebc2c5, target coder, type build). Copied byte for byte (cmp and sha256 match). Its text after the delimiter equals the prompt of the Agent call at line 154 byte for byte (7551 characters).
+
+This was the first dispatch to finish T14-T16 (intent 2026-09-25-60) after the original coder died: update the main checkout with update_worktree.py, write the terminal, and merge #25. Its coder stopped before writing anything, because update_worktree.py refuses a checkout on a protected branch and the main checkout is on `main`. It committed, pushed, backed up and merged nothing. The stop report begins: "**Stopped before writing anything: step 2 (updating C with update_worktree.py) can't work as the dispatch describes it.** update_worktree.py refuses to update a checkout that is on a protected branch, and C is on `main`. I haven't committed, pushed, backed up or merged anything, and C is untouched." The outcome is `stopped` under coder.md item 8: it stopped before its intent was written.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-62
+**Dispatch-file:** preserved/2026-09-25-28.md
+**Type:** build
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Have a coder run git -C ~/Zynergy/Claude-kit pull --ff-only origin main" at 2026-09-25T16:52:10.167Z (line 214) and "I won't authorize the send until you have a coder run that command" at 16:52:55.531Z (line 224); the Agent call at 16:53:10.835Z (line 227, to `coder`, tool_use `toolu_01Mu4ATpg3oRihybTJtMngFJ`, description "Pull main checkout (ff-only)"); its report, delivered as "[Subagent hand-back]" from agent aacdb98a84e108c66 and enqueued at 16:53:41.053Z (line 228); the Agent result at 16:53:42.293Z (line 230).
+**Observed:** `prompts/preserved/2026-09-25-28.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (2871 bytes, sha256 d1bbaa48a3433bc4adc359f7b73ae40b410914086a75abc348a1b7b8548c59d9; header "Preserved: 2026-09-25T16:53:10Z by .claude/hooks/dispatch_guard.py", HEAD 1599a53975b8f980035c594d52f7d125de768370, target coder, type build). Copied byte for byte (cmp and sha256 match). Its text after the delimiter equals the prompt of the Agent call at line 227 byte for byte (2690 characters). The hook's reason at 16:53:10.968Z (line 229) also printed "check_prompts.py exit 1: FAIL: 2 binding violation(s)", naming -27 and -28 as unclaimed; this sweep claims both.
+
+This was the owner-requested fast-forward-only pull of the main checkout. It opened no intent and handed its recording to this sweep. It ran to its end and reported. The pull's output, as quoted in the report: "$ git -C ~/Zynergy/Claude-kit pull --ff-only origin main / From github.com:slayer8366/Claude-kit / * branch main -> FETCH_HEAD / Already up to date." HEAD was 1599a53975b8f980035c594d52f7d125de768370 before and after, equal to `git ls-remote origin main`; no hook denied anything; it wrote no entry, commit, push, branch, backup or merge. The main checkout was already at 1599a53 before this pull: it had been at cda554b when -27 was preserved, and moved after the owner's "Done. Proceed" at 16:51:42.207Z (line 195). How it moved is not recorded in the log this coder read, so it is unverified here.
+
+check_record.py has no dispatch-note Outcome for an executed build that opened no intent (NOTE_OUTCOMES is answered, declined, exercise and stopped, check_record.py:120). The outcome is `answered`, using the meaning the owner chose at 2026-09-25-40 ("`answered` means the dispatch ran to its end and reported"), as in 2026-09-25-46 for the close-session build.
