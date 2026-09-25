@@ -6,13 +6,14 @@
   "required_sections": {
     "build": ["Role", "Base and state", "Scope boundary", "Closed decisions",
               "Prediction", "Finish line and abort conditions", "Checks",
-              "Out of scope", "Device items"],
+              "Out of scope", "Device items", "Merge"],
     "device": ["Role", "Base and state", "Scope boundary", "Closed decisions",
                "Prediction", "Finish line and abort conditions", "Checks",
-               "Out of scope", "Device items"],
+               "Out of scope", "Device items", "Merge"],
     "pulse": ["Role", "Base and state", "Rules", "Questions"]
   },
   "approval_exempt_types": ["pulse"],
   "agent_roles": {"coder": "coder", "pulse": "pulse"},
-  "guard_env_prefix": "KIT_GUARD_"
+  "guard_env_prefix": "KIT_GUARD_",
+  "backup_dir": "~/forager-backups"
 }
