@@ -39,15 +39,18 @@ target exactly as it was. Otherwise the writes and removals are applied,
 templates are written as above, and the new lock is written last; each
 removed path is printed. An unreadable or malformed lock also stops the
 upgrade before anything is written; it is never treated as a first install.
+A lock is malformed if any path in its files map is absolute, has a ".."
+part, or is adopter-owned, since an upgrade could otherwise remove it.
 
 Everything is checked before anything is written. Not part of a release.
 """
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 KIT = Path(__file__).resolve().parent
 RELEASE_SET = "release.json"
@@ -108,7 +111,26 @@ def read_lock(target):
             f"{lock_path} ({LOCK}) is unreadable or malformed: {type(exc).__name__}: "
             f"{exc}. Nothing was written. Repair or remove the lock by hand, then "
             f"install again.")
+    bad = [f"{p}: {reason}" for p in sorted(files)
+           for reason in [lock_path_problem(p)] if reason]
+    if bad:
+        raise InstallError(
+            f"{lock_path} ({LOCK}) is malformed: it lists paths an upgrade may not "
+            f"touch. Nothing was written or removed. Repair or remove the lock by "
+            f"hand, then install again:\n" + "\n".join(f"  {b}" for b in bad))
     return files
+
+
+def lock_path_problem(path):
+    """Why an old lock may not list this path, or None if it may."""
+    if PurePosixPath(path).is_absolute() or path.startswith("/") or re.match(
+            r"[A-Za-z]:", path):
+        return "absolute path"
+    if ".." in PurePosixPath(path).parts:
+        return "has a '..' part"
+    if adopter_owned(path):
+        return "adopter-owned"
+    return None
 
 
 def on_disk(dest):
