@@ -703,3 +703,44 @@ PR kit-v0.2-t11 -> main open, with CI green on its final commit. No merge, no ta
 - two failed fixes on one symptom
 - a denylist hit
 - an owner message after line 432 that qualifies under the rule in Closed decisions
+
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-12
+**Timestamp:** 2026-09-25T02:17:54Z
+**Closes:** 2026-09-25-11
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T11, `preserved/2026-09-25-08.md`)
+**Observed:** Pushed on kit-v0.2-t11 (a new remote branch):
+- c8529e0: store copy `2026-09-25-08.md`, byte-identical to the planner worktree's (sha256 d80093fa...c5fa), and intent 2026-09-25-11.
+- 7a6496c: tests only. `.claude/hooks/tests/test_role_guard.py` gets class `PlannerTaskStop`, s1-s7. The file's diff against origin/main is 99 added lines and none removed, so T9's `PlannerSendMessage` is unchanged.
+- 4899cb8: `.claude/hooks/role_guard.py`. TaskStop joins `PLANNER_TOOLS`. `STOP_RULE` and `check_task_stop` are new, and guard() calls the check for a planner TaskStop after the SendMessage branch. The dispatch's TaskStop paragraph is in the module docstring verbatim (rewrapped) after T9's SendMessage paragraph. The only removed line is the old end of `PLANNER_TOOLS`. `own_agent_ids` and `check_send_message` are unchanged.
+
+Tests-only commit results:
+- Hook tests: "Ran 106 tests", "FAILED (failures=11)". s1 failed with "AssertionError: 'deny' is not None : role_guard: the planner role may not use TaskStop. ...". The other ten failed with "'may TaskStop only an agent this session started' not found in 'role_guard: the planner role may not use TaskStop. ...'": s2, s3, s4 [absent] [empty] [blank], s5 [with a valid task_id] [without task_id], and s6 [missing file] [a directory] [transcript_path absent].
+- s7 and every T9 test passed.
+- tests/: "Ran 29 tests", "FAILED (failures=1)", in test_install's `test_vendored_hook_tests_pass_in_the_adopter`. Its message is the stderr tail cut to its last 3000 characters, with the last two failures and "Ran 106 tests ... FAILED (failures=11)" visible.
+
+After the fix:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 23 checks failed" and "PASS: 0 of 8 checks failed"
+- both checkers: PASS
+- release_check.py: "PASS: 19 release file(s), 4572 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 12, record 15, refused 2, stop 0"
+
+Revert check: role_guard.py from origin/main against 7a6496c's tests gave "FAILED (failures=11)", with the same 11 failures and the same two messages (1 and 10). The file was then restored from HEAD, leaving a clean tree.
+
+Live check, read-only: the committed role_guard.py was run as a script with a PreToolUse TaskStop payload (no agent_type, so the planner) whose `transcript_path` is the real planner log.
+- `task_id` `a02810510ac421daf` (the worktree-update coder, P1) gave no output and exit 0 (None).
+- `task_id` `main` gave a deny: "role_guard: the planner may TaskStop only an agent this session started (...), named by task_id; shell_id is always denied. Blocked: target 'main' is not one of them. ...".
+- `shell_id` `x` gave a deny: "... Blocked: shell_id 'x' is set; the planner starts no background shells."
+
+Nothing was stopped. Owner messages: the planner log, read at 02:17Z, has 439 lines and no owner text after this dispatch's Agent call (line 432). No planner message reached this coder.
+**Deviations:** None from the finish line up to this entry. The PR and CI status on the final commit are reported in the hand-back. The planner's and the intent's predictions held throughout. One inaccuracy in the dispatch's Closed decisions, recorded in the intent: the planner's statement to the owner about the approval rule for stops is at line 439, 8 seconds after the Agent call, not before it. Implementation choices within the rulings are listed in the hand-back under Decisions I made:
+- `shell_id` counts as set when it is present and neither null nor "". A whitespace-only or non-string `shell_id` is denied.
+- The wording of `STOP_RULE` after its required opening, and of each Blocked clause.
+- The new tests call T9's static fixture helpers rather than refactoring T9's class.
+- The docstring paragraph sits as an indented continuation of the planner bullet.
