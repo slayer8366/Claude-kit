@@ -1,7 +1,7 @@
 # Claude-kit
 
 Role gates, dispatch preservation and a record store for Claude Code
-repositories, as PreToolUse hooks and two checkers. Adopters vendor a pinned
+repositories, as PreToolUse hooks, a SessionStart check and two checkers. Adopters vendor a pinned
 release tag; the kit repository itself is a private workshop.
 
 Work in progress: v0.1 is being extracted on branch `kit-v0.1`
@@ -12,7 +12,7 @@ source files unchanged; later steps make them generic.
 
 | Path | What it is | Released |
 |---|---|---|
-| `.claude/hooks/` | the PreToolUse guards and their tests | yes |
+| `.claude/hooks/` | the PreToolUse guards, the SessionStart check `session_check.py`, and their tests | yes |
 | `.claude/agents/` | the `coder` and `pulse` subagents | yes |
 | `.claude/settings.json` | registers the hooks | yes |
 | `.claude/kit.json` | this repository's own adopter config | no |
@@ -34,9 +34,10 @@ and `apksigner` when an Android package is configured.
 
 ## Config: `.claude/kit.json`
 
-Every hook reads the `kit.json` beside its hooks directory. A missing or
-invalid config makes every hook deny, naming the problem; the kit never fails
-open on its own config. Unknown keys are invalid.
+Every guard reads the `kit.json` beside its hooks directory. A missing or
+invalid config makes every guard deny, naming the problem; the kit never fails
+open on its own config. Unknown keys are invalid. The session check only
+warns (see "Session check").
 
 | Key | Required | Meaning |
 |---|---|---|
@@ -131,6 +132,20 @@ If the remote is lost, restore from the bundle. `git bundle list-heads
 repository (a fresh `git init` will do) `git fetch <bundle>
 refs/remotes/origin/<branch>:refs/heads/<branch>` gives the branch as it
 stood at `sha`.
+
+## Session check
+
+`session_check.py` runs at SessionStart and never blocks: it always exits 0
+and writes nothing. It reads `.claude/kit.json` in the session's repository
+and compares the working tree's `.claude/hooks`, `.claude/agents`,
+`.claude/settings.json` and `.claude/kit.json` with `origin/<first protected
+branch>` as last fetched (it never fetches), counts commits HEAD is behind
+that ref, and, where `.claude/kit.lock` exists, checks every locked file's
+sha256. If anything differs, cannot be compared, or cannot be read, it shows
+a short warning (`systemMessage`) and gives the session the full list and a
+`git fetch` and `git merge --ff-only` command to run by hand; otherwise it is
+silent. Claude Code reads hooks when a session starts, so a change to
+`.claude/settings.json` takes effect only in a new session.
 
 ## Finding unrecorded dispatches
 
