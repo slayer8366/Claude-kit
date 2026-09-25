@@ -16,7 +16,8 @@
     ".claude/hooks/tests/test_role_guard.py",
     "check_record.py",
     "check_prompts.py",
-    "check_kit.py"
+    "check_kit.py",
+    "find_dispatches.py"
   ],
   "templates": {
     "templates/kit.json": ".claude/kit.json"
