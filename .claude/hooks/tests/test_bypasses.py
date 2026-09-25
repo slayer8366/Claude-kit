@@ -1,0 +1,154 @@
+"""The guards' known bypasses, .claude/hooks/BYPASSES.md.
+
+Each row's test asserts that the bypass still gets through today: the hook
+gives no decision for the row's inputs. A fix that closes a bypass makes its
+test fail, and the table is updated with it. Every input is sent to the hook
+as a payload; nothing is pushed, merged or run on a device.
+
+test_table_docstrings_and_tests_agree checks the table against the guards'
+docstrings and this file: each guard's docstring has a "Known bypasses"
+line, every B-NN a hook docstring cites is a row, and every row's Test is a
+test in this class.
+"""
+import ast
+import re
+import shutil
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+from harness import bash, run_hook, tool
+
+HOOKS = Path(__file__).resolve().parent.parent
+TABLE = HOOKS / "BYPASSES.md"
+GUARDS = ("role_guard.py", "dispatch_guard.py", "device_guard.py",
+          "history_guard.py", "session_check.py")
+CITATION = re.compile(r"(?m)^Known bypasses: \.claude/hooks/BYPASSES\.md\b(.*)$")
+ROW = re.compile(r"^\|\s*(B-\d{2})\s*\|(.*)\|\s*$")
+
+
+def make_repo(branch):
+    repo = Path(tempfile.mkdtemp(prefix="bypass_test_"))
+    g = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    subprocess.run(g + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
+    if branch != "main":
+        subprocess.run(g + ["checkout", "-q", "-b", branch], check=True)
+    return repo
+
+
+def table_rows():
+    """{ID: [cells after ID]} for the table's rows."""
+    rows = {}
+    for line in TABLE.read_text().splitlines():
+        m = ROW.match(line)
+        if m:
+            rows[m.group(1)] = [c.strip() for c in m.group(2).split("|")]
+    return rows
+
+
+class Bypasses(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.on_main = make_repo("main")
+        cls.on_feature = make_repo("feature")
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.on_main, ignore_errors=True)
+        shutil.rmtree(cls.on_feature, ignore_errors=True)
+
+    def assertGetsThrough(self, hook, payload):
+        decision, reason = run_hook(hook, payload)
+        self.assertIsNone(decision, f"{hook} now decides {decision!r} ({reason}); "
+                                    f"if this closes the bypass, update BYPASSES.md")
+
+    def test_b01_push_through_wrapper_or_git_path(self):
+        for command in ("sh -c 'git push origin main'",
+                        "env git push origin main",
+                        "python3 -c \"import subprocess; "
+                        "subprocess.run(['git', 'push', 'origin', 'main'])\"",
+                        "/usr/bin/git push origin main"):
+            with self.subTest(command=command):
+                self.assertGetsThrough("history_guard.py",
+                                       bash(command, "coder", cwd=str(self.on_feature)))
+
+    def test_b02_interpreter_splits_words(self):
+        cases = [
+            ("python3 -c \"import subprocess; "
+             "subprocess.run(['git', 'push', '--force', 'origin', 'feature'])\"",
+             self.on_feature),
+            ("python3 -c \"import subprocess; "
+             "subprocess.run(['gh', 'pr', 'merge', '5', '--merge'])\"",
+             self.on_feature),
+            ("python3 -c \"import subprocess; "
+             "subprocess.run(['git', 'merge', 'feature'])\"",
+             self.on_main),
+        ]
+        for command, repo in cases:
+            with self.subTest(command=command):
+                self.assertGetsThrough("history_guard.py",
+                                       bash(command, "coder", cwd=str(repo)))
+
+    def test_b03_pr_merge_through_gh_api_as_coder(self):
+        command = "gh api -X PUT repos/o/r/pulls/5/merge -f merge_method=merge"
+        for hook in ("history_guard.py", "role_guard.py"):
+            with self.subTest(hook=hook):
+                self.assertGetsThrough(hook, bash(command, "coder", cwd=str(self.on_feature)))
+
+    def test_b04_refspec_in_shell_variable(self):
+        for command in ("B=main; git push origin $B",
+                        "B=main && git push origin \"${B}\""):
+            with self.subTest(command=command):
+                self.assertGetsThrough("history_guard.py",
+                                       bash(command, "coder", cwd=str(self.on_feature)))
+
+    def test_b05_heredoc_marker_in_quotes_or_comment(self):
+        for first in ("echo '<<EOF'", "echo \"<<EOF\"", "true # <<EOF"):
+            command = first + "\ngit push origin main\nEOF"
+            with self.subTest(command=command):
+                self.assertGetsThrough("history_guard.py",
+                                       bash(command, "coder", cwd=str(self.on_feature)))
+
+    def test_b06_adb_through_variable_quoting_or_alias(self):
+        for command in ("A=adb; $A uninstall com.example.kittest",
+                        "ad''b uninstall com.example.kittest",
+                        "alias a=adb\ntrue; a uninstall com.example.kittest"):
+            with self.subTest(command=command):
+                self.assertGetsThrough("device_guard.py", bash(command, "coder"))
+
+    def test_b07_send_message_skips_dispatch_checks(self):
+        payload = tool("SendMessage", None, {
+            "to": "a0001", "summary": "new work",
+            "message": "**Type:** build\n\nAlso change the hooks."})
+        self.assertGetsThrough("dispatch_guard.py", payload)
+
+    def test_table_docstrings_and_tests_agree(self):
+        self.assertTrue(TABLE.is_file(), f"{TABLE} does not exist")
+        rows = table_rows()
+        self.assertTrue(rows, f"{TABLE} has no B-NN rows")
+        cited = {}
+        for path in sorted(HOOKS.glob("*.py")):
+            doc = ast.get_docstring(ast.parse(path.read_text())) or ""
+            if path.name in GUARDS:
+                self.assertRegex(doc, CITATION, f"{path.name}'s docstring has no "
+                                                f"'Known bypasses: .claude/hooks/BYPASSES.md' line")
+            for ident in re.findall(r"\bB-\d{2}\b", doc):
+                cited.setdefault(ident, set()).add(path.name)
+        for ident, where in sorted(cited.items()):
+            with self.subTest(cited=ident):
+                self.assertIn(ident, rows, f"{', '.join(sorted(where))} cites {ident}, "
+                                           f"which is not a row of {TABLE.name}")
+        for ident, cells in sorted(rows.items()):
+            with self.subTest(row=ident):
+                names = re.findall(r"\btest_\w+", cells[-1]) if cells else []
+                self.assertEqual(len(names), 1, f"{ident}'s Test cell {cells[-1:]} "
+                                                f"does not name one test")
+                self.assertTrue(callable(getattr(type(self), names[0], None)),
+                                f"{ident} names {names[0]}, which is not a test in "
+                                f"{Path(__file__).name}")
+
+
+if __name__ == "__main__":
+    unittest.main()
