@@ -478,7 +478,41 @@ def render_check():
           "line is accepted",
           p8)
 
-    total = 8
+    # p9-p10 (Claude-kit v0.2 addition): a continuation's Dispatch-file is
+    # an ordinary single claim, and must be under preserved/.
+    cont_file = "preserved/2026-01-01-03.md"
+
+    def p9():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = _store_errors(
+            tmp, [cont_file],
+            [cr._minimal_intent(), cr._minimal_continuation()])
+        assert not binding, f"a continuation's claim was not accepted: {binding}"
+        assert not entry, f"the claiming continuation is not a valid entry: {entry}"
+
+    check("p9_continuation_claiming_its_preserved_file_passes",
+          "a continuation claiming its own preserved prompt fails either "
+          "the binding check or entry validation",
+          p9)
+
+    def p10():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        stray = "recovered/2026-01-01-03.md"
+        binding, _ = _store_errors(
+            tmp, [stray],
+            [cr._minimal_intent(),
+             cr._minimal_continuation(**{"Dispatch-file": stray})])
+        assert any("2026-01-01-03" in e and "continuation" in e
+                   and "preserved/" in e for e in binding), (
+            f"a continuation claiming a prompt outside preserved/ was "
+            f"accepted: {binding}")
+
+    check("p10_continuation_outside_preserved_fails",
+          "a continuation claiming a prompt outside prompts/preserved/ "
+          "is accepted as a claim",
+          p10)
+
+    total = 10
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
           f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0

@@ -603,6 +603,18 @@ def _minimal_note(id_="2026-01-01-05", **overrides):
     return _render_entry(fields)
 
 
+def _minimal_continuation(id_="2026-01-01-03", continues="2026-01-01-01",
+                          **overrides):
+    fields = {
+        "Kind": "continuation", "ID": id_,
+        "Timestamp": "2026-01-01T00:00:30Z", "Continues": continues,
+        "Dispatch-file": "preserved/2026-01-01-03.md",
+        "Reason": "r", "Changes": "none",
+    }
+    fields.update(overrides)
+    return _render_entry(fields)
+
+
 def _minimal_record(*entries):
     parts = ["# RECORD.md", "", "## Entries", "", "---", ""]
     for e in entries:
@@ -1016,7 +1028,113 @@ def render_check():
           "the intent it names",
           check23)
 
-    total = 23
+    # ---- Checks 24-30: outcome `stopped` and continuation entries --------
+    # ---- (Claude-kit v0.2 addition) ----------------------------------------
+    def check24():
+        text = _minimal_record(_minimal_note(Outcome="stopped"))
+        _, errors, _, _ = validate_entries(text)
+        assert not errors, (
+            f"a dispatch-note with Outcome 'stopped' produced errors: {errors}")
+
+    check("check24_dispatch_note_outcome_stopped_accepted",
+          "a dispatch-note whose Outcome is 'stopped' is rejected",
+          check24)
+
+    def check25():
+        text = _minimal_record(_minimal_intent(), _minimal_continuation())
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"a well-formed continuation produced errors: {errors}"
+        assert len(entries) == 2, f"expected 2 entries, got {len(entries)}"
+        assert unterminated == ["2026-01-01-01"], (
+            f"a continuation was counted as closing its intent: {unterminated}")
+
+    check("check25_well_formed_continuation_accepted",
+          "a well-formed continuation of an open intent is rejected, or "
+          "closes the intent it continues",
+          check25)
+
+    def check26():
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_continuation(Reason=None))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'Reason'" in e for e in errors), (
+            f"continuation missing 'Reason' not reported by ID and field: {errors}")
+
+    check("check26_continuation_missing_field_names_fault",
+          "a continuation missing a required field is accepted, or the "
+          "error does not name both the entry and the field",
+          check26)
+
+    def check27():
+        text = _minimal_record(_minimal_intent(), _minimal_terminal(),
+                               _minimal_continuation())
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'2026-01-01-01'" in e
+                   and "already closed" in e and "2026-01-01-02" in e
+                   for e in errors), (
+            f"a continuation after its intent's terminal was accepted: {errors}")
+
+    check("check27_continuation_after_terminal_rejected",
+          "a continuation whose intent an earlier terminal already closed "
+          "is accepted",
+          check27)
+
+    def check28():
+        text = _minimal_record(_minimal_intent(), _minimal_note(),
+                               _minimal_continuation(continues="2026-01-01-05"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'2026-01-01-05'" in e
+                   and "not an intent" in e for e in errors), (
+            f"a continuation naming a dispatch-note was accepted: {errors}")
+        text = _minimal_record(_minimal_intent(),
+                               _minimal_continuation(continues="2026-01-01-99"))
+        _, errors, _, _ = validate_entries(text)
+        assert any("2026-01-01-03" in e and "'2026-01-01-99'" in e
+                   and "names no entry" in e for e in errors), (
+            f"a continuation naming an unknown ID was accepted: {errors}")
+
+    check("check28_continues_must_name_an_intent",
+          "a continuation whose Continues names a dispatch-note, or an ID "
+          "no entry has, is accepted",
+          check28)
+
+    def check29():
+        text = _minimal_record(
+            _minimal_intent(),
+            _minimal_continuation(Closes="2026-01-01-01", Outcome="completed"))
+        _, errors, unterminated, _ = validate_entries(text)
+        for label in ("'Closes'", "'Outcome'"):
+            assert any("2026-01-01-03" in e and label in e for e in errors), (
+                f"a continuation carrying {label} was accepted: {errors}")
+        assert unterminated == ["2026-01-01-01"], (
+            f"a continuation's Closes field closed an intent: {unterminated}")
+
+    check("check29_continuation_cannot_close_or_carry_outcome",
+          "a continuation carrying Closes or Outcome is accepted, or closes "
+          "the intent it names",
+          check29)
+
+    def check30():
+        text = _minimal_record(
+            _minimal_intent(),
+            _minimal_continuation(id_="2026-01-01-03"),
+            _minimal_continuation(id_="2026-01-01-04",
+                                  **{"Dispatch-file": "preserved/2026-01-01-04.md"}),
+            _minimal_terminal(id_="2026-01-01-06"))
+        entries, errors, unterminated, _ = validate_entries(text)
+        assert not errors, f"an intent-continuation chain produced errors: {errors}"
+        assert len(entries) == 4, f"expected 4 entries, got {len(entries)}"
+        assert unterminated == [], (
+            f"the chain's single terminal did not close its intent: {unterminated}")
+        ok, dup = check_duplicate_terminals(entries)
+        assert ok, f"the chain was reported as closed twice: {dup}"
+
+    check("check30_intent_continuations_terminal_chain_valid",
+          "a chain of intent, continuation, continuation, terminal is "
+          "rejected, or leaves the intent unterminated",
+          check30)
+
+    total = 30
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
           f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0
