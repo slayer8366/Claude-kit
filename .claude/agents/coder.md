@@ -88,6 +88,11 @@ sit at the repository root.
     number with a merge commit or a squash, and cite the backup folder in
     your terminal. history_guard refuses the merge if any of this is
     missing.
+11. **Re-sends.** A store copy whose header carries `Repeat-of:` is the
+    named dispatch sent again, unchanged. If that dispatch's intent is
+    still open, record the re-send with a continuation (item 7) citing
+    both copies; otherwise record it as its own dispatch, citing the
+    original.
 
 ## Non-negotiables
 

@@ -59,6 +59,15 @@ with no such line is an error. Files named before 2026-09-24-05,
 compared as (date, number) and not as text, are exempt: they were in
 the store before the rule began. The rule reads only names and headers,
 never git, so it runs the same in CI and in an adopter.
+
+Re-sends (Claude-kit v0.2 addition, T10): the dispatch hook saves a
+prompt identical to a stored dispatch's text with one more header line,
+"Repeat-of: preserved/<name>". For every file under prompts/preserved/
+whose header (the lines before "--- verbatim prompt follows ---") has a
+Repeat-of: line, the file it names must exist under prompts/ and hold
+the same bytes after its first delimiter line as this file does after
+its own; otherwise it is an error naming both. This applies to every
+file, whatever its name's date: the cutoff above does not exempt it.
 """
 import re
 import sys
@@ -80,6 +89,52 @@ PRESERVED_PREFIX = "Preserved: "
 # Exempts the files in the store before the rule began: a name whose
 # (date, number) is below this pair is not checked against its header.
 STORE_NAME_CUTOFF = ("2026-09-24", 5)
+# Claude-kit v0.2 addition (T10): the re-send header line.
+REPEAT_PREFIX = "Repeat-of: "
+
+
+def _text_after_delimiter(data):
+    """The bytes after the first line equal to HEADER_DELIMITER, or None."""
+    marker = HEADER_DELIMITER.encode("utf-8")
+    offset = 0
+    for line in data.splitlines(keepends=True):
+        offset += len(line)
+        if line.rstrip(b"\r\n") == marker:
+            return data[offset:]
+    return None
+
+
+def repeat_errors(repo_dir, on_disk):
+    """Errors for files under prompts/preserved/ whose header names, in a
+    Repeat-of: line, a file that does not exist under prompts/ or whose
+    text after its delimiter differs from this file's."""
+    errors = []
+    prompts_root = (Path(repo_dir) / PROMPTS_DIR).resolve()
+    prefix = f"{PROVENANCE_DIRS[0]}/"
+    for rel in sorted(on_disk):
+        if not rel.startswith(prefix):
+            continue
+        data = (Path(repo_dir) / PROMPTS_DIR / rel).read_bytes()
+        named = None
+        for line in data.decode("utf-8", errors="replace").splitlines():
+            if line == HEADER_DELIMITER:
+                break
+            if line.startswith(REPEAT_PREFIX):
+                named = line[len(REPEAT_PREFIX):].strip()
+                break
+        if named is None:
+            continue
+        target = (prompts_root / named).resolve()
+        label = (f"{PROMPTS_DIR}/{rel}: its header's "
+                 f"{REPEAT_PREFIX.strip()!r} line names {PROMPTS_DIR}/{named}")
+        if prompts_root not in target.parents or not target.is_file():
+            errors.append(f"{label}, which does not exist under {PROMPTS_DIR}/")
+            continue
+        body = _text_after_delimiter(data)
+        if body is None or _text_after_delimiter(target.read_bytes()) != body:
+            errors.append(f"{label}, whose text after {HEADER_DELIMITER!r} "
+                          f"differs from this file's")
+    return errors
 
 
 def store_name_errors(repo_dir, on_disk):
@@ -258,6 +313,7 @@ def check_binding(repo_dir=None):
             f"{DISPATCH_FIELD!r} field names it")
 
     errors.extend(store_name_errors(repo_dir, on_disk))
+    errors.extend(repeat_errors(repo_dir, on_disk))
 
     if stray:
         errors.append(
@@ -513,7 +569,77 @@ def render_check():
           "is accepted as a claim",
           p10)
 
-    total = 10
+    # p11-p13 (Claude-kit v0.2 addition, T10): a store copy whose header
+    # carries Repeat-of: must name an existing file with identical text.
+    def repeated(tmp, specs):
+        """specs: list of (rel, repeat_of or None, body). Writes each file
+        with a hook-style header and claims it with its own note."""
+        notes = []
+        for n, (rel, repeat_of, body) in enumerate(specs, 5):
+            header = ["HEAD: fixture-head", "Target subagent: pulse",
+                      "Type: pulse",
+                      "Preserved: 2026-09-25T10:00:00Z by the dispatch hook"]
+            if repeat_of is not None:
+                header.append(f"Repeat-of: {repeat_of}")
+            header.append("--- verbatim prompt follows ---")
+            path = Path(tmp) / PROMPTS_DIR / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(header) + "\n" + body)
+            notes.append(cr._minimal_note(
+                id_=f"2026-01-01-{n:02d}", **{"Dispatch-file": rel}))
+        text = cr._minimal_record(*notes)
+        (Path(tmp) / RECORD_NAME).write_text(text)
+        _, binding_errors, _, _ = check_binding(tmp)
+        _, entry_errors, _, _ = cr.validate_entries(text)
+        return binding_errors, entry_errors
+
+    original = "preserved/2026-09-25-01.md"
+    repeat = "preserved/2026-09-25-02.md"
+
+    def p11():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = repeated(tmp, [
+            (original, None, "# Dispatch\n\nSame text.\n"),
+            (repeat, original, "# Dispatch\n\nSame text.\n"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert not binding, f"a valid re-send was rejected: {binding}"
+
+    check("p11_valid_repeat_passes",
+          "a re-send naming an existing file with identical text is rejected",
+          p11)
+
+    def p12():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = repeated(tmp, [
+            (original, None, "# Dispatch\n\nSame text.\n"),
+            (repeat, original, "# Dispatch\n\nSame text!\n"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert any("2026-09-25-01.md" in e and "2026-09-25-02.md" in e
+                   and "Repeat-of" in e for e in binding), (
+            f"a re-send whose text differs from the named file was "
+            f"accepted: {binding}")
+
+    check("p12_repeat_text_mismatch_fails",
+          "a re-send whose text differs from the file it names is accepted",
+          p12)
+
+    def p13():
+        tmp = tempfile.mkdtemp(prefix="check_prompts_render_check_")
+        binding, entry = repeated(tmp, [
+            (repeat, original, "# Dispatch\n\nSame text.\n"),
+        ])
+        assert not entry, f"a claiming dispatch-note is not a valid entry: {entry}"
+        assert any("2026-09-25-01.md" in e and "2026-09-25-02.md" in e
+                   and "Repeat-of" in e for e in binding), (
+            f"a re-send naming a missing file was accepted: {binding}")
+
+    check("p13_repeat_of_missing_file_fails",
+          "a re-send naming a file that does not exist is accepted",
+          p13)
+
+    total = 13
     print(f"\n{'FAIL' if failures else 'PASS'}: {len(failures)} of "
           f"{total} checks failed{': ' + ', '.join(failures) if failures else ''}")
     return 1 if failures else 0

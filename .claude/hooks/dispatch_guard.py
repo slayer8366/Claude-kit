@@ -20,6 +20,13 @@ Code 2.1.63 and still appears in 2.1.280's init tool list).
    dispatches under one name. If the prompt cannot be written or the
    counter cannot be reached, the dispatch is blocked: an unpreserved
    dispatch is the failure this hook exists to prevent.
+   Before writing, it looks in this worktree's store (tracked or untracked
+   files alike) for a `YYYY-MM-DD-NN.md` file whose text after its first
+   delimiter line equals the prompt's UTF-8 bytes. If one does, the prompt
+   is a re-send of that dispatch: the new copy's header gets one more line,
+   `Repeat-of: preserved/<name>`, naming the earliest match by (date,
+   number), and the reason says so. A file that cannot be read is not a
+   match. Numbering, approval and blocking are unchanged.
 5. Runs check_prompts.py from the repository root and reports its result. It does
    not block on it: the prompt just written is unclaimed until the coder's
    next sweep writes its dispatch-note, and the planner cannot write that
@@ -48,6 +55,8 @@ HEADING = re.compile(r"(?m)^#{1,6}\s+(.+?)\s*#*\s*$")
 DELIMITER = "--- verbatim prompt follows ---"
 COUNTER_DIR = "claude-kit"  # under the git common dir, shared by all worktrees
 COUNTER = "dispatch-seq"
+STORE_NAME = re.compile(r"(\d{4}-\d{2}-\d{2})-(\d{2,})\.md")
+REPEAT_PREFIX = "Repeat-of: preserved/"
 
 
 def missing_sections(text, required):
@@ -96,14 +105,47 @@ def write_counter(counter, date, seq):
     os.replace(str(tmp), str(counter))
 
 
-def preserve(root, head, target, type_, text):
+def text_after_delimiter(data):
+    """The bytes after the first line equal to DELIMITER, or None."""
+    marker = DELIMITER.encode("utf-8")
+    offset = 0
+    for line in data.splitlines(keepends=True):
+        offset += len(line)
+        if line.rstrip(b"\r\n") == marker:
+            return data[offset:]
+    return None
+
+
+def repeat_of(root, text):
+    """The name of the earliest store file, by (date, number), whose text
+    after its delimiter equals text exactly, or None."""
+    store = Path(root) / "prompts" / "preserved"
+    wanted = text.encode("utf-8")
+    named = []
+    for p in store.glob("*.md") if store.is_dir() else ():
+        m = STORE_NAME.fullmatch(p.name)
+        if m and p.is_file():
+            named.append(((m.group(1), int(m.group(2))), p))
+    for _, p in sorted(named):
+        try:
+            data = p.read_bytes()
+        except OSError:
+            continue
+        if text_after_delimiter(data) == wanted:
+            return p.name
+    return None
+
+
+def preserve(root, head, target, type_, text, repeat=None):
     now = datetime.datetime.now(datetime.timezone.utc)
     date = now.strftime("%Y-%m-%d")
     store = Path(root) / "prompts" / "preserved"
     store.mkdir(parents=True, exist_ok=True)
     header = (f"HEAD: {head}\nTarget subagent: {target}\nType: {type_}\n"
               f"Preserved: {now.strftime('%Y-%m-%dT%H:%M:%SZ')} by "
-              f".claude/hooks/dispatch_guard.py\n{DELIMITER}\n")
+              f".claude/hooks/dispatch_guard.py\n"
+              + (f"{REPEAT_PREFIX}{repeat}\n" if repeat else "")
+              + f"{DELIMITER}\n")
     try:
         directory = counter_dir(root)
     except Exception as exc:
@@ -193,18 +235,22 @@ def guard(payload):
     try:
         root = git(cwd, "rev-parse", "--show-toplevel")
         head = git(root, "rev-parse", "HEAD")
-        path = preserve(root, head, target, type_, text)
+        repeat = repeat_of(root, text)
+        path = preserve(root, head, target, type_, text, repeat)
     except Exception as exc:
         return ("deny", f"dispatch_guard: could not preserve the dispatch, so it "
                         f"is blocked: {type(exc).__name__}: {exc}")
     rel = path.relative_to(root).as_posix()
+    where = f"(HEAD {head[:10]})"
+    if repeat:
+        where += f", repeat of preserved/{repeat} (identical text)"
     check = store_check(root)
     if type_ in config["approval_exempt_types"]:
         return ("allow", f"dispatch_guard: Type {type_!r} dispatch to {target} "
-                         f"preserved at {rel} (HEAD {head[:10]}). Type {type_!r} is "
+                         f"preserved at {rel} {where}. Type {type_!r} is "
                          f"in approval_exempt_types, so it runs without approval.\n{check}")
     return ("ask", f"dispatch_guard: Type {type_!r} dispatch to {target} preserved "
-                   f"at {rel} (HEAD {head[:10]}). Operator approval required: Type "
+                   f"at {rel} {where}. Operator approval required: Type "
                    f"{type_!r} is not in approval_exempt_types.\n{check}")
 
 

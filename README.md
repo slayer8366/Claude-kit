@@ -60,6 +60,11 @@ Fixed in code, not config: the prompt store `prompts/preserved/`, the three
 roles and the planner and pulse tool allowlists, the pulse's adb reads, and the dispatch tool names
 (`Agent`, `Task`).
 
+When the dispatch hook saves a prompt whose text is identical to a stored
+dispatch's, it adds a `Repeat-of: preserved/<name>` header line naming the
+earliest such file, and `check_prompts.py` fails unless that file exists
+with the same text.
+
 ## Install and drift
 
 From a clone of this repository:

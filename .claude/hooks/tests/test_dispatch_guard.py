@@ -271,6 +271,56 @@ class DispatchGuard(unittest.TestCase):
         self.assertEqual(decision, "ask", reason)
         self.assertEqual(self.written(), [f"{self.today}-05.md", f"{self.today}-06.md"])
 
+    # T10: a prompt identical to a stored dispatch's text is saved as a
+    # re-send of it, naming the earliest such file.
+    def stored(self, name, text):
+        self.store.mkdir(parents=True, exist_ok=True)
+        (self.store / name).write_text(
+            "HEAD: fixture\nTarget subagent: pulse\nType: pulse\n"
+            "Preserved: 2026-01-01T00:00:00Z by .claude/hooks/dispatch_guard.py\n"
+            "--- verbatim prompt follows ---\n" + text)
+
+    def saved_header(self, name):
+        saved = (self.store / name).read_text()
+        header, sep, _ = saved.partition("\n--- verbatim prompt follows ---\n")
+        self.assertTrue(sep, f"no verbatim delimiter in: {saved[:300]!r}")
+        return header
+
+    def test_r1_identical_text_is_marked_repeat(self):
+        text = prompt("pulse", PULSE_SECTIONS)
+        self.stored(f"{self.today}-01.md", text)
+        decision, reason = run_hook(HOOK, agent(text, "pulse", cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertEqual(self.written(), [f"{self.today}-01.md", f"{self.today}-02.md"])
+        header = self.saved_header(f"{self.today}-02.md")
+        self.assertIn(f"\nRepeat-of: preserved/{self.today}-01.md", header)
+
+    def test_r2_one_byte_different_is_not_a_repeat(self):
+        text = prompt("pulse", PULSE_SECTIONS)
+        self.stored(f"{self.today}-01.md", text + " ")
+        decision, reason = run_hook(HOOK, agent(text, "pulse", cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        self.assertNotIn("Repeat-of", self.saved_header(f"{self.today}-02.md"))
+        self.assertNotIn("repeat of", reason)
+
+    def test_r3_earliest_identical_file_is_named(self):
+        text = prompt("pulse", PULSE_SECTIONS)
+        self.stored(f"{self.today}-03.md", text)
+        self.stored("2026-01-01-07.md", text)
+        decision, reason = run_hook(HOOK, agent(text, "pulse", cwd=str(self.repo)))
+        self.assertEqual(decision, "allow", reason)
+        header = self.saved_header(f"{self.today}-04.md")
+        self.assertIn("\nRepeat-of: preserved/2026-01-01-07.md", header)
+        self.assertEqual(header.count("Repeat-of"), 1)
+
+    def test_r4_reason_names_the_repeat(self):
+        text = prompt("build", BUILD_SECTIONS)
+        self.stored(f"{self.today}-01.md", text)
+        decision, reason = run_hook(HOOK, agent(text, cwd=str(self.repo)))
+        self.assertEqual(decision, "ask", reason)
+        self.assertIn(f"repeat of preserved/{self.today}-01.md (identical text)", reason)
+        self.assertIn(f"prompts/preserved/{self.today}-02.md", reason)
+
     def test_outside_a_repository_blocks(self):
         outside = tempfile.mkdtemp(prefix="dispatch_guard_norepo_")
         try:
