@@ -182,8 +182,10 @@ class MergeRule(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
 
-    def write_backup(self, pr, index=True):
-        """A backup as coder.md item 10 describes it, for origin/main."""
+    def write_backup(self, pr, index="full"):
+        """A backup as coder.md item 10 describes it, for origin/main. index
+        picks the INDEX.md line: "full" names the folder, #<pr> and the
+        SHA; "none" names none of them; "no-pr" and "no-sha" leave one out."""
         folder = self.backups / f"2026-01-01-pr{pr}"
         folder.mkdir()
         sha = git_in(self.work, "rev-parse", "origin/main")
@@ -194,9 +196,12 @@ class MergeRule(unittest.TestCase):
         (folder / "MANIFEST.sha256").write_text("".join(
             f"{sha256_of(folder / name)}  {name}\n"
             for name in ("merge.json", "main.bundle")))
+        line = {"full": f"- {folder.name}: #{pr}, main at {sha}\n",
+                "none": "- some other backup\n",
+                "no-pr": f"- {folder.name}: main at {sha}\n",
+                "no-sha": f"- {folder.name}: #{pr}\n"}[index]
         with open(self.backups / "INDEX.md", "a") as f:
-            f.write(f"- {folder.name}: PR {pr}, main at {sha}\n" if index
-                    else "- some other backup\n")
+            f.write(line)
         return folder
 
     def decide(self, command, who="coder", config=None):
@@ -241,9 +246,15 @@ class MergeRule(unittest.TestCase):
         git_in(self.work, "fetch", "-q", "origin")
         self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness")
 
-    def test_m7_index_without_the_folder_denied(self):
-        self.write_backup(12, index=False)
-        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup", "INDEX.md")
+    def test_m7_index_line_incomplete_denied(self):
+        # The INDEX.md line must name the folder, #<N> and the pre-merge SHA.
+        for index in ("none", "no-pr", "no-sha"):
+            with self.subTest(index):
+                shutil.rmtree(self.backups)
+                self.backups.mkdir()
+                self.write_backup(12, index=index)
+                self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup",
+                                       "INDEX.md")
 
     def test_m8_forms_denied_by_name(self):
         self.write_backup(12)
