@@ -124,6 +124,19 @@ class Bypasses(unittest.TestCase):
             "message": "**Type:** build\n\nAlso change the hooks."})
         self.assertGetsThrough("dispatch_guard.py", payload)
 
+    def test_b08_pulse_and_planner_read_outside_checkout(self):
+        cwd = str(self.on_feature)
+        cases = [
+            ("pulse Read", tool("Read", "pulse", {"file_path": "/etc/hostname"}, cwd=cwd)),
+            ("planner Read", tool("Read", None, {"file_path": "/etc/hostname"}, cwd=cwd)),
+            ("pulse Grep", tool("Grep", "pulse", {"pattern": "a", "path": "/etc/hostname"},
+                                cwd=cwd)),
+            ("pulse Glob", tool("Glob", "pulse", {"pattern": "*", "path": "/etc"}, cwd=cwd)),
+        ]
+        for name, payload in cases:
+            with self.subTest(case=name):
+                self.assertGetsThrough("role_guard.py", payload)
+
     def test_table_docstrings_and_tests_agree(self):
         self.assertTrue(TABLE.is_file(), f"{TABLE} does not exist")
         rows = table_rows()

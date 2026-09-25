@@ -65,12 +65,32 @@ def result(tid, when, status, agent_id):
             "toolUseResult": tur}
 
 
-def denied(tid, when, text):
+def denied(tid, when, text, content=None):
+    """An error result as Claude Code logs a denial: toolUseResult carries the
+    text (with "Error: "), the tool_result content the text without it."""
     return {"type": "user", "timestamp": when,
             "message": {"role": "user",
                         "content": [{"type": "tool_result", "tool_use_id": tid,
-                                     "is_error": True, "content": text}]},
+                                     "is_error": True,
+                                     "content": text if content is None else content}]},
             "toolUseResult": text, "toolDenialKind": "permission-rule"}
+
+
+def hook_decision(tid, when, decision, reason="dispatch_guard: preserved"):
+    """The attachment Claude Code writes when a PreToolUse:Agent hook prints a
+    permission decision (T8 case 2's shape)."""
+    out = json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                             "permissionDecision": decision,
+                                             "permissionDecisionReason": reason}})
+    return {"type": "attachment", "timestamp": when,
+            "attachment": {"type": "hook_success", "hookName": "PreToolUse:Agent",
+                           "toolUseID": tid, "hookEvent": "PreToolUse", "content": "",
+                           "stdout": out + "\n", "stderr": "", "exitCode": 0}}
+
+
+NO_SURFACE = ("Error: Permission for this tool use was denied. It requires approval, "
+              "and this session has no approval surface \u2014 nobody can answer a "
+              "permission prompt here \u2014 so it was denied automatically.")
 
 
 def notice_text(agent_id, tid, status, summary):
@@ -273,9 +293,7 @@ class SessionAgents(Base):
         ])
         p = self.run_ok()
         b = self.block(p.stdout, tid)
-        self.assertEqual(self.field(b, "outcome"),
-                         "denied: Error: PreToolUse:Agent hook error: dispatch_guard: "
-                         "the dispatch lacks section Merge")
+        self.assertEqual(self.field(b, "outcome"), "denied: blocked by dispatch_guard")
         self.assertNotIn("second line of the reason", p.stdout)
         self.assertIn("denied 1", p.stdout.splitlines()[-1])
 
@@ -360,6 +378,81 @@ class SessionAgents(Base):
         p = self.run_ok()
         self.assertIn(tid, p.stdout)
         self.assertEqual(snapshot(), before)
+
+    def test_p_ask_then_no_approval_surface(self):
+        tid = "toolu_P1"
+        self.write_log([
+            agent_call(tid, ts(1), "Build it", False),
+            hook_decision(tid, ts(1, 1), "ask"),
+            denied(tid, ts(1, 2), NO_SURFACE, content=NO_SURFACE[len("Error: "):]),
+        ])
+        p = self.run_ok()
+        b = self.block(p.stdout, tid)
+        self.assertEqual(self.field(b, "outcome"), "denied: approval not given")
+        self.assertIn("denied 1", p.stdout.splitlines()[-1])
+
+    def test_q_dispatch_guard_block(self):
+        tid = "toolu_Q1"
+        text = ("Error: PreToolUse:Agent hook error: dispatch_guard: Type 'pulse' may "
+                "only be dispatched to 'pulse', not 'coder'.")
+        self.write_log([
+            agent_call(tid, ts(1), "Wrong target", False),
+            denied(tid, ts(1, 1), text, content=text[len("Error: "):]),
+        ])
+        p = self.run_ok()
+        b = self.block(p.stdout, tid)
+        self.assertEqual(self.field(b, "outcome"), "denied: blocked by dispatch_guard")
+
+    def test_r_role_guard_block(self):
+        tid = "toolu_R1"
+        text = "Error: role_guard: subagent 'helper' has no role in agent_roles."
+        self.write_log([
+            agent_call(tid, ts(1), "No role", False, agent_type="helper"),
+            denied(tid, ts(1, 1), text, content=text[len("Error: "):]),
+        ])
+        p = self.run_ok()
+        b = self.block(p.stdout, tid)
+        self.assertEqual(self.field(b, "outcome"), "denied: blocked by role_guard")
+
+    def test_s_denied_by_user(self):
+        tid = "toolu_S1"
+        self.write_log([
+            agent_call(tid, ts(1), "Declined", False),
+            denied(tid, ts(1, 1), "Error: Denied by user", content="Denied by user"),
+        ])
+        p = self.run_ok()
+        b = self.block(p.stdout, tid)
+        self.assertEqual(self.field(b, "outcome"), "denied: by user")
+
+    def test_t_summary_counts_every_denial(self):
+        block = ("Error: PreToolUse:Agent hook error: dispatch_guard: Type 'pulse' may "
+                 "only be dispatched to 'pulse', not 'coder'.")
+        self.write_log([
+            agent_call("toolu_T1", ts(1), "Asked", False, msg_id="msg_t1"),
+            hook_decision("toolu_T1", ts(1, 1), "ask"),
+            denied("toolu_T1", ts(1, 2), NO_SURFACE),
+            agent_call("toolu_T2", ts(2), "Blocked", False, msg_id="msg_t2"),
+            denied("toolu_T2", ts(2, 1), block),
+            agent_call("toolu_T3", ts(3), "No role", False, msg_id="msg_t3"),
+            denied("toolu_T3", ts(3, 1), "Error: role_guard: no role."),
+            agent_call("toolu_T4", ts(4), "Declined", False, msg_id="msg_t4"),
+            denied("toolu_T4", ts(4, 1), "Error: Denied by user"),
+        ])
+        p = self.run_ok()
+        self.assertEqual(p.stdout.splitlines()[-1],
+                         "summary: 4 Agent call(s); completed 0, failed 0, denied 4, "
+                         "launched, no completion notice 0, no result 0")
+
+    def test_u_ask_then_denied_by_user(self):
+        tid = "toolu_U1"
+        self.write_log([
+            agent_call(tid, ts(1), "Build it", False),
+            hook_decision(tid, ts(1, 1), "ask"),
+            denied(tid, ts(1, 2), "Error: Denied by user", content="Denied by user"),
+        ])
+        p = self.run_ok()
+        b = self.block(p.stdout, tid)
+        self.assertEqual(self.field(b, "outcome"), "denied: by user")
 
 
 if __name__ == "__main__":
