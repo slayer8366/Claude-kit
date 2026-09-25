@@ -13,8 +13,32 @@ exactly what the tag holds.
   install writes .claude/kit.json from templates/kit.json.
 - Adopter-owned files are never written: .claude/kit.json (after the first
   install), RECORD.md, CLAUDE.md and anything under prompts/.
-- An existing .claude/settings.json that differs from the release's is never
-  overwritten or merged. The install stops, reports it and writes nothing.
+
+First install (the target has no .claude/kit.lock): vendored files are
+written over whatever is there, except that an existing
+.claude/settings.json that differs from the release's is never overwritten
+or merged. The install stops, reports it and writes nothing.
+
+Upgrade (the target has a .claude/kit.lock): the lock's files map holds the
+hashes as installed. Every path is classified before anything is written:
+
+- Kept (in the old lock and in the new release): if its SHA-256 still
+  equals the old lock's it is unchanged and is overwritten; if it is missing
+  it is written; if it differs it was edited since the installed tag, and
+  the upgrade stops. .claude/settings.json follows this rule on an upgrade,
+  so an unedited one is replaced by the new release's.
+- Dropped (in the old lock, not in the new release): if unchanged it is
+  REMOVED (its directory stays); if missing there is nothing to do; if
+  edited the upgrade stops.
+- New (in the new release, not in the old lock): if absent it is written;
+  if present and byte-identical to the release's it is left; if present and
+  different it is the adopter's file, not the kit's, and the upgrade stops.
+
+A stop lists every stopping path with its reason, exits 1 and leaves the
+target exactly as it was. Otherwise the writes and removals are applied,
+templates are written as above, and the new lock is written last; each
+removed path is printed. An unreadable or malformed lock also stops the
+upgrade before anything is written; it is never treated as a first install.
 
 Everything is checked before anything is written. Not part of a release.
 """
@@ -64,25 +88,93 @@ def release_at(tag):
     return vendored, templates
 
 
+def sha256(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def read_lock(target):
+    """The old lock's {path: sha256}, or None when there is no lock."""
+    lock_path = target / LOCK
+    if not lock_path.exists():
+        return None
+    try:
+        lock = json.loads(lock_path.read_text())
+        files = lock["files"]
+        if not isinstance(lock["tag"], str) or not isinstance(files, dict) or not all(
+                isinstance(p, str) and isinstance(h, str) for p, h in files.items()):
+            raise ValueError("expected a string tag and a files map of path to sha256")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise InstallError(
+            f"{lock_path} ({LOCK}) is unreadable or malformed: {type(exc).__name__}: "
+            f"{exc}. Nothing was written. Repair or remove the lock by hand, then "
+            f"install again.")
+    return files
+
+
+def on_disk(dest):
+    """The file's bytes, or None if nothing is there. Anything that is not a
+    regular file reads as b"" so that it never matches a hash or a release."""
+    if not dest.exists() and not dest.is_symlink():
+        return None
+    if not dest.is_file():
+        return b""
+    return dest.read_bytes()
+
+
+def plan_upgrade(target, old, vendored):
+    """(writes, removals, stops) for an upgrade from the old lock's hashes."""
+    writes, removals, stops = [], [], []
+    for path in sorted(set(old) | set(vendored)):
+        data = on_disk(target / path)
+        if path in old:
+            if data is None:
+                if path in vendored:
+                    writes.append(path)
+            elif sha256(data) != old[path]:
+                stops.append(f"{path}: edited since the installed tag")
+            elif path in vendored:
+                writes.append(path)
+            else:
+                removals.append(path)
+        elif data is None:
+            writes.append(path)
+        elif data != vendored[path]:
+            stops.append(f"{path}: exists and is not the kit's")
+    return writes, removals, stops
+
+
 def install(target, tag):
+    """(written, removed)."""
     target = Path(target)
     if not target.is_dir():
         raise InstallError(f"target {target} is not a directory")
     vendored, templates = release_at(tag)
+    old = read_lock(target)
 
-    settings = target / SETTINGS
-    if SETTINGS in vendored and settings.exists() and settings.read_bytes() != vendored[SETTINGS]:
-        raise InstallError(
-            f"{settings} exists and differs from the release's {SETTINGS}. The "
-            f"installer never overwrites or merges an adopter's settings. Nothing "
-            f"was written. Reconcile the two by hand, then install again.")
+    if old is None:
+        settings = target / SETTINGS
+        if SETTINGS in vendored and settings.exists() and settings.read_bytes() != vendored[SETTINGS]:
+            raise InstallError(
+                f"{settings} exists and differs from the release's {SETTINGS}. The "
+                f"installer never overwrites or merges an adopter's settings. Nothing "
+                f"was written. Reconcile the two by hand, then install again.")
+        writes, removals = list(vendored), []
+    else:
+        writes, removals, stops = plan_upgrade(target, old, vendored)
+        if stops:
+            raise InstallError(
+                f"the upgrade to {tag} stops on these paths. Nothing was written or "
+                f"removed. Reconcile each by hand, then install again:\n"
+                + "\n".join(f"  {s}" for s in stops))
 
     written = []
-    for path, data in vendored.items():
+    for path in writes:
         dest = target / path
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(data)
+        dest.write_bytes(vendored[path])
         written.append(path)
+    for path in removals:
+        (target / path).unlink()
     for path, data in templates.items():
         dest = target / path
         if dest.exists():
@@ -92,10 +184,10 @@ def install(target, tag):
         written.append(f"{path} (from template)")
 
     lock = {"tag": tag,
-            "files": {p: hashlib.sha256(d).hexdigest() for p, d in sorted(vendored.items())}}
+            "files": {p: sha256(d) for p, d in sorted(vendored.items())}}
     (target / LOCK).write_text(json.dumps(lock, indent=2) + "\n")
     written.append(LOCK)
-    return written
+    return written, removals
 
 
 def main():
@@ -104,13 +196,15 @@ def main():
     parser.add_argument("--tag", required=True, help="the kit release tag to vendor")
     args = parser.parse_args()
     try:
-        written = install(args.target, args.tag)
+        written, removed = install(args.target, args.tag)
     except InstallError as exc:
         print(f"install.py: STOPPED: {exc}", file=sys.stderr)
         return 1
     print(f"install.py: installed {args.tag} into {args.target}:")
     for path in written:
         print(f"  {path}")
+    for path in removed:
+        print(f"  removed {path}")
     return 0
 
 

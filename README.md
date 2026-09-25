@@ -64,9 +64,28 @@ it, and every file in it, from the tag, not the working tree. It writes the
 vendored files, writes `.claude/kit.json` from `templates/kit.json` only if the
 adopter has none, and records the tag and each vendored file's SHA-256 in
 `.claude/kit.lock`. It never writes `.claude/kit.json` over an existing one,
-`RECORD.md`, `CLAUDE.md` or anything under `prompts/`. If the adopter already
-has a `.claude/settings.json` that differs from the release's, it stops and
-writes nothing; reconcile the two by hand.
+`RECORD.md`, `CLAUDE.md` or anything under `prompts/`. On a first install (no
+`.claude/kit.lock` yet), if the adopter already has a `.claude/settings.json`
+that differs from the release's, it stops and writes nothing; reconcile the
+two by hand.
+
+Upgrading is the same command with the new tag. When `.claude/kit.lock`
+exists, the installer reads it as the hashes of the files as installed and
+checks every path before writing anything:
+
+- A file the new release keeps is overwritten if it is unchanged since the
+  installed tag, and written if it is missing.
+- A file the new release no longer ships is **removed** if it is unchanged
+  (its directory stays). Each removed path is printed.
+- A file the new release adds is written if absent, and left if it is
+  already identical to the release's.
+- `.claude/settings.json` follows the same rule, so an unedited one is
+  replaced by the new release's.
+
+The upgrade stops, lists each path with its reason and writes or removes
+nothing if any kept or dropped file was edited since the installed tag, if
+an adopter's own file sits at a path the new release adds, or if the lock
+cannot be read or is malformed. Reconcile by hand, then install again.
 
 In the adopter, `python3 check_kit.py` fails naming each vendored file whose
 hash differs from the lock, or that is missing. It never contacts this
