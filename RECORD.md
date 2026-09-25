@@ -1099,3 +1099,13 @@ The only planner message that reached this coder is the one at line 625. The pla
 - The intent's mechanism prediction held except for find_dispatches' refused count. It predicted "refused 2" and got "refused 3": this dispatch's copy left the refused list as predicted, but the pulse's `2026-09-25-11.md`, saved during this dispatch, joined it.
 - release_check's 4845 lines is within the predicted 4846 ±1.
 - Wording choices the dispatch did not fix are listed in the hand-back under Decisions I made. These include the proposed-ruling and scope text for B-05 to B-10, the corrected evidence lines, and coder.md line citations marked "at 82725c4".
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-17
+**Dispatch-file:** preserved/2026-09-25-11.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl, line 635 (2026-09-25T03:21:28.903Z, the Agent call dispatching to `pulse`, tool_use `toolu_01Ag2jDH5QaYF3WV6mbXwCYF`, description "Pulse: T13 and T5 design facts") and the pulse's hand-back from agent aee911d5e5fe4917e, enqueued at line 644 (2026-09-25T03:24:50.501Z) and delivered at line 646 (03:24:50.536Z, "[Subagent hand-back]")
+**Observed:** The planner's pulse gathering the facts for the owner's T13 and T5 design questions, sent from the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB (HEAD d59280f). Saved there by the dispatch hook, untracked, as `prompts/preserved/2026-09-25-11.md` (3521 bytes, sha256 4cff14bef5cd5f94ef054d8e33d50a552f9eddb80fdd351a488cf39f9cc2c6df; header "Preserved: 2026-09-25T03:21:28Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target pulse, type pulse). Copied byte for byte into this store under the same name, the name the hook gave it; the name was free in this store, and cmp reports the two identical. The prompt of the log's line 635 equals the saved file's text after the delimiter exactly (3338 characters). The planner used its answers in the owner questions at lines 662 and 694. No other store file was unclaimed: both checkers passed at 3a5a13d (preserved=24). D2 (`2026-09-25-02.md`) and D5 (`2026-09-25-05.md`) in the planner worktree stay cited, not copied; that worktree's `-07` to `-10` are byte-identical to this store's.
