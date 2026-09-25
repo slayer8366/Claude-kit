@@ -48,6 +48,11 @@ open on its own config. Unknown keys are invalid.
 | `agent_roles` | yes | subagent name to role: `planner`, `pulse` or `coder`; every dispatchable agent needs one. role_guard restricts an agent by its role; an agent with no role, or with any other role name, is denied every tool. The main session is always `planner` |
 | `approval_exempt_types` | yes | the dispatch Types that run without operator approval (may be empty); every other Type asks. Each must be a Type in `type_targets` |
 | `guard_env_prefix` | no, default `KIT_GUARD_` | `<prefix>ADB`, `<prefix>AAPT2`, `<prefix>APKSIGNER` override the device guard's tools |
+| `backup_dir` | no, no default | a string: the directory that holds merge backups (`~` is expanded). Unset, history_guard denies every pull-request merge. See "Merging and undoing a merge" |
+
+This repository's own `kit.json` also requires a `Merge` section in build and
+device dispatches, reading `authorised` or `not authorised`, and sets
+`backup_dir`. The template does neither, so adopters opt in.
 
 Fixed in code, not config: the prompt store `prompts/preserved/`, the three
 roles and the planner and pulse tool allowlists, the pulse's adb reads, and the dispatch tool names
@@ -100,6 +105,32 @@ Scans every file in the release set (`release.json`) against the patterns in
 matches. The denylist stays in the workshop and is never released, since it
 names what must not be published. A release is a tag, made by the owner after
 reading the release diff.
+
+## Merging and undoing a merge
+
+A coder merges a pull request only when its dispatch's `Merge` section reads
+`authorised` (coder.md item 10). history_guard lets the merge through only
+for the `coder` role, in one form (`gh pr merge <N>` with `--merge` or
+`--squash`), and only after the coder has written a backup for PR N under
+`backup_dir`: a folder holding a git bundle of `origin/<base branch>`,
+`merge.json` (`pr`, `branch`, `sha`, `bundle`) and `MANIFEST.sha256`, with one
+line in `backup_dir/INDEX.md` naming the folder, `#<N>` and the pre-merge SHA.
+merge.json's `sha` must still be the tip of
+`origin/<branch>`. The planner and the pulse are always denied.
+
+To undo a merge, find the backup folder whose `merge.json` has the PR's
+number, then either:
+
+- revert the merge or squash commit (`git revert -m 1 <merge commit>` for a
+  merge commit, `git revert <commit>` for a squash); or
+- reset the branch to merge.json's `sha` and force-push it. The kit's agents
+  never force-push; this push is the owner's, made by hand.
+
+If the remote is lost, restore from the bundle. `git bundle list-heads
+<bundle>` names its one ref (`refs/remotes/origin/<branch>`), and in any
+repository (a fresh `git init` will do) `git fetch <bundle>
+refs/remotes/origin/<branch>:refs/heads/<branch>` gives the branch as it
+stood at `sha`.
 
 ## Finding unrecorded dispatches
 

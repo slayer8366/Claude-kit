@@ -1556,3 +1556,172 @@ Messages after this dispatch's Agent call (line 835): the planner log, read befo
 - The release denylist's patterns, run over `docs/standing-rulings.md` as an extra check (docs/ is not in the release set, and release_check passes), match `(?i)forager` and `(?i)forager-backups` at :70 (SR-03, already on main) and at :278 and :282 (B-11's `~/forager-backups`, the path the dispatch and the owner's chosen option name). This coder read the abort condition "a denylist hit" as a release_check failure and did not abort; that reading is listed in the hand-back.
 - Otherwise none. The planner's and the intent's predictions held, except that find_dispatches reported in-store 19, a count the intent did not predict.
 - Choices the dispatch did not make are listed in the hand-back under Decisions I made.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-26
+**Timestamp:** 2026-09-25T05:28:45Z
+**Title:** Claude-kit v0.2 T17: a coder may merge a pull request when the dispatch's Merge section authorises it, and history_guard lets the merge through only after a verified backup (optional kit.json key `backup_dir`)
+**Dispatch-file:** preserved/2026-09-25-16.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB (at d59280f) as `prompts/preserved/2026-09-25-16.md` (10573 bytes, sha256 7ebad292efeeabd24690df680e12207e3b12d039dc6f523e1d67839269f933d5; header "Preserved: 2026-09-25T05:24:00Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The name is the one the dispatch expected and was free in this store. The copy is byte for byte, with equal sha256. The text after the delimiter equals the prompt of the Agent call at line 944 of the planner log (2026-09-25T05:24:00.410Z, tool_use `toolu_014izLsAT4jnXhmCCNBPaUbk`, description "T17: coder merges with backup"; 10368 characters on both sides, exact). The planner log is /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl; line numbers below refer to it. In this record the GitHub CLI's PR merge command is written "the PR merge command", because history_guard blocks any Bash command whose text contains it.
+**Change:**
+- The spec gets item 17 under a new "Owner additions" heading, and the task list a T17 row (depends on T12).
+- history_guard's module docstring opens with the merge rule (the planner's rule 1, conditions (a) to (e)), and the code applies it: the PR merge command is denied unless the caller's role is `coder`, the command has the one allowed form, `backup_dir` is set, exactly one backup folder for the PR verifies (merge.json, MANIFEST.sha256, `git bundle list-heads`, INDEX.md), and merge.json's `sha` equals `origin/<branch>` in the payload's cwd. `git merge` handling is unchanged.
+- guardlib: the optional key `backup_dir` (default None; a string when present).
+- `.claude/kit.json`: `"backup_dir": "~/forager-backups"`; "Merge" appended to required_sections for build and device.
+- coder.md: item 10 under "The record", verbatim from the dispatch.
+- README: a `backup_dir` row in the kit.json table, a "Merging and undoing a merge" section, and a note that this repo requires `Merge`.
+- Tests: m1-m9 in test_history_guard.py, and c1 and c2 in test_config.py.
+**Scope boundary:** Files: `docs/specs/2026-09-24-kit-v0.2-spec.md`, `docs/specs/2026-09-24-kit-v0.2-tasks.md`, `.claude/hooks/guardlib.py`, `.claude/hooks/history_guard.py`, `.claude/hooks/tests/test_history_guard.py`, `.claude/hooks/tests/test_config.py` (harness.py only if its test config needs the key; this coder expects it does not, since the key is optional), `.claude/kit.json`, `.claude/agents/coder.md`, README.md. Record: this store copy with this intent, and terminal 2026-09-25-27. Not changed: templates/kit.json, role_guard, dispatch_guard code, install and release tooling, checkers, find_dispatches, `docs/standing-rulings.md`, CI, the planner worktree, the T3 backlog. No merge, no tag, nothing deleted outside temp directories.
+**Baseline:** ~/Zynergy/Claude-kit-fixes on new branch `kit-v0.2-t17` from origin/main e8414b1b8e6796f64d18065b1dd79bad220609f9. That is the merge commit of PR #15 per `gh pr view 15 --json mergeCommit` (state MERGED), and equals `git ls-remote origin main`. `git ls-remote --tags origin` prints nothing. The record's last entry is 2026-09-25-25, which closes -24; no intent is open. The repository has no CLAUDE.md. The dispatch has every section kit.json requires for a build, plus `Merge` ("not authorised"). That is a structural check only. It cites no standing ruling.
+
+Counts at e8414b1:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 39 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS (51 entries)
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 19, record 15, refused 3, stop 0" (refused: -02, -05 and this dispatch's -16)
+
+No sweep: every store file is claimed; -16 is claimed by this intent. D2 and D5 (-02, -05) are dated today and are left, per the dispatch.
+
+Premises checked at e8414b1:
+- The hooks are unchanged since 742d10f (`git diff --stat 742d10f HEAD -- .claude/hooks/` is empty).
+- history_guard.py:192-194 denies the PR merge command for every role ("is blocked. Merging is the operator's approval."), with the pattern `PR_MERGE` at :43. The `git merge` protected-branch check is at :200-209. The push check is parsed per segment at :211-234. history_guard reads no agent_type.
+- role_guard.py GH_READ (:90-93) has no ("pr", "merge"), so check_bash denies it to the planner and pulse. The role is derived at :293-307: no agent_type means planner, otherwise agent_roles[agent_type]; the coder returns None at :307-308.
+- guardlib.py CONFIG_REQUIRED :33-35, CONFIG_DEFAULTS :36, unknown keys invalid at :54-56.
+- `.claude/kit.json` required_sections for build and device: the nine sections ending "Device items", with no "Merge". templates/kit.json is identical in content.
+- harness.py TEST_CONFIG (:19-36) has no `backup_dir`; run_hook takes config= (:71-78), so tests can add the key without changing the harness.
+- The existing test `test_gh_pr_merge_denied` (test_history_guard.py:82-84) runs the PR merge command with `--squash` as the coder under TEST_CONFIG and asserts the reason contains the command's text. Under the new rule that is condition (c) (backup_dir unset), so every new denial keeps the command's name in its reason and that test stays unchanged.
+**Closed decisions:** From the planner log:
+- Line 712 (2026-09-25T03:33:54.808Z), the owner: "coders should be able to merge at the discretion of the planner. All merged work must contain a backup, so any merge should be able to be undone by the owner later on".
+- Line 716 (03:34:22.231Z, tool_use `toolu_01CYKWhrL8u522sTEfgERr8r`), answered at line 717 (03:34:45.988Z), with the option texts from the tool_use:
+  - "Bundle in forager-backups (Recommended)": "Before merging, the coder writes a git bundle of main as it stands, with the pre-merge SHA and the PR number, into a new ~/forager-backups folder with MANIFEST.sha256 and one INDEX.md line, like the T0 backup. To undo, you reset main to the recorded SHA, or revert the merge commit. It lives on the local drive and survives anything done to the remote."
+  - "history_guard checks (Recommended)": "history_guard lets `<the PR merge command> <N>` through only for the coder, and only if a backup for PR N is recorded (an INDEX.md line naming PR N and the pre-merge SHA, whose MANIFEST checks) and that SHA equals origin/main's current tip. Planner and pulse stay blocked. Mechanical, like the other guards."
+  - "Next, after T13 (Recommended)": "Add it to v0.2 as a new task (T17), dispatched right after T13 merges and before T5. Until it merges, dispatches keep \"no merge\" and you merge as now. The planner states the merge decision in each dispatch's scope from then on."
+- Line 924 (05:19:48.082Z), the owner: "Merged" (PR #15).
+- The T17 AskUserQuestion was answered twice. First round: line 928 (05:20:13.493Z, tool_use `toolu_016VAue94CwemhQiW8cAjhys`), answered at line 932 (05:21:08.414Z) with "Optional key, no default (Recommended)", "Required \"Merge\" section (Recommended)", "Merge commit only (Recommended)". The owner interrupted at line 934 (05:21:23.419Z, "[Request interrupted by user]") and wrote "Show the options again" at line 937 (05:21:27.366Z). The re-ask at line 939 (05:21:33.900Z, tool_use `toolu_01CJq92ERYt4mwn6WKMRgzmD`) was answered at line 940 (05:22:51.409Z). The second round governs, and its "Also squash" supersedes the first round's "Merge commit only". Option texts from the second tool_use:
+  - Backup dir, "Optional key, no default (Recommended)": "A new optional kit.json key `backup_dir`. Absent, every merge is denied (fail closed) with a message saying to set it. This repo's kit.json sets \"~/forager-backups\"; the template leaves it out. Existing adopter configs still validate, since the key is optional."
+  - Authorise, "Required \"Merge\" section (Recommended)": "Add \"Merge\" to this repo's required_sections for build and device, so dispatch_guard blocks any build that doesn't say. Its text is \"authorised\" or \"not authorised\", and coder.md says a coder merges only under \"authorised\". Every dispatch states it explicitly, and you see it when you approve. The template is unchanged, so adopters opt in."
+  - Merge form, "Also squash": "Allow `--squash` as well as `--merge`, with the rest denied as above. Tidier history; undoing is still possible from the bundle."
+- The planner's rules 1-3 as written in the dispatch (history_guard conditions (a)-(e); coder.md item 10 verbatim; README's undo section).
+- Noted, not a stop: the line-716 option text has the INDEX.md line naming "PR N and the pre-merge SHA". The dispatch's rule (d) requires only a line containing the folder's name, and puts the PR and SHA in merge.json, which the manifest covers. This coder implements the dispatch's rule, which the owner approved with the dispatch, and flags the difference.
+- Owner messages after line 944: an abort only if one tells this coder to do or not do something in T17's scope, or changes a decision above. Every other message is recorded in the terminal. A planner message follows coder.md item 6. None through line 951 (read before this entry): lines 945-951 are metadata, the Agent launch result and the planner's note to the owner.
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit:
+  - m1 and m2 fail with today's "is blocked" deny.
+  - m3-m8 fail on their reason assertions.
+  - m9 passes.
+  - c1 fails as an unknown key; c2 fails with the wrong message, or passes.
+  - Hook tests: 106 plus the new ones. test_install's vendored-hook-tests case fails, its message possibly cut off.
+- After the fix: all hook tests OK; 39 tests/ OK; render checks 30/30 and 10/10; both checkers PASS; release_check PASS with 19 files and no denylist hit (`forager-backups` only in the unreleased `.claude/kit.json`).
+- Revert check: base history_guard.py and guardlib.py against the committed tests give the same failures.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+- guard() keeps the force check first. Where the PR_MERGE regex matches, it now calls a merge check instead of the fixed deny. The checks run in the order (a) role, (b) form, (c) config, (d) backup, (e) freshness, and the first failure is denied. Each reason starts "history_guard: `<command>` denied, (x) <name>:", so a reason names both the command and the condition. Passing all five returns no decision, the way the other guards pass. The filters, the `git merge` check and the push parse run afterwards, as today.
+- (a) The role comes from the payload's agent_type through CONFIG["agent_roles"], as role_guard.py:293-307 does: no agent_type is the planner, and an unmapped agent has no role. Anything but `coder` is denied, so m9 passes both before and after the fix.
+- (b) The command is split with g.shell_tokens on the newline-split text (command_lines). Any punctuation token or second line is "one command" (the compound form). tokens[0:3] must be gh, pr, merge. The remaining tokens are scanned: the named forbidden flags (including `--repo=`/`--rebase` spellings) are denied by name, then other unknown flags. `--subject`/`-t`, `--body`/`-b`, `--match-head-commit` consume one value. There must be exactly one method flag and exactly one all-digit positional.
+- (c) CONFIG.get("backup_dir") None denies, naming backup_dir and kit.json; os.path.expanduser.
+- (d) Every direct child directory with a merge.json whose JSON object has `pr` == N (an int, not a bool) is a candidate. Zero or more than one candidate is denied. The field types are checked, and `bundle` must be a plain name of a file in the folder. MANIFEST.sha256 is parsed as sha256sum lines, must list merge.json and the bundle, and each listed file's sha256 must match; otherwise the denial names MANIFEST.sha256. Then `git bundle list-heads <bundle>` must list sha in its first column, and INDEX.md needs a line containing the folder name.
+- (e) `git -C <cwd> rev-parse --verify --quiet origin/<branch>` must equal sha, or the denial names freshness.
+- guardlib: `backup_dir` goes into CONFIG_DEFAULTS as None, so it is no longer unknown. When the key is present its value must be a str, otherwise "backup_dir must be a string". c1 therefore fails before the fix on "unknown key(s) backup_dir". c2 also fails before the fix, because its assertion needs "backup_dir must be a string" and today's reason is the unknown-key message; it does not pass.
+- The tests-only commit: test_history_guard gains 9 test methods (m8 with 7 subTests) and test_config 2, so 106 + 11 = 117 hook tests, with m1-m8, c1 and c2 failing (10 test methods) and m9 passing. unittest counts each failed subTest separately: m1-m7 (7), m8's 7 subTests, and c1's and c2's 4 per-hook subTests each, so "FAILED (failures=22)". test_install's vendored-hook-tests case fails, because it runs the vendored hook tests at a throwaway tag of the working tree.
+- After the fix: 117 OK. `.claude/kit.json` validates with the key (test_repository_config_and_template_are_valid). release_check stays 19 files, and its line count grows by the lines added to history_guard, guardlib, the two tests and coder.md. The docstring and coder.md name `backup_dir`, not the private path.
+- The session's own hooks are W's (d59280f), with W's kit.json. Adding "Merge" and `backup_dir` to this checkout's kit.json does not affect this session.
+**Finish line:** Pushed on kit-v0.2-t17:
+1. this store copy and this intent
+2. a rules commit: the spec and task rows, the history_guard docstring rule, coder.md item 10 and the README sections, with no code and no kit.json change
+3. the tests-only commit
+4. the fix, including `.claude/kit.json`
+5. terminal 2026-09-25-27
+
+Then PR kit-v0.2-t17 -> main open, with CI green on its final commit. No merge (the dispatch's Merge section reads "not authorised"), no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name or line drift
+- a needed change outside scope, including role_guard or dispatch_guard code
+- a failure for any reason other than the predicted one
+- two failed fixes on one symptom
+- a denylist hit
+- an owner message after line 944 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-27
+**Timestamp:** 2026-09-25T05:52:16Z
+**Closes:** 2026-09-25-26
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T17, `preserved/2026-09-25-16.md`), after its first hand-back (planner-log line 954) and the planner's ruling at line 968
+**Observed:** Pushed on kit-v0.2-t17 (in this record "the PR merge command" stands for the GitHub CLI command, as in the intent):
+- 9b79b54: store copy `2026-09-25-16.md` (sha256 7ebad292...33d5, identical to the planner worktree's) and intent 2026-09-25-26.
+- 42b85c0: rules:
+  - spec item 17 under a new "Owner additions" heading, and the T17 task row;
+  - history_guard's module docstring opens with the merge rule (a)-(e);
+  - coder.md item 10 (the dispatch's text, line-wrapped);
+  - README: a `backup_dir` row, a note that this repo requires `Merge`, and "Merging and undoing a merge".
+  - No code, no kit.json.
+- f5fd0a3: tests only: `MergeRule` m1-m9 in test_history_guard.py, and c1, c2 in test_config.py.
+- d0eac96: rules, per the ruling at line 968:
+  - coder.md item 10's clause now reads "with one line naming the folder, the pull request number and the pre-merge SHA added to that directory's `INDEX.md`";
+  - docstring (d) requires the INDEX.md line to contain the folder name, `#<N>` (not followed by a digit) and `sha`;
+  - the README sentence on the INDEX line was changed to match.
+- ce872ab: tests only: m7 becomes subTests "none", "no-pr" and "no-sha", and the backup helper's full line is "- <folder>: #<N>, main at <sha>".
+- 29638ae: guardlib.py only. `backup_dir` is added to CONFIG_DEFAULTS as None, and a present non-string value is invalid ("backup_dir must be a string (a directory path)").
+- 44d4e82: the fix.
+  - history_guard.py: `merge_role_problem`, `merge_form`, `merge_backup_problem`, `merge_problem`; the PR_MERGE branch in guard() calls merge_problem and denies with "history_guard: `<the PR merge command>` denied, (x) <condition>: ...". A passing merge gets no decision and falls through to the remaining checks.
+  - `.claude/kit.json`: `"backup_dir": "~/forager-backups"`, and "Merge" appended to required_sections for build and device.
+- PR #16 (kit-v0.2-t17 -> main): https://github.com/slayer8366/Claude-kit/pull/16. CI on 44d4e82: runs 36099522571 (push) and 36099598806 (pull_request) succeeded. The pushes of f5fd0a3, d0eac96, ce872ab and 29638ae failed CI, which is expected, since those commits carry the failing tests. 9b79b54 and 42b85c0 passed.
+
+Failing-first runs, hook tests:
+- f5fd0a3 (base guardlib): "Ran 117 tests", "FAILED (failures=22)".
+  - m1-m7, m8's 7 subTests, and c1's and c2's 4 per-hook subTests failed.
+  - Every merge test except m3 failed on the config deny "… is invalid: unknown key(s) backup_dir". m3 (TEST_CONFIG) got "history_guard: `<the PR merge command>` is blocked. Merging is the operator's approval.".
+  - c1 got "unknown key(s) backup_dir"; c2 got the wrong message (it does not pass).
+  - m9 passed.
+  - tests/: "Ran 39 tests", "FAILED (failures=1)", test_vendored_hook_tests_pass_in_the_adopter, message cut off.
+  - This is the stop described under Deviations.
+- ce872ab (base guardlib): "FAILED (failures=24)", the 22 plus m7's two new subTests. 23 of the 24 failed on the unknown-key deny; m3 got "is blocked".
+- 29638ae (guardlib accepts the key): "Ran 117 tests", "FAILED (failures=16)", as the ruling predicted.
+  - m1 and m2 failed with "'deny' is not None" on the "is blocked" deny.
+  - m3-m8 failed on their reason assertions against that deny: 7 "(b) form", 1 "(c) config", 5 "(d) backup", 1 "(e) freshness".
+  - m9 passed through that deny; c1 and c2 passed.
+
+After 44d4e82:
+- hook tests "Ran 117 tests" OK
+- tests/ "Ran 39 tests" OK
+- render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers PASS
+- release_check "PASS: 19 release file(s), 5215 line(s), 18 denylist pattern(s), no match."
+- `git grep -i forager` over release.json's vendored files: no match
+- find_dispatches.py: "Counts: in-store 20, record 15, refused 2, stop 0"
+
+Revert check: history_guard.py from e8414b1 written over the fix, guardlib and kit.json left as committed, per the ruling. It gave "FAILED (failures=16)", with the FAIL lines and AssertionError lines identical (diff empty) to the 29638ae run. The file was then restored from HEAD.
+
+Live check (read-only; merges nothing):
+- /tmp/t17_live/live.py copied the committed hooks into /tmp/t17_live/run/kit/.claude/hooks, with this repo's kit.json except backup_dir=/tmp/t17_live/run/backups.
+- Scratch setup: a bare origin, a clone with origin/main fetched, and a backup folder `2026-09-25-pr21` written as coder.md item 10 says.
+- The script ran history_guard.py with a coder payload for PR 21 with `--merge`:
+  1. With the valid backup: exit 0, empty stdout (no decision).
+  2. After a new commit was pushed and fetched: exit 0 and a deny, "history_guard: `<the PR merge command>` denied, (e) freshness: origin/main is 6d9239209903b3769a5ac078494e340b21571f4b, not merge.json's sha e38ce25a4c5141c3918b7843d496f711ff467cb4: the branch moved after the backup, or the backup predates the last fetch. Fetch, then write a new backup."
+- The same script checked the README's restore command: `git bundle list-heads` printed "e38ce25… refs/remotes/origin/main", and fetching `refs/remotes/origin/main:refs/heads/main` from the bundle into a fresh `git init` gave main at e38ce25…, equal to sha.
+
+Planner message, per coder.md item 6. Planner-log line 968 (SendMessage, 2026-09-25T05:35:35.643Z, tool_use `toolu_017v48jhsnEDXGotjgpvLz39`), sent after the owner's "Send it" at line 966 (05:35:29.949Z) approved the text the planner drafted at line 960:
+> "Ruling on your stop: take option B, and align (d) with the owner's option text. (1) Next commit: guardlib accepts optional `backup_dir` (string) — guardlib.py only, no kit.json. Re-run the tests: m1/m2 should fail with today's 'is blocked' deny, m3–m8 on their reason assertions against that deny, m9 pass via that deny, c1/c2 pass. (2) Rule (d) also requires the INDEX.md line to contain `#<N>` and the 40-hex pre-merge SHA as well as the folder name (owner's option at line 716: 'an INDEX.md line naming PR N and the pre-merge SHA'). Add m7 subTests for a line lacking the PR number and one lacking the SHA, in a second tests-only commit before the guardlib commit; update coder.md item 10's last clause to 'with one line naming the folder, the pull request number and the pre-merge SHA added to that directory's `INDEX.md`' and history_guard's docstring (d) in a rules commit. (3) Then the history_guard fix with `.claude/kit.json`; the revert check restores history_guard.py only (guardlib stays). Commit list becomes: copy+intent, rules, tests-only, second rules+tests commit(s), guardlib, fix, terminal. Record this message per coder.md item 6. Everything else stands; Merge stays not authorised."
+
+It rules on the stop this coder raised. It changes rule (d), quoting the owner's option at line 716, and the owner approved it at line 966. It also changes the commit list and the before-fix prediction. It was followed, not treated as a stop.
+
+Messages after the dispatch's Agent call (line 944): the planner log, read before this entry, has 974 lines.
+- Lines 954-963: this coder's first hand-back, the planner's analysis and drafted ruling to the owner (960), the task notification and the planner's note (963).
+- 966: the owner's "Send it".
+- 968-971: the ruling, its result and the planner's note to the owner.
+- 972: the PR #16 link record (05:41:13.810Z).
+- 973-974: queue operations for this coder's background CI-wait task notification.
+- No other owner message and no further planner message to this coder.
+**Deviations:**
+- The stop. On the first failing-first run (f5fd0a3), m1 and m2 failed on the base config deny ("unknown key(s) backup_dir"), not on the dispatch's predicted "is blocked" deny, which is an abort condition. The cause: the merge tests must set backup_dir, and base guardlib (guardlib.py:54-56) rejects the key before history_guard runs. This coder stopped and handed back (line 954), with the intent open and no terminal. The ruling at line 968 resolved it (option B).
+- The ruling changed the finish line: two more commits (d0eac96 rules, ce872ab tests) and a guardlib-only commit (29638ae) before the fix, so the branch has seven commits before this terminal where the dispatch listed four. It changed rule (d) to the owner's line-716 wording. It changed the revert check to restore history_guard.py only. The before-fix prediction became the one in the ruling, which held exactly at 29638ae.
+- The intent's own prediction of "FAILED (failures=22)" at the tests-only commit held in count. Its implicit expectation that these would be the dispatch's reasons did not hold, as above.
+- The README's INDEX.md sentence was updated in d0eac96 to match the ruling, although the ruling named only coder.md and the docstring.
+- The PR was opened before this terminal, so that CI on the fix could be cited here. CI on this terminal's own commit is reported in the hand-back, not here.
+- Otherwise none. Choices the dispatch and the ruling did not make are listed in the hand-back under Decisions I made.
