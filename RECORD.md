@@ -3632,3 +3632,15 @@ It rules on the question this coder raised. It changes how Fix 2 is built, not a
   - The backup was written before this terminal, not after as in the ruling's numbered list, so that this terminal can cite it (coder.md item 10: "cite the backup folder in your terminal"). origin/main, the backup's subject, is not moved by this commit.
   - Searching past CI logs and re-running the test locally, which the dispatch did not ask for.
   - The PR was opened before this terminal so that the terminal can name it.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-87
+**Dispatch-file:** preserved/2026-09-25-44.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Have a Fable 5.1 agent review our work for Opus 5.5 blind spots" at 2026-09-25T22:52:43.216Z (line 798); the Agent call at 22:53:11.029Z (line 802, to `pulse`, tool_use `toolu_01GsW99c2KcdAadPkxVbviTE`, description "Fable review of today's kit work", `"model": "fable"` as a model override, background); the launch result (line 804, agent ab26aa05db67d29e1); the owner's added request "Have the reviewer rate the flagged items based on occurrence and severity." at 22:58:23.802Z (line 812), relayed to the pulse by the planner's SendMessage at 22:58:31.218Z (line 814, `toolu_013GcHH5w4BhjZqhNbLtcmtA`, summary "Add occurrence and severity rating", queued per its result at line 815); the hand-back from agent ab26aa05db67d29e1, a `type:"user"` record with `origin.kind` "peer" and `handback` true at 23:05:33.107Z (line 838), headed "# Pulse review: PR #25 to #32 (1599a53..68a1ef4)"; its completion notice at 23:05:58.983Z (line 847).
+**Observed:** `prompts/preserved/2026-09-25-44.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (5110 bytes, sha256 f40c0d665af26fdfeb3b8b231920d92b2f9c418b24c3de460ba407bd5dc5480d; header "Preserved: 2026-09-25T22:53:11Z by .claude/hooks/dispatch_guard.py", HEAD 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f, target pulse, type pulse). Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the Agent call at line 802 byte for byte (4929 characters).
+
+A read-only pulse run on Fable 5.1 (the Agent call's model override), a different model family from the planner and coders: a review of PRs #25 to #32 at origin/main 68a1ef4 for Opus 5.5 blind spots. It answered with 16 findings (P1 to P16) and notes N1 to N8, each rated for occurrence and severity with a combined priority, as the owner's added request asked, and three ranked actions. The hand-back is the report; this note does not restate its findings. P1 questions the arrangement under which coders merge (B-11/B-13); the owner has not ruled on it as of this note.
