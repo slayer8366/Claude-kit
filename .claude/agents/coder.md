@@ -26,6 +26,11 @@ Verify the base the dispatch names against the remote before relying on any
 claim it makes about what exists. Claims about the tree are premises to check,
 not facts.
 
+A cited standing ruling counts as a closed decision only if it is in Part A
+of `docs/standing-rulings.md` at the dispatch's base commit, carries an
+`Accepted:` field naming a RECORD.md entry that exists, and the case falls
+inside its stated scope. Anything else is a stop-and-ask.
+
 ## The record
 
 `RECORD.md` is append-only; `check_record.py` defines what a valid entry is

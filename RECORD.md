@@ -937,3 +937,165 @@ Owner messages: the planner log, read at 02:51Z, has 505 lines, the same as when
 - the fixture defaults of `_minimal_continuation`
 - where the docstring paragraph sits
 - the rewrap of the coder.md text
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-15
+**Timestamp:** 2026-09-25T03:15:02Z
+**Title:** Claude-kit v0.2 docs: `docs/standing-rulings.md` from the owner's draft, corrected and extended against the repository, and one coder.md paragraph on citing standing rulings
+**Dispatch-file:** preserved/2026-09-25-10.md
+**Dispatch source:** The dispatch hook (shared counter, `2026-09-25 10`) saved this dispatch in the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB as `prompts/preserved/2026-09-25-10.md` (9713 bytes, sha256 719bcb140f555cbc0b073fd140f4595fa96bfee4b93f549567efb69294dad87d; header "Preserved: 2026-09-25T03:04:14Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The text after the delimiter equals the prompt of the Agent call at line 595 (2026-09-25T03:04:14.409Z, tool_use `toolu_01W6LrtU4FH2NASSQhT5ZhKN`, description "Docs: standing-rulings file", run_in_background true) of the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl (9530 characters on both sides, exact). The hook's name was free in this store, and the copy is byte for byte (cmp reports them identical).
+**Stop and resume:** This coder first stopped before writing anything, on the abort condition "the draft missing, or not 112 lines": the draft is 111 lines. No branch, file, commit or push had been made. The planner then sent this message (SendMessage, planner log line 625, 2026-09-25T03:12:09.134Z, tool_use `toolu_015Za6CJHbisMd3WJ3GV1th7`), after proposing it at line 614 (03:05:22.141Z) and the owner's "yes, send it please" at line 623 (03:12:05.411Z). Quoted verbatim per coder.md item 6:
+
+> Ruling on your stop: the 112 in the dispatch was the planner's miscount (the Read tool displayed an empty line 112). The draft is 111 lines, 4936 bytes, sha256 757eb96a3e46e97a9deec14067f4edb5b7360c9614563f1dceafe9db782b1562, and it is the intended draft. Take that as the premise and continue the dispatch as written. Record this message per coder.md item 6. Your reading of coder.md at the base (items 1-9) is correct.
+
+It rules on the question this coder raised (the line count) and corrects that premise. It does not widen the scope or change a closed decision, so under coder.md item 6 the work continues under this one intent. No `stopped` note is needed for this dispatch, because its intent is this entry.
+**Draft:** /home/zynergy-labs/.claude/uploads/791cc457-81b7-586e-b2bb-20985d9699d6/eec9c4b9-standing-rulings.md: 111 lines, ending in one newline; 4936 bytes; sha256 757eb96a3e46e97a9deec14067f4edb5b7360c9614563f1dceafe9db782b1562. It is the only file in that upload directory. It is read, not changed.
+**Sweep:** None needed. Both checkers PASS at 82725c4 with every store file claimed (25 dispatch-recording entries, preserved=23). D2 (`2026-09-25-02.md`) and D5 (`2026-09-25-05.md`) in the planner worktree stay cited, not copied.
+**Change:**
+- New `docs/standing-rulings.md`, built from the draft as the dispatch's Closed decisions items 1-10 set out: the header changes, the `Accepted:` field in "How to read a ruling", SR-01's enforcement restated and cited, SR-02 cited with its source line and test, SR-03 as drafted, B-01 reworded with the `/tmp` exemption, B-02 to B-04's "Why ask" citing coder.md's Non-negotiables, the draft's B-05 dropped, new proposals B-05 to B-10, and "None yet." under Superseded rulings. Every source, line reference and enforcement claim is re-read at 82725c4 and cited, or marked "Unverified".
+- `.claude/agents/coder.md`: one new paragraph under "Before acting", after the base-verification paragraph (lines 25-27 at 82725c4), with the owner's wording verbatim. The path and the field name may be formatted as code; no words change.
+**Scope boundary:** Files: new `docs/standing-rulings.md`; `.claude/agents/coder.md` (the one paragraph only). Record: this dispatch's store copy, this intent, and terminal 2026-09-25-16.
+
+No change to:
+- code, tests, checkers, hooks
+- kit.json, README (its stale counts stay a flag), release.json, CI
+- the draft's upload location
+- any existing RECORD.md entry
+
+No ruling is marked accepted: no `Accepted:` line anywhere. Also out of scope: accepting any ruling, T5, T10, the backlog, updating the planner worktree, merge, tag, and deleting anything.
+**Baseline:** ~/Zynergy/Claude-kit-fixes, local `kit-v0.2-rulings` created from origin/main 82725c468ee27f608cf76674044f17b9ffa513fa (PR #12 merge, T4). `git fetch` at about 03:13Z; `git ls-remote --tags origin` printed nothing, and there are no local tags. The record's last entry is 2026-09-25-14 (terminal closing 2026-09-25-13), and no intent is open. The repository has no CLAUDE.md. Counts at 82725c4:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS (40 entries; 25 dispatch-recording entries, preserved=23)
+- release_check.py: "PASS: 19 release file(s), 4840 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 13, record 15, refused 3, stop 0"
+
+coder.md at 82725c4 has "Before acting" (lines 17-27, base verification at 25-27), "The record" items 1-9 (lines 29-74) and "Non-negotiables" (lines 76-90). No tooling reads coder.md's text: its only non-record references are release.json:4 and prose in role_guard.py:26 and check_record.py:65. `docs/` is not in release.json. The planner worktree is at d59280f, with D2, D5, -07, -08, -09 and -10 untracked.
+**Closed decisions:** From the planner log:
+- The planner's check of the draft, line 533 (2026-09-25T02:56:24.201Z), whose corrections 1-4 the owner approves below. Quoted verbatim:
+
+> I checked the file against the repository and the record. Most of it holds up, but it's out of date and a few claims are wrong.
+>
+> **Checked and correct**
+> - **SR-01:** the quote and source match RECORD.md:37 (2026-09-23-01's Closed decisions).
+> - **SR-02:** the source is right. Addendum 2, ruling 4(6), is at RECORD.md:56-57 and says "No merge, no replacement. Add a test." The test exists: `tests/test_install.py:139-148` (`test_differing_settings_json_stops_and_writes_nothing`).
+> - **B-01's evidence:** "delete nothing in it" is Addendum 1's ruling 3 (RECORD.md:38). As the draft says, it covers only that one clone.
+>
+> **Corrections**
+> 1. **SR-01's enforcement can be stated more exactly.** No hook mentions `tag`; I grepped history_guard.py and role_guard.py and found nothing. The planner and pulse still can't tag, because `git tag` isn't on role_guard's read-only git list. The coder isn't blocked, so for it this is convention only.
+> 2. **B-02, B-03 and B-04 are already written rules.** coder.md's Non-negotiables say "Two misses, then data", "Scope is a wall… flagged, not done" and "Checks fail first, for the stated reason". coder.md ships in the release. So these aren't just planner practice written per dispatch. What's open is whether you count coder.md as your ruling. Their "Why ask" lines should say that.
+> 3. **B-01 already has one exception on record.** The T9 coder deleted its own scratch file, `/tmp/t9_fd.txt`, and reported it. If B-01 is adopted as written, that would count as a breach, so the wording should say whether an agent's own scratch files are covered.
+> 4. **B-05 isn't a practice.** It's an open T5 question. It belongs in T5's dispatch, not here.
+>
+> **Missing:** the draft stops at record entry 2026-09-24-12. Your rulings since then that would fit as standing:
+> - **Messages and stops** (log lines 324 and 330): approved before they're sent, because you write or request them, or I offer and you agree. Never on my own initiative.
+> - **Messages and stops go only to agents this session started** (the T9/T11 answer).
+> - **Only you merge PRs.** Every dispatch says "no merge", but no ruling says so.
+> - **An unparseable push stays blocked** (T12; already enforced in history_guard).
+> - **Store names** (T2): the date rule applies to every file, with a cutoff by name.
+> - **The copy-versus-notes order** (T4): a coder.md rule, not machine-checked.
+>
+> The rulings from T3 and T4 on how the record works (continuations, `stopped` notes, sha256 detection) belong to their tasks and don't need to be standing.
+>
+> **Mechanics**
+> - **Append-only isn't enforced.** check_record's append-only check covers only RECORD.md, so for this file it's convention unless a checker is extended.
+> - **Coders won't know what `Standing: SR-03` means.** coder.md doesn't mention the file, so a coder would treat the citation as the planner's claim. One line in coder.md would fix that: a cited standing ruling counts as a closed decision.
+> - **Location:** the draft doesn't say where the file goes. I suggest `docs/standing-rulings.md`. It isn't in release.json, so it stays unreleased, which is what the file itself says.
+>
+> **Adding it:** I can't write files, so this needs a small docs dispatch. T4 is changing coder.md right now, so I'd send it after T4 merges. Should I apply corrections 1 to 4 and add the missing rulings to Part B as proposals, or add the file exactly as written?
+
+- The owner, line 536 (2026-09-25T02:57:50.860Z): "do nothing yet, I'll redraft it"
+- The owner, line 574 (2026-09-25T03:00:42.585Z). Quoted verbatim:
+
+> apply corrections 1 to 4 and add the missing rulings to Part B as proposals. Don't add it as written. The draft is out of date, and a standing-rulings file that starts life with known errors undercuts the whole point. You should make the edits in the docs dispatch, against the repo, rather than me revising blind.
+> One addition to the mechanics fix. "A cited standing ruling counts as a closed decision" is right, but on its own it turns a citation into authority without a check. A planner that mis-cites, or cites a ruling outside its scope, would get obeyed. So the coder.md line should say:
+> A cited standing ruling counts as a closed decision only if the ID exists in `docs/standing-rulings.md` at the dispatch's base commit and the case falls inside its stated scope. If either fails, stop and ask.
+> That keeps the citation checkable, the same way the preserved prompt is.
+> On the rest:
+>
+> * B-01 and the T9 scratch file. I'd exempt an agent's own scratch files under `/tmp`, provided each deletion is reported. That matches what T9 did, and it keeps B-01 about things other people might need. Your call, though. It's exactly the kind of wording that should come from you.
+> * Append-only as convention. Fine for now. Say it in the file, so no one assumes a checker covers it.
+> * Timing. Agreed: after T4 merges, since both touch coder.md.
+
+- The owner, line 584 (2026-09-25T03:03:20.351Z), answering the planner's two options at line 581 (03:01:18.514Z). Quoted verbatim:
+
+> Option 1 please.
+> The mechanical fix is to make acceptance a field, not a header state. Each Part A ruling gets an Accepted: line naming the RECORD.md entry where you accepted it. Then the coder.md text becomes:
+> A cited standing ruling counts as a closed decision only if it is in Part A of docs/standing-rulings.md at the dispatch's base commit, carries an Accepted: field naming a RECORD.md entry that exists, and the case falls inside its stated scope. Anything else is a stop-and-ask.
+> That handles all three cases with one check. Part B citations fail because Part B has no Accepted: field. Draft Part A citations fail because nothing is accepted yet. And once you accept rulings, the DRAFT marker becomes redundant, since acceptance is recorded per ruling rather than for the whole file.
+> For the dispatch itself: SR-01 to SR-03 go in without Accepted: lines. Your acceptance is a separate record entry afterwards, then a one-line edit per ruling. The file shouldn't be able to accept itself.
+
+- The file's content: the dispatch's Closed decisions items 1-10, as stated in full in the store copy. The coder.md paragraph: the owner's line-584 wording.
+- Owner messages after line 595: an abort only if one tells this coder to do or not do something in this scope, or changes a decision above. Every other message is recorded in the terminal. A planner message follows coder.md item 6.
+**Planner prediction (stated in the dispatch, not withheld):**
+- No behaviour changes, so every count is unchanged: 106 hook tests, 29 tests/, render checks 30/30 and 10/10, both checkers PASS.
+- release_check PASS with 19 files, a higher line count (coder.md is released), and no denylist hit. `docs/` is outside release.json.
+- `grep -c '^\*\*Accepted:\*\*' docs/standing-rulings.md` prints 0.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+- Hook tests and tests/ neither read coder.md's text nor anything under `docs/` (the grep above), so they stay at 106 and 29 OK. The render checks run on fixtures and stay at 30/30 and 10/10.
+- check_record.py walks RECORD.md only. With this intent and then the terminal appended, it passes with 41 and then 42 entries, and the history walk gains one commit per RECORD.md commit. check_prompts.py gains one dispatch-recording entry (26) and one preserved file (24), bound to each other.
+- release_check.py reads the files listed in release.json. `docs/standing-rulings.md` is not listed, so the file count stays 19. coder.md is listed (release.json:4), so the line count rises by the new paragraph plus its separating blank line: about five wrapped lines plus one, so 4846 (±1 with wrapping). The paragraph contains no denylist pattern, so there is no hit.
+- The new file has `Accepted:` only inside prose and the "How to read a ruling" bullet (`- **Accepted:** ...`), never at the start of a line, so the grep prints 0.
+- find_dispatches.py: the store gains this dispatch's copy, so "in-store 14" and one fewer refused (2), if the tool counts it as it did for T4's copy (13 in-store after T4 from 12, refused 3 to 2).
+**Finish line:** Pushed on kit-v0.2-rulings:
+1. this dispatch's store copy and this intent
+2. `docs/standing-rulings.md` and the coder.md paragraph, in one commit
+3. terminal 2026-09-25-16
+
+PR kit-v0.2-rulings -> main open, with CI green on its final commit. No merge, no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name (the draft's line count is settled by the planner message above)
+- a claim the planner gives proving false in a way that changes a ruling's meaning. A fact that differs only in detail, such as a line number, is recorded and the work continues.
+- a denylist hit
+- any needed change outside scope
+- an owner message after line 595 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-16
+**Timestamp:** 2026-09-25T03:23:59Z
+**Closes:** 2026-09-25-15
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (standing rulings, `preserved/2026-09-25-10.md`)
+**Observed:** Pushed on kit-v0.2-rulings (a new remote branch):
+- 30d0321: store copy `2026-09-25-10.md`, byte-identical to the planner worktree's (sha256 719bcb14...d87d), and intent 2026-09-25-15.
+- f8d0d80: new `docs/standing-rulings.md` (243 lines) and the coder.md paragraph.
+  - coder.md: one paragraph after the base-verification paragraph (new lines 29-32). The path and `Accepted:` are formatted as code; with the backticks removed, the unwrapped text equals the owner's line-584 sentence exactly.
+  - The file follows the dispatch's items 1-10. Each source, line reference and enforcement claim was re-read at 82725c4 (hooks, checkers, install.py, tests, RECORD.md) or in the planner logs, and is cited in the file. SR-03's "Enforced by: Unverified." is kept as drafted.
+
+Facts that differ in detail from the draft or the dispatch's pointers, recorded here and corrected in the file. None changes a ruling's meaning:
+- B-02: intent 2026-09-23-06 (abort conditions at RECORD.md:177) has no two-failed-fixes clause. Every other intent from 2026-09-23-01 to 2026-09-24-11 has one, and so does every intent since, up to 2026-09-25-13.
+- B-07: "No merge, no tag" appears in every build dispatch in the store from 2026-09-23-07 on. The v0.1 build dispatches 2026-09-23-01 to -06 do not prohibit merging. The "planner's handover" is the handover message at planner log line 25 (2026-09-24T22:31:06.080Z). It says "GitHub does not protect main" and "Coders never merge or tag."; the file cites it and says it is not in the record. GitHub's branches API gave `"protected": false` for main. The file says this was read "at about 03:25Z", a mis-estimate made before checking the clock: the read came between the intent (03:15:02Z) and 03:24Z. The file is not changed for this, since it is append-only and the finish line puts it in one commit. The rulesets API returned 403 ("Upgrade to GitHub Pro or make this repository public").
+- B-01: the deletion of `/tmp/t9_fd.txt` is only in the second T9 coder's hand-back (planner log line 356, 01:38:40.773Z, agent a13b0028...). Terminal 2026-09-25-08 does not mention it. The first T9 coder, D5 (agent a19d108c..., hand-back at line 339, 01:25:48.017Z), listed the same path as its own scratch file. The file says it is not established whose file was deleted.
+- SR-01: no hook under `.claude/hooks/` mentions `tag`, not only history_guard.py and role_guard.py. settings.json has no permissions block.
+- SR-02: the sabotage claim is confirmed at RECORD.md:80 (2026-09-23-02's Observed).
+
+Checks at f8d0d80:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 14, record 15, refused 3, stop 0"
+- `grep -c '^\*\*Accepted:\*\*' docs/standing-rulings.md`: 0
+- grep for "DRAFT" and for "2026-09-24-12 up to" in the file: no match (exit 1)
+
+Stop and resume: this coder first stopped on the draft's line count (111, not 112) before writing anything. The planner's message at log line 625, quoted in the intent, settled it, and the work continued under the intent.
+
+Owner messages after this dispatch's Agent call (line 595): the planner log, read at 03:24Z, has 642 lines. It holds three owner messages. None tells this coder to do or not do anything in this scope, so each is recorded here and the work continued:
+- line 605 (2026-09-25T03:04:40.463Z): "All are approved"
+- line 623 (03:12:05.411Z): "yes, send it please", approving the planner's message at line 625
+- line 631 (03:20:52.054Z): "If anything can be sent to a second coder while the other one works, that is fine too."
+
+The only planner message that reached this coder is the one at line 625. The planner dispatched a pulse at line 635 (03:21:28.903Z, "Pulse: T13 and T5 design facts"). The hook saved it in the planner worktree as `prompts/preserved/2026-09-25-11.md` (3521 bytes, sha256 4cff14be...c6df). Per coder.md item 9 its note goes in the next dispatch's sweep; it is not copied here.
+**Deviations:**
+- None from the finish line up to this entry. The PR and CI status on the final commit are reported in the hand-back.
+- The planner's prediction held.
+- The intent's mechanism prediction held except for find_dispatches' refused count. It predicted "refused 2" and got "refused 3": this dispatch's copy left the refused list as predicted, but the pulse's `2026-09-25-11.md`, saved during this dispatch, joined it.
+- release_check's 4845 lines is within the predicted 4846 ±1.
+- Wording choices the dispatch did not fix are listed in the hand-back under Decisions I made. These include the proposed-ruling and scope text for B-05 to B-10, the corrected evidence lines, and coder.md line citations marked "at 82725c4".
