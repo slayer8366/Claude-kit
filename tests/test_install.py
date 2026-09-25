@@ -313,6 +313,41 @@ class Upgrade(unittest.TestCase):
         r = self.install(TAG2)
         self.assert_stopped_unchanged(r, before, [".claude/kit.lock"])
 
+    def test_u9_lock_path_outside_the_kit_stops(self):
+        # Each case gets its own kit copy and adopter in a subdirectory of the
+        # test's temporary root. An outside file sits beside that adopter,
+        # never at a real path.
+        cases = {
+            "absolute": lambda case: (case / "outside_abs.txt",
+                                      str(case / "outside_abs.txt")),
+            "dotdot": lambda case: (case / "outside.txt", "../outside.txt"),
+            "owned": lambda case: (case / "adopter" / "RECORD.md", "RECORD.md"),
+        }
+        for name, where in cases.items():
+            with self.subTest(name):
+                case = self.root / name
+                case.mkdir()
+                self.kit = make_kit_copy(case)
+                self.adopter = make_adopter(case)
+                self.first_install()
+                victim, key = where(case)
+                self.assertIn(self.root.resolve(), victim.resolve().parents)
+                content = f"# not the kit's ({name})\n".encode()
+                victim.write_bytes(content)
+                lock = self.lock()
+                lock["files"][key] = hashlib.sha256(content).hexdigest()
+                (self.adopter / ".claude" / "kit.lock").write_text(
+                    json.dumps(lock, indent=2) + "\n")
+                make_second_tag(self.kit, change_hook=True)
+                before = snapshot(self.adopter)
+                r = self.install(TAG2)
+                self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+                self.assertTrue(victim.exists())
+                self.assertEqual(victim.read_bytes(), content)
+                self.assertIn(".claude/kit.lock", r.stderr)
+                self.assertIn(key, r.stderr)
+                self.assertEqual(snapshot(self.adopter), before)
+
 
 if __name__ == "__main__":
     unittest.main()
