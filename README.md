@@ -22,6 +22,7 @@ source files unchanged; later steps make them generic.
 | `update_worktree.py` | fast-forwards a harness worktree to origin/<first protected branch> after moving aside untracked files the branch tracks byte for byte; dry run by default | yes |
 | `session_agents.py` | lists a session log's Agent calls with their outcome, hand-backs and SendMessages, and how far each unfinished agent got; read-only | yes |
 | `launch_session.py` | launches one headless `claude -p` session in a checkout under a wall-clock limit, after checking the checkout, its hooks and the session's identity; writes only its stream files | yes |
+| `run_exercise.py` | runs the four live-exercise cases through `launch_session.py` in a temporary detached worktree and writes one evidence line per case from the session logs; writes only under its `--out-dir` and the worktree | yes |
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `release_check.py` | scans the release set against the workshop denylist | no |
@@ -372,6 +373,80 @@ writes only `--out` and `<out>.stderr`, and it creates both new at launch,
 so a failed check writes nothing and an existing file is never overwritten.
 A session killed at the limit keeps its log and stream as evidence.
 
+## Live exercise
+
+`run_exercise.py` checks the dispatch hooks end to end in real sessions.
+It makes four dispatches, one per headless session, and reads the evidence
+from each session's log:
+
+    python3 run_exercise.py --repo <checkout> --out-dir <dir> \
+        [--model claude-opus-5-5] [--max-budget-usd 2.00] [--timeout 600] \
+        [--cases 1,2,3,4] [--claude <path>]
+
+It creates a detached worktree of `origin/<first protected branch>` as last
+fetched (it never fetches) at `<out-dir>/worktree`, so every case runs the
+hooks of that commit. For each case it writes `<out-dir>/case-N.prompt` and
+runs `launch_session.py` in the worktree, with the stream in
+`<out-dir>/case-N.jsonl`. Each prompt asks the session for exactly one
+Agent call, in the foreground, sending the text below a marker line
+unchanged, and then a stop.
+
+| Case | Dispatch | What it proves |
+|---|---|---|
+| 1 | `Type: pulse` to `pulse` (a Read-only question) | an approval-exempt type runs: dispatch_guard allows it, saves it, and the pulse's result comes back |
+| 2 | `Type: build` to `coder`, every build section present | a type that needs approval is held: dispatch_guard saves it and asks, and it does not run unless someone approves |
+| 3 | `Type: pulse` to `coder` | a Type cannot be sent to another agent to skip approval: blocked |
+| 4 | `Type: pulse` to `general-purpose` | a built-in agent type cannot be dispatched: blocked |
+
+The evidence rules:
+- The case's call is the first Agent tool_use to its subagent type, and
+  its prompt must equal the case's text. The decision is read from
+  dispatch_guard's `hook_success` attachment (hookName `PreToolUse:Agent`)
+  with that call's toolUseID, and the outcome from the call's tool_result.
+  Every log line is parsed as JSON; key order and line numbers are never
+  matched.
+- A blocked call (cases 3 and 4) is matched on the tool_result's
+  `toolDenialKind`, never on a `deny` decision (see "Blocked calls in the
+  session log"). A hook that blocks leaves no decision in the log, and a
+  log that shows a `deny` decision without a `toolDenialKind` fails.
+- Case 1 passes on decision `allow`, then a completed result with an agentId
+  and a result text or a hand-back. Case 2 passes on decision `ask`, then an
+  error tool_result with a `toolDenialKind`, whose value is reported, and
+  no agent run for the call. Case 3 passes on `permission-rule` with
+  dispatch_guard's Type/target text; case 4 on `permission-rule` with the
+  unknown-agent text of dispatch_guard or role_guard, and the line names
+  which.
+
+Case 2 is denied automatically. The launcher runs `claude` with
+`--permission-prompts none`, so nobody can answer dispatch_guard's approval
+prompt and the prompt is denied. In the v0.1 exercise, run by hand, the
+owner declined it, and the log showed `toolDenialKind` "user-rejected". An
+automatic denial proves the same thing, that the build did not run without
+approval, but its `toolDenialKind` may differ, so the runner does not
+require a particular value.
+
+The output is `<out-dir>/evidence.txt`, one line per case, and the same lines
+on stdout:
+
+    case N | session <id> | log <path> | tool_use <id> | decision <d> | toolDenialKind <k> | result "<first 150 characters>" | PASS
+
+A failing case ends in `FAIL: <reason>` in place of `PASS`. A launcher exit
+other than 0 is that case's FAIL, with the launcher's report quoted. The
+exit status is 0 if every case run passes, 1 if any fails, and 2 on a usage
+error, when nothing is run. The launcher's reports go to stderr.
+
+Cost: each case is one session capped by `--max-budget-usd`, $2.00 by
+default, so four cases cost at most $8.00. Case 1 costs the most, since its
+pulse runs as a subagent. The model defaults to `claude-opus-5-5`.
+
+Clean-up: the runner deletes nothing. The worktree is kept, because cases 1
+and 2 leave dispatch_guard's copies in its `prompts/preserved/`. Record
+them first: `find_dispatches.py`, run from the main checkout, lists them
+with copy commands. Then remove the worktree with
+`git worktree remove <out-dir>/worktree`. The worktree shares the clone's
+dispatch counter, so its copies are numbered in the same sequence as the
+main checkout's.
+
 ## Tests
 
     python3 -m unittest discover -s .claude/hooks/tests
@@ -379,13 +454,15 @@ A session killed at the limit keeps its log and stream as evidence.
     python3 check_prompts.py --render-check
     python3 -m unittest discover -s tests
 
-`tests/` is not released. It holds six test files: `test_install.py`
+`tests/` is not released. It holds seven test files: `test_install.py`
 (install and drift), `test_release_check.py` (release_check),
 `test_find_dispatches.py` (find_dispatches), `test_update_worktree.py`
 (update_worktree), `test_session_agents.py` (session_agents, on
-hand-built session logs) and `test_launch_session.py` (launch_session, with
+hand-built session logs), `test_launch_session.py` (launch_session, with
 fake `claude` executables, including one that hangs with a sleeping child
-and one that ignores SIGTERM). The install tests tag only a throwaway copy of this
+and one that ignores SIGTERM) and `test_run_exercise.py` (run_exercise,
+with a fake `claude` that writes a fixture session log for the session id
+it is given). The install tests tag only a throwaway copy of this
 repository, never this repository.
 
 The hook tests never read the repository's own `kit.json`: the harness copies
