@@ -1109,3 +1109,76 @@ The only planner message that reached this coder is the one at line 625. The pla
 **Outcome:** answered
 **Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl, line 635 (2026-09-25T03:21:28.903Z, the Agent call dispatching to `pulse`, tool_use `toolu_01Ag2jDH5QaYF3WV6mbXwCYF`, description "Pulse: T13 and T5 design facts") and the pulse's hand-back from agent aee911d5e5fe4917e, enqueued at line 644 (2026-09-25T03:24:50.501Z) and delivered at line 646 (03:24:50.536Z, "[Subagent hand-back]")
 **Observed:** The planner's pulse gathering the facts for the owner's T13 and T5 design questions, sent from the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB (HEAD d59280f). Saved there by the dispatch hook, untracked, as `prompts/preserved/2026-09-25-11.md` (3521 bytes, sha256 4cff14bef5cd5f94ef054d8e33d50a552f9eddb80fdd351a488cf39f9cc2c6df; header "Preserved: 2026-09-25T03:21:28Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target pulse, type pulse). Copied byte for byte into this store under the same name, the name the hook gave it; the name was free in this store, and cmp reports the two identical. The prompt of the log's line 635 equals the saved file's text after the delimiter exactly (3338 characters). The planner used its answers in the owner questions at lines 662 and 694. No other store file was unclaimed: both checkers passed at 3a5a13d (preserved=24). D2 (`2026-09-25-02.md`) and D5 (`2026-09-25-05.md`) in the planner worktree stay cited, not copied; that worktree's `-07` to `-10` are byte-identical to this store's.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-18
+**Timestamp:** 2026-09-25T03:37:06Z
+**Title:** Claude-kit v0.2 T13: an upgrade removes files the new version dropped, tested (install.py reads the old kit.lock and applies the unchanged-only rule)
+**Dispatch-file:** preserved/2026-09-25-12.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB as `prompts/preserved/2026-09-25-12.md` (8126 bytes, sha256 7ec9dbe7d66b394bb16112fe56ea2628bb1cc010ef3463c5d2715b38078ecdcc; header "Preserved: 2026-09-25T03:33:18Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The text after the delimiter equals the prompt of the Agent call at line 702 of the planner log (2026-09-25T03:33:18.639Z, tool_use `toolu_01VQJXptPdkgyxMksgxRCdPJ`, description "T13: upgrades in install.py"; 7943 characters on both sides, exact). The hook's name was free in this store, and the copy is byte for byte (cmp reports them identical). The planner log is /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl; line numbers below refer to it.
+**Change:**
+- `install.py`: on a target that has `.claude/kit.lock`, read its `files` map as the old hashes and classify every path before writing anything, by the planner's rules 1-4 (Closed decisions). Kept paths (old lock and new release): unchanged or missing are written, edited stops; `.claude/settings.json` follows this rule on an upgrade. Dropped paths (old lock only): unchanged are removed (directories stay), missing are nothing to do, edited stops. New paths (new release only): absent are written, byte-identical are fine, different stop. Any stop lists every stopping path with its reason ("edited since the installed tag" or "exists and is not the kit's"), exits 1 and writes or removes nothing. Otherwise the writes and removals are applied, templates are written as now, the new lock is written last, and each removed path is printed. An unreadable or malformed lock stops before writing, naming the lock. With no lock, behaviour is unchanged, including the settings.json rule. The docstring states these rules.
+- `tests/test_install.py`: fixture helpers for a second tag built from the first (a dropped vendored file, a changed hook file, a changed settings.json, a new vendored file, as each test needs), a helper snapshotting every file under the adopter (bytes and presence), and tests u1-u8.
+- `README.md`, section "Install and drift": describe upgrades, including that an upgrade can remove files.
+**Scope boundary:** Files: `install.py` (the upgrade rules and its docstring), `tests/test_install.py` (new upgrade tests and second-tag fixture helpers), `README.md` ("Install and drift" only). Record: sweep 2026-09-25-17 (done, 3c15689), this dispatch's store copy with this intent, and terminal 2026-09-25-19.
+
+No change to check_kit.py, hooks, checkers, find_dispatches.py, release.json, kit.json, templates, coder.md, CI or `docs/standing-rulings.md`. Out of scope: T5, T10, the T3 backlog, updating the planner worktree, merge, tag, and deleting anything outside the tests' temporary directories. The tests tag only their temporary kit copies; this repository is never tagged.
+**Baseline:** ~/Zynergy/Claude-kit-fixes, local `kit-v0.2-t13` created from origin/main 3a5a13d268bdbc0ae5c8111ff9e38abf7c222848 (PR #13 merge), fetched at about 03:34Z. No local tags (`git tag` printed nothing). The record's last entry at 3a5a13d is 2026-09-25-16 and no intent is open. The repository has no CLAUDE.md. The dispatch has every section kit.json requires for a build (structural check only). coder.md at 3a5a13d has items 1-9 and the standing-rulings paragraph; the dispatch cites no standing ruling.
+
+Counts at 3a5a13d:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS (42 entries; preserved=24)
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 14, record 15, refused 4, stop 0" (refused: the planner worktree's 2026-09-25-02, -05, -11 and -12)
+
+Premises checked at 3a5a13d:
+- install.py never reads an existing lock: `LOCK` (:30) is used only to write it (:94-96). There is no delete anywhere in the file. Vendored files are overwritten unconditionally (:81-84). settings.json stops the install if it exists and differs from the new release's bytes (:73-78). Templates are written only if absent (:88-89). Adopter-owned paths are rejected (:32, :61-63).
+- check_kit.py reports only files in the lock (:31-34).
+- tests/test_install.py has 11 tests in `InstallAndDrift`, one tag (`TAG`, :19, used at :46), and no upgrade test.
+- release.json has never dropped a vendored file: `git log -p` shows two commits touching it (c67b26d, 0001e36); 0001e36's only removed line is `"check_kit.py"`, re-added with a trailing comma, and check_kit.py is still vendored.
+- The planner worktree is at d59280f. Its untracked D2 and D5 stay cited, not copied; its -07 to -10 are byte-identical to this store's; -11 is claimed by the sweep and -12 by this intent.
+**Closed decisions:** From the planner log:
+- Line 662 (2026-09-25T03:25:37.998Z, AskUserQuestion `toolu_01ARJpnnYAQZSc4WzgrKiR6J`), answered at line 668 (03:30:16.967Z), whose result begins "Your questions have been answered: \"T5: what counts as the \"expected\"". Two of its answers bind T13:
+  - "T13: an upgrade finds a vendored file the new release no longer ships, or a vendored file the adopter has edited. What happens?" = "Unchanged-only rule (Recommended)". The option's text in the tool_use input: "install.py reads the old kit.lock. A file whose sha256 still equals the old lock's is unchanged: overwritten if kept, removed if dropped. Any vendored file the adopter edited (hash differs from the old lock), kept or dropped, stops the upgrade before anything is written, naming the files, as settings.json does today. check_kit also reports files still on disk from an older lock."
+  - "SR-02 (owner, 2026-09-23): the installer \"never overwrites an existing adopter settings.json\"; if it differs from the kit's, stop. So an adopter who never edited settings.json can't upgrade to any release that changes it, T5's included. Change it?" = "Unedited may update". The option's text: "Narrow it: settings.json is replaced only if its sha256 equals the old lock's (the adopter never edited it); any edit still stops the upgrade, as now. This changes an owner ruling, so it would be recorded as superseding 2026-09-23-01 ruling 4(6)."
+- Line 686 (03:31:24.120Z), the owner: "Merged." (PR #13; the planner confirmed merge commit 3a5a13d at line 690).
+- Line 694 (03:32:01.959Z, AskUserQuestion `toolu_01XJnFit3sDSp7H2B5WbAKN9`), answered at line 698 (03:32:32.396Z): "T13: the check_kit part of the option you picked (report files still on disk from an older lock) has no clean way to work. What should T13 do about it?" = "Drop it (Recommended)". The option's text: "T13 changes install.py only. After T13 an upgrade never leaves a dropped file behind (it removes it or stops), and none exist today since release.json has never dropped one. check_kit stays as is. The intent records that this part of your answer was withdrawn by the planner, and why." So the clause "check_kit also reports files still on disk from an older lock" of the T13 answer is withdrawn: the planner withdrew it, with the owner's agreement at line 698. The planner's reasons, from that question and option: the clause "has no clean way to work"; after T13 an upgrade never leaves a dropped file behind, since it removes it or stops; no such file exists today, since release.json has never dropped one; and the alternative ("Lock keeps history") would change the lock format adopters' check_kit reads, for a case that cannot happen after T13.
+- The planner's rules for install.py, as the dispatch states them (rules 1-4, summarised under Change above; the store copy holds the full text).
+- Owner messages after line 702: an abort only if one tells this coder to do or not do something in T13's scope, or changes a decision above. Every other message is recorded in the terminal. A planner message follows coder.md item 6.
+**Supersedes-ruling:** 2026-09-23-01 ruling 4(6). The old wording (RECORD.md:55-57, Addendum 2 of intent 2026-09-23-01; the dispatch cites :56-57, and the "(6)" line itself is :55): "(6) The installer never overwrites an existing adopter settings.json. If one exists and differs from the kit's, stop and report. No merge, no replacement. Add a test." The new rule, the owner's "Unedited may update" (line 668) as the planner's rule 2(a) applies it: on an upgrade, `.claude/settings.json` is replaced only if its sha256 equals the old lock's (the adopter never edited it); if it was edited, the upgrade stops, naming it, and writes nothing. No merge. On a first install (no lock), the old rule still applies unchanged: an existing settings.json that differs from the release's stops the install. `docs/standing-rulings.md` still states SR-02 the old way; it is flagged, not edited.
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit: u1-u8 as the dispatch lists them. Before the fix, u1 fails (the file remains), u2, u3 and u6 fail (exit 0, file overwritten or left), u4 fails (exit 1, "exists and differs"), u8 fails (the malformed lock is ignored and the install succeeds); u5 and u7 pass. tests/: 37 run, 6 failures. Hook tests stay at 106.
+- After the fix: 37 tests/ OK and 106 hook tests OK; render checks 30/30 and 10/10; both checkers PASS; release_check PASS with 19 files (install.py is not released).
+- Revert check: install.py from origin/main against the committed tests gives the same 6 failures.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+- The second tag is made in the test's temporary kit copy by editing its working tree and release.json, committing and tagging `v0.0.1-test`; install.py runs from the copy's working tree, so the same install.py installs both tags. Each test asserts the exit code first, then the file states, so the first failing assertion names the predicted reason.
+- Before the fix (install.py at 3a5a13d never opens the lock and never unlinks):
+  - u1: exit 0; the dropped file stays because :81-84 writes only the new release's paths and nothing removes, so the assertion that it is gone fails.
+  - u2, u3, u6: exit 0 (no lock read, no stop), so the exit-code assertion fails with 0 != 1. In u2 and u6 the file is overwritten at :84; in u3 the dropped edited file is left.
+  - u4: the unedited old settings.json differs from the new release's, so :74-78 raises; exit 1 with "exists and differs" in stderr, and the exit-code assertion fails with 1 != 0.
+  - u5: the same :74-78 stop happens before anything is written, so exit 1, the path is named and every file is unchanged: it passes. u5 therefore asserts the exit code, the path and the unchanged target, not the new reason text, which would make it fail first.
+  - u7: every file is overwritten, the lock is rewritten with the new hashes, check_kit passes: it passes.
+  - u8: LOCK is never read, the install writes over the garbage lock and exits 0; the exit-code assertion fails.
+  - tests/: 37 run, 6 failures (u1, u2, u3, u4, u6, u8). Hook tests 106 OK; they do not touch install.py.
+- After the fix, all 37 and 106 pass. The render checks read only fixtures (30/30, 10/10). check_record.py passes with 44 entries after this intent and 45 after the terminal; check_prompts.py with preserved=26. release_check.py reads only the release set, which holds none of install.py, README.md or tests/, so "19 release file(s), 4845 line(s)" is unchanged. find_dispatches.py: in-store 16, refused 2 (D2, D5), stop 0, if no further dispatch is saved meanwhile.
+- The revert check (install.py from 3a5a13d over the committed tests, in a scratch copy) gives the same 6 failures with the same first assertions.
+**Finish line:** Pushed on kit-v0.2-t13:
+1. the sweep (3c15689)
+2. this dispatch's store copy and this intent
+3. the tests-only commit
+4. the fix (install.py, README.md)
+5. terminal 2026-09-25-19
+
+PR kit-v0.2-t13 -> main open, with CI green on its final commit. No merge, no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name
+- a needed change outside scope, including check_kit.py
+- a test failing first for a reason other than the predicted one
+- two failed fixes on one symptom (then data only)
+- a denylist hit
+- an owner message after line 702 that qualifies under the rule in Closed decisions
