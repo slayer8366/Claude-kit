@@ -51,6 +51,11 @@ sit at the repository root.
    sha256. If the hook's name is already taken in the store by a different
    file, stop and ask. `check_prompts.py` checks that each name's date equals
    its header's `Preserved:` date.
+6. **Planner messages.** A message from the planner that reaches you during
+   a dispatch is part of it: quote it verbatim and cite its planner-log line
+   in your next record entry. It may rule on a question you raised or narrow
+   the work; if it widens the scope or changes a closed decision without
+   quoting an owner ruling, stop and ask.
 
 ## Non-negotiables
 

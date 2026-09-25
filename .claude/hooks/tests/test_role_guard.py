@@ -1,6 +1,9 @@
 """role_guard.py: the planner is read-only, and so is the pulse role's
 read-only Bash. Run: python3 -m unittest discover -s .claude/hooks/tests"""
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from harness import TEST_CONFIG, bash, run_hook, tool
 
@@ -113,6 +116,122 @@ class PlannerBash(unittest.TestCase):
 
     def test_unbalanced_quotes_denied(self):
         self.assertDenied("git log --format='%h", "parse")
+
+
+class PlannerSendMessage(unittest.TestCase):
+    """The planner may SendMessage only to an agent this session started: an
+    ID that toolUseResult.agentId gives on the transcript line holding the
+    result of one of the session's own Agent calls (Claude-kit v0.2 T9)."""
+
+    RULE = "may SendMessage only to an agent this session started"
+    AGENT_ID = "a1e0888e2666dcce1"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="kit_transcript_")
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+
+    # Lines shaped like the session's JSONL log: an assistant line with the
+    # tool_use, then a user line with its one tool_result and, at the top
+    # level, the tool's structured result.
+    @staticmethod
+    def call(tool_id, name):
+        return json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": tool_id, "name": name, "input": {}}]}})
+
+    @staticmethod
+    def result(tool_id, text, tool_use_result):
+        return json.dumps({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": tool_id,
+             "content": [{"type": "text", "text": text}]}]},
+            "toolUseResult": tool_use_result})
+
+    def agent_lines(self, agent_id=None):
+        agent_id = agent_id or self.AGENT_ID
+        return [self.call("toolu_agent1", "Agent"),
+                self.result("toolu_agent1",
+                            f"Async agent launched successfully.\nagentId: {agent_id}",
+                            {"isAsync": True, "status": "async_launched",
+                             "agentId": agent_id})]
+
+    def transcript(self, lines):
+        path = self.dir / "session.jsonl"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return str(path)
+
+    def send(self, to, transcript_path, agent_type=None):
+        tool_input = {"message": "status?"}
+        if to is not None:
+            tool_input["to"] = to
+        p = tool("SendMessage", agent_type, tool_input)
+        if transcript_path is not None:
+            p["transcript_path"] = transcript_path
+        return run_hook(HOOK, p)
+
+    def assertRuleDenied(self, result, target=None):
+        decision, reason = result
+        self.assertEqual(decision, "deny", f"expected deny, got {decision!r}")
+        self.assertIn(self.RULE, reason)
+        if target is not None:
+            self.assertIn(target, reason)
+
+    # t1
+    def test_an_agent_the_session_started_is_allowed(self):
+        path = self.transcript(self.agent_lines())
+        decision, reason = self.send(self.AGENT_ID, path)
+        self.assertIsNone(decision, reason)
+
+    # t2
+    def test_an_id_not_in_the_transcript_is_denied(self):
+        path = self.transcript(self.agent_lines())
+        self.assertRuleDenied(self.send("a0000000000000000", path), "a0000000000000000")
+
+    # t3
+    def test_an_id_only_in_a_read_result_is_denied(self):
+        other = "a2222222222222222"
+        lines = self.agent_lines() + [
+            self.call("toolu_read1", "Read"),
+            self.result("toolu_read1", f"agentId: {other}",
+                        {"type": "text", "file": {"filePath": "/tmp/notes.md",
+                                                  "content": f"agentId: {other}"}})]
+        self.assertRuleDenied(self.send(other, self.transcript(lines)), other)
+
+    # t4
+    def test_main_a_name_and_a_cross_session_target_are_denied(self):
+        path = self.transcript(self.agent_lines())
+        for target in ("main", "coder", "worker [3fa9c1]"):
+            with self.subTest(target):
+                self.assertRuleDenied(self.send(target, path), target)
+
+    # t5
+    def test_a_missing_or_unreadable_transcript_is_denied(self):
+        cases = {"missing file": str(self.dir / "no-such.jsonl"),
+                 "a directory": str(self.dir),
+                 "transcript_path absent": None}
+        for label, path in cases.items():
+            with self.subTest(label):
+                self.assertRuleDenied(self.send(self.AGENT_ID, path), self.AGENT_ID)
+
+    # t6
+    def test_the_pulse_may_not_send_messages(self):
+        path = self.transcript(self.agent_lines())
+        decision, reason = self.send(self.AGENT_ID, path, agent_type="pulse")
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("the pulse role may not use SendMessage", reason)
+
+    # t7
+    def test_a_malformed_line_before_the_agent_result_is_skipped(self):
+        lines = self.agent_lines()
+        lines.insert(1, '{"type": "user", "message": {not json')
+        decision, reason = self.send(self.AGENT_ID, self.transcript(lines))
+        self.assertIsNone(decision, reason)
+
+    # t8
+    def test_a_missing_or_empty_target_is_denied(self):
+        path = self.transcript(self.agent_lines())
+        for label, to in (("absent", None), ("empty", ""), ("blank", "   ")):
+            with self.subTest(label):
+                self.assertRuleDenied(self.send(to, path))
 
 
 class OtherRoles(unittest.TestCase):
