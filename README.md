@@ -19,6 +19,7 @@ source files unchanged; later steps make them generic.
 | `check_record.py`, `check_prompts.py` | the record checkers, at the repository root | yes |
 | `check_kit.py` | drift check against `.claude/kit.lock` | yes |
 | `find_dispatches.py` | lists hook-saved dispatches left untracked in other worktrees, with copy commands and citations; read-only | yes |
+| `update_worktree.py` | fast-forwards a harness worktree to origin/<first protected branch> after moving aside untracked files the branch tracks byte for byte; dry run by default | yes |
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `release_check.py` | scans the release set against the workshop denylist | no |
@@ -162,6 +163,24 @@ clash). A file saved by a hook with the shared counter keeps its name; an
 older one is numbered after the store's highest for its Preserved date. The
 tool writes nothing and never reads the dispatch counter; it copies nothing,
 so the operator runs the copy commands. It exits 1 if any item is `stop`.
+
+## Updating a harness worktree
+
+    python3 update_worktree.py <worktree path> [--apply]
+
+A dispatch the hook saved sits untracked in the planner's worktree; once its
+store copy is on the default branch, that untracked file blocks
+`git merge --ff-only`. By default the tool is a read-only dry run against
+`origin/<first protected branch>` as last fetched: it lists the untracked
+files byte-identical to that branch's copies (to move), the other untracked
+files (left alone) and the fast-forward range. `--apply` fetches, moves the
+identical files into a new `<backup_dir>/<UTC date>-NN/` folder with a
+`MANIFEST.sha256` and one `INDEX.md` line, then runs `git merge --ff-only`.
+It stops before moving anything, exit 1, on a protected branch or a detached
+HEAD, on commits of the worktree's own, on changes to tracked files, on an
+untracked file that differs from the branch's copy, and (with `--apply`)
+without `backup_dir`. Ignored files are never touched and nothing is deleted.
+The rules are in the script's docstring.
 
 ## Tests
 
