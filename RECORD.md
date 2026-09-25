@@ -3632,3 +3632,150 @@ It rules on the question this coder raised. It changes how Fix 2 is built, not a
   - The backup was written before this terminal, not after as in the ruling's numbered list, so that this terminal can cite it (coder.md item 10: "cite the backup folder in your terminal"). origin/main, the backup's subject, is not moved by this commit.
   - Searching past CI logs and re-running the test locally, which the dispatch did not ask for.
   - The PR was opened before this terminal so that the terminal can name it.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-87
+**Dispatch-file:** preserved/2026-09-25-44.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Have a Fable 5.1 agent review our work for Opus 5.5 blind spots" at 2026-09-25T22:52:43.216Z (line 798); the Agent call at 22:53:11.029Z (line 802, to `pulse`, tool_use `toolu_01GsW99c2KcdAadPkxVbviTE`, description "Fable review of today's kit work", `"model": "fable"` as a model override, background); the launch result (line 804, agent ab26aa05db67d29e1); the owner's added request "Have the reviewer rate the flagged items based on occurrence and severity." at 22:58:23.802Z (line 812), relayed to the pulse by the planner's SendMessage at 22:58:31.218Z (line 814, `toolu_013GcHH5w4BhjZqhNbLtcmtA`, summary "Add occurrence and severity rating", queued per its result at line 815); the hand-back from agent ab26aa05db67d29e1, a `type:"user"` record with `origin.kind` "peer" and `handback` true at 23:05:33.107Z (line 838), headed "# Pulse review: PR #25 to #32 (1599a53..68a1ef4)"; its completion notice at 23:05:58.983Z (line 847).
+**Observed:** `prompts/preserved/2026-09-25-44.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (5110 bytes, sha256 f40c0d665af26fdfeb3b8b231920d92b2f9c418b24c3de460ba407bd5dc5480d; header "Preserved: 2026-09-25T22:53:11Z by .claude/hooks/dispatch_guard.py", HEAD 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f, target pulse, type pulse). Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the Agent call at line 802 byte for byte (4929 characters).
+
+A read-only pulse run on Fable 5.1 (the Agent call's model override), a different model family from the planner and coders: a review of PRs #25 to #32 at origin/main 68a1ef4 for Opus 5.5 blind spots. It answered with 16 findings (P1 to P16) and notes N1 to N8, each rated for occurrence and severity with a combined priority, as the owner's added request asked, and three ranked actions. The hand-back is the report; this note does not restate its findings. P1 questions the arrangement under which coders merge (B-11/B-13); the owner has not ruled on it as of this note.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-88
+**Timestamp:** 2026-09-25T23:20:00Z
+**Title:** Claude-kit v0.2: find_dispatches.py runs every git call with automatic housekeeping off (`-c gc.auto=0 -c maintenance.auto=false`, `GIT_OPTIONAL_LOCKS=0`) through one helper, so git cannot write to the repository and break the tool's read-only promise; a test with `gc.auto=1` and loose objects guards it
+**Dispatch-file:** preserved/2026-09-25-45.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the main checkout ~/Zynergy/Claude-kit as `prompts/preserved/2026-09-25-45.md` (7116 bytes, sha256 d7f706c9212aa0ef00bbfb86429c00b591f9b2c1958e8b3c7faa1813ea342585; header "Preserved: 2026-09-25T23:07:44Z by .claude/hooks/dispatch_guard.py", HEAD 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f, target coder, type build, no `Repeat-of:`). This is the hook's name, and it is free in this store. Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the planner's Agent call (B line 866, `toolu_01Hq9U1JEUMYMDqzfnjLW7cq`, 2026-09-25T23:07:44.066Z) byte for byte (6935 characters).
+**Sweep:** 2026-09-25-87 (commit e0a296f), the Fable review pulse -44, Outcome `answered`.
+**Wait:** the dispatch's wait for PR #33 exited 0; `gh pr view 33` gave state MERGED, merge commit 671b05d75db5ba71fce947aac906114047aabd9a. C was already on 671b05d when checked, so batch 5's coder had run C's update; this coder did not run it.
+**Change:**
+- `find_dispatches.py`: the one helper `git()` (:52-55 at 671b05d), through which every git call already goes, runs `git -c gc.auto=0 -c maintenance.auto=false -C <dir> ...` with `GIT_OPTIONAL_LOCKS=0` in its environment (the existing `ENV`, :49). The docstring's read-only sentence (:26) names the three settings. No other behaviour change.
+- `tests/test_find_dispatches.py`: one new test. It sets `gc.auto=1` in the fixture repo, creates loose objects, runs the tool, and asserts the fixture snapshot is unchanged. `test_read_only` stays as it is.
+**Scope boundary:**
+- Files: find_dispatches.py, tests/test_find_dispatches.py, RECORD.md, and the store copies -44 (sweep) and -45.
+- Scanned, not changed: update_worktree.py's dry run, session_agents.py, launch_session.py's pre-check, run_exercise.py; findings reported with file:line for the planner.
+- Out of scope: changing those tools; any other Fable-review finding; the T3 backlog; D2 and D5; other PRs, tags, deleting anything.
+- The merge: this PR only (kit-v0.2-fd-gc -> main), `--merge`, from C without `--repo`, one Bash call, once CI is green on the final commit and after coder.md item 10's backup. Then C is updated by update_worktree.py (dry run, then `--apply`).
+**Baseline:**
+- ~/Zynergy/Claude-kit-fixes is on the new branch `kit-v0.2-fd-gc`, made from origin/main 671b05d (PR #33 merge) after `git fetch`, pushed with `-u`. `git ls-remote --tags origin` lists no tags.
+- The record's last entry at 671b05d is terminal 2026-09-25-86 (closing -85). No intent is open; check_record PASS.
+- C is on main at 671b05d. Untracked: `.claude/worktrees/`, `prompts/preserved/2026-09-25-44.md`, `prompts/preserved/2026-09-25-45.md`.
+- find_dispatches.py at 671b05d: `ENV = dict(os.environ, GIT_OPTIONAL_LOCKS="0")` (:49); `git(cwd, *args)` (:52-55) runs `["git", "-C", cwd] + args` with `env=ENV`. Its callers (git grep): `ls-files --others --exclude-standard -z` (:69), `worktree list --porcelain` (:77), `rev-parse --verify --quiet` (:130), `cat-file blob` (:133), `rev-parse --show-toplevel` (:146), `ls-files -z` (:153). No other subprocess call.
+- The CI failure (push run 36198938998, Python 3.14): "Lists differ", first differing element 27 (`…/main/.git/logs` before, `…/main/.git/info/refs` after), "First list contains 31 additional elements", first extra element 104 `…/main/prompts`. So "after" has 104 paths and "before" 135; `main/prompts` is unittest's first index past the shorter list, not necessarily a path that went missing (the diff body was truncated in the log).
+- Counts at 671b05d in this worktree: tests/ "Ran 94 tests" OK; hook tests "Ran 147 tests" OK. git 2.53.0, Python 3.14.4.
+**Closed decisions:** From B:
+- The owner's AskUserQuestion (tool_use `toolu_01N726CLsdyrLXjiBZ5kEBUF`, B line 854, 2026-09-25T23:06:08.365Z; answered at line 855, 23:07:04.590Z: "Which fix should I run now?"="find_dispatches housekeeping"). The chosen option, label and description verbatim from the tool_use: "find_dispatches housekeeping": "The smaller one from batch 5: run find_dispatches.py's git calls with automatic gc/maintenance off, so its read-only test can't be broken by git itself."
+- The owner, verbatim (B line 851, 23:06:02.325Z): "Run the fix real quick".
+- The planner's choices, per the dispatch: the three settings, the one helper, and scanning (not changing) the other tools.
+- B-11/B-13: coders merge at the planner's discretion; the Fable review's P1 questions that arrangement and the owner has not ruled on it. The merge rests only on the dispatch's Merge section ("authorised: this PR only").
+- Owner messages in B after the dispatch call (line 866), read through line 888 before this entry: one. Line 876 (23:08:40.428Z), verbatim: "Prepare a handoff that includes the full  Fable 5.1 report. I'll start a fresh Fable 5.1 session to begin the planning on addressing the items reported." It asks the planner for a handoff; it tells this coder nothing to do or not do in this scope, so it does not trigger the abort. No planner message to this coder so far.
+**Prediction (outcome — planner):** not authored
+**Planner prediction (stated in the dispatch, not withheld):**
+- Step 1: with `gc.auto=1` and loose objects, a find_dispatches.py run changes the fixture's `.git` (info/refs or packs).
+- Tests-only commit: the new test fails on the snapshot difference; everything else passes.
+- After the fix: all tests pass, hook tests unchanged, render checks 30/30 and 13/13, both checkers PASS, release_check PASS with 27 files and no denylist hit.
+- Revert check: find_dispatches.py from base gives the same failure.
+**Prediction (mechanism — coder):**
+- This coder's expectation differs from the planner's hypothesis, and is stated before step 1 is run. As far as this coder knows git's source (unverified here), git starts `gc --auto` / `maintenance run --auto` only from commands that write objects or refs (commit, merge, fetch, pull, am, rebase, receive-pack), not from the plumbing find_dispatches.py runs (`ls-files`, `worktree list`, `rev-parse`, `cat-file`). The expected outcome of step 1 is therefore that the tool's own calls do not fire auto gc, the snapshot does not change, and step 1 does not reproduce. The dispatch then says to stop and report, with no different cause guessed at.
+- Data this coder will gather if step 1 does not reproduce (reported as data, not as a cause): whether the fixture's own setUp commands (`git commit`, `git worktree add`) start a detached background auto-maintenance on git 2.53.0 under `gc.auto=1`, and whether that writes `info/refs` after the command returns.
+- If step 1 does reproduce: the run leaves a new `.git/info/refs`, a new `.git/objects/pack/pack-*.{pack,idx}` (and possibly `.rev`), and the loose-object files and their `objects/xx` directories gone. The new test at the tests-only commit then fails at its snapshot assertion ("Lists differ", `info/refs` among the added paths); tests/ "Ran 95 tests", "FAILED (failures=1)"; hook tests 147 OK. After the fix: tests/ 95 OK, hook tests 147 OK, render checks "0 of 30" and "0 of 13" failed, both checkers PASS, release_check "PASS: 27 release file(s)". Revert: find_dispatches.py from 671b05d over the new test gives the same one failure.
+**Finish line:**
+1. Pushed on kit-v0.2-fd-gc: (a) the sweep (e0a296f); (b) this store copy and intent; (c) the tests-only commit; (d) the fix; (e) the terminal.
+2. CI green on the final commit.
+3. coder.md item 10's backup.
+4. The merge of this PR with `--merge`, from C without `--repo`, as one Bash call; the merge commit and its parents reported.
+5. C updated by update_worktree.py (dry run, then `--apply`), both outputs reported.
+6. No tag.
+**Abort conditions:**
+- Any Base-and-state mismatch other than the dispatch's name or line drift.
+- #33 not merging within the wait (it merged).
+- Step 1 not reproducing: stop and report what was found, no other cause guessed.
+- A failure for any reason other than the predicted one.
+- Two failed fixes on one symptom.
+- A denylist hit.
+- CI not green (no merge).
+- The merge denied (quoted).
+- The dry run or `--apply` exiting 1.
+- An owner message after the dispatch call that tells this coder to do or not do something in this scope.
+- A planner message that widens the scope without quoting an owner ruling.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-89
+**Timestamp:** 2026-09-25T23:20:00Z
+**Closes:** 2026-09-25-88
+**Outcome:** abandoned
+**Working-state:** kit-v0.2-fd-gc holds record commits only (e0a296f, c310b6c, and this terminal's commit); find_dispatches.py and tests/test_find_dispatches.py are unchanged from origin/main 671b05d; the fixes checkout's tree is clean apart from this entry. The step 1 scripts, trace and CI log copy are in this session's scratchpad only, not committed.
+**Report:** this coder's hand-back to the planner for dispatch `preserved/2026-09-25-45.md` (B line 894), and its final hand-back after this entry.
+**Observed:**
+- **Commits on kit-v0.2-fd-gc**, from origin/main 671b05d, each pushed: e0a296f (sweep, note -87 for store copy -44); c310b6c (store copy -45 and intent -88); this terminal. No code or test file changed.
+- **Step 1 did not reproduce**, the abort condition "step 1 not reproducing", which this coder's intent predicted.
+  - Set-up (scratch script, not committed): the fixture built by `tests/test_find_dispatches.py`'s own `Fixture.setUp`, the same four `put` files as `test_read_only`, a 3 s wait, `git config gc.auto 1` in `main`, 2000 loose blobs written with `hash-object -w --stdin-paths` (12 of them in `objects/17`; the gc.auto=1 threshold is 1), a 3 s wait, snapshot (the test's own walk), run find_dispatches.py from 671b05d, a 3 s wait for a detached gc, snapshot.
+  - Result: "SNAPSHOT UNCHANGED", 4363 paths before and after, in 4 of 4 runs with the `put` files (and in 3 of 3 earlier runs without them).
+  - Controls on the same fixture, a command in place of the tool: `git gc --auto` printed "Auto packing the repository in background" and changed the snapshot (added `main/.git/gc.log`, `info/refs`, `objects/info/commit-graph`, `objects/info/packs`, `objects/pack/pack-*.idx/.pack/.rev`; 18 loose objects removed; 4363 to 4352 paths). `git commit --allow-empty` did the same (`info/refs`, commit-graph, packs, a pack; 18 loose objects removed; 4363 to 4351). So the set-up can fire auto gc; the tool's calls do not.
+  - `GIT_TRACE` to a file on a tool run (same fixture, with the `put` files): 11 git processes, `ls-files --others` x4, `ls-files -z` x1, `rev-parse --show-toplevel` x1, `rev-parse --verify` x2, `cat-file blob` x2, `worktree list` x1, every call site in find_dispatches.py (:69, :77, :130, :133, :146, :153, all through `git()` :52-55 with `GIT_OPTIONAL_LOCKS=0` from :49). No `run_command` line: none started a gc, maintenance or repack child.
+  - The CI log (push run 36198938998, Python 3.14): "First differing element 27" (`…/main/.git/logs` before, `…/main/.git/info/refs` after); "First list contains 31 additional elements"; "First extra element 104: …/main/prompts". "after" has 104 paths, "before" 135. Index 104 is where the shorter list ends, so `main/prompts` is not shown to be a missing path; the diff body is truncated in the log. The added `info/refs` and fewer paths match the repack signature of the controls; the cause on CI is not established.
+- **Scan of the other tools** (read at 671b05d; not changed):
+  - update_worktree.py: helper `git()` :84-88 with `ENV` (:80, `GIT_OPTIONAL_LOCKS=0`, `GIT_LITERAL_PATHSPECS=1`), no `-c gc.auto=0`. The dry-run phase runs `hash-object --no-filters` (no `-w`, :124), `symbolic-ref` :134, `rev-parse` :141/:146/:303, `rev-list` :151, `status --porcelain` :158, `ls-files` :164, `ls-tree` :171: the same read-only kind as find_dispatches.py's (not exercised). `--apply` runs `fetch origin` :251 and `merge --ff-only` :285, which git follows with auto maintenance (from memory, not exercised).
+  - session_agents.py: no git calls.
+  - launch_session.py: pre-check helper :152-156 (`GIT_OPTIONAL_LOCKS=0`): `rev-parse` :178/:187/:196, `status --porcelain` :190. Read-only kind (not exercised).
+  - run_exercise.py: helper :167-169 with `ENV` (:79, `GIT_OPTIONAL_LOCKS=0`): `rev-parse` :216/:229, `worktree add --detach` :235 (whether `worktree add` runs auto maintenance: not exercised).
+- **Planner message**, quoted verbatim per coder.md item 6: SendMessage at 2026-09-25T23:18:04.448Z (B line 899, `toolu_016pvPfqdf9A4884gSsyqwAn`). It rules on the stop this coder reported; it narrows the work (no code, no test) and widens nothing, and quotes the dispatch's own Merge section for the merge, so it is followed.
+
+> Planner ruling on your fd-gc stop: option (a). Close intent 2026-09-25-88 as `abandoned`, then finish the record PR.
+>
+> Why this is mechanical and not a new decision: the dispatch's abort condition "step 1 not reproducing" happened. My gc-auto hypothesis was wrong, and your trace and controls show find_dispatches.py's git calls don't start auto gc. Options (b) and (c) would widen the scope, so they go to the owner or the next planner session.
+>
+> 1. Write terminal 2026-09-25-89, closing -88 with Outcome `abandoned`. Put in it:
+>    - the step 1 evidence: the 4/4 unchanged snapshots, the `gc --auto` and `git commit` controls, the GIT_TRACE list of 11 git processes, and your reading of the CI log's index 104;
+>    - the scan of the other tools;
+>    - under flags: setUp's own `git commit` as an untested candidate, `git -C $VAR` failing closed, and the scope-3 test being unable to fail first.
+>
+>    Quote this message verbatim per coder.md item 6. No code and no test change.
+> 2. Open the PR kit-v0.2-fd-gc -> main. It is record-only: -44's copy and note -87, -45's copy and intent -88, and terminal -89.
+> 3. Once CI is green on the final commit, write the item-10 backup, run `gh pr merge <N> --merge` from C as one call, and do item 10's update of C. The dispatch's Merge section ("this PR only") covers this PR. If anything denies the merge, quote it and stop.
+>
+> This leaves no open intent for the next planner session.
+
+  The planner re-sent the ruling, reworded and unchanged in substance, by SendMessage at 2026-09-25T23:18:26.270Z (B line 912, `toolu_01FLtuwjLD2QwMg9uXU3c5N2`, summary "Resend: close -88 abandoned, merge record PR"). Verbatim:
+
+> Planner ruling on your fd-gc stop: option (a). Close intent 2026-09-25-88 as `abandoned` and finish the record PR. I sent this once before, but it was queued as you stopped and may not have reached you. If you already acted on it, just report the state.
+>
+> This is mechanical, not a new decision. The dispatch's abort condition "step 1 not reproducing" happened: my gc-auto hypothesis was wrong. Your trace and controls show that find_dispatches.py's git calls don't start auto gc. Options (b) and (c) would widen scope, so they go to the owner or the next planner session.
+>
+> 1. Write terminal 2026-09-25-89, closing -88 with Outcome `abandoned`. Record in it:
+>    - the step 1 evidence: the 4/4 unchanged snapshots, the `gc --auto` and `git commit` controls, the GIT_TRACE list of 11 git processes, and your reading of the CI log's index 104;
+>    - the scan of the other tools;
+>    - under flags: setUp's own `git commit` as an untested candidate, `git -C $VAR` failing closed, and the scope-3 test being unable to fail first.
+>
+>    Quote this message verbatim per coder.md item 6. Make no code or test change.
+> 2. Open the PR kit-v0.2-fd-gc -> main. It is record-only: -44's copy with note -87, -45's copy with intent -88, and terminal -89.
+> 3. Once CI is green on the final commit, write the item-10 backup, run `gh pr merge <N> --merge` from C as one call, then do item 10's update of C. The dispatch's Merge section ("this PR only") covers this PR. If anything denies the merge, quote it and stop.
+>
+> This leaves no open intent for the next planner session.
+
+- **Owner messages** in B after the dispatch call (line 866), read through line 919 before this entry: only line 876, quoted in -88, addressed to the planner.
+- **PR #34** (kit-v0.2-fd-gc -> main, record only) was opened before this entry so that it can be named here.
+- **Backup** (coder.md item 10), written after `git fetch` (origin/main still 671b05d): ~/forager-backups/2026-09-25-29/ holds:
+  - `main.bundle`: `git bundle create` of refs/remotes/origin/main, 950712 bytes; `git bundle verify` gives "The bundle records a complete history."; one head, 671b05d. Fetched into a scratch repository it gives 191 commits (origin/main: 191) and `git fsck` exits 0.
+  - `merge.json`: {"pr": 34, "branch": "main", "sha": "671b05d75db5ba71fce947aac906114047aabd9a", "bundle": "main.bundle"}.
+  - MANIFEST.sha256: main.bundle db77e50967872f782d2a42c37454fdf30d7fec0e304bfd4ea915b1693d60c989, merge.json 88d5b1c90bf5d161f04ed501fecaf976f51d0671a4a6b004c08b37a129472b25. `sha256sum -c` reports OK for both.
+  - One row was added to ~/forager-backups/INDEX.md (44 to 45 lines), naming 2026-09-25-29, #34 and the SHA.
+- **Not yet done when this entry was written**, in order: CI on this entry's commit, the merge of PR #34, the update of C. Their results are in the final hand-back.
+**Deviations:**
+- The finish line's tests-only commit and fix were not made: step 1's abort, then the planner's ruling above.
+- Tool-call corrections, not code failures: history_guard refused two commit-and-push calls (nothing ran). `cd <fixes checkout> && … git push` was judged on the payload cwd C (main): "push to a protected branch blocked: a push with no refspec pushes the current branch, which is main." `git -C $F push` was read literally: "push blocked: could not read the current branch (fatal: cannot change to '/home/zynergy-labs/Zynergy/Claude-kit/$F': No such file or directory)." Both were rerun with literal `git -C` paths.
+**Flags** (outside scope, not acted on):
+- Untested candidate, not a finding: the fixture's own setUp `git commit` (and possibly `git worktree add`) can start a background auto gc that races the snapshots. The control shows a `git commit` fires it at gc.auto=1; whether it does under default thresholds or on the CI runner was not exercised.
+- history_guard does not expand shell variables in `git -C $VAR`; it fails closed with a misleading path (an over-block, not a hole).
+- The dispatch's scope-3 test cannot fail first for the stated reason: on this evidence it passes under find_dispatches.py from 671b05d.
+- Options (b) (investigate another cause) and (c) (apply the settings as defence in depth, with a restated failing-first condition) are for the owner or the next planner session, per the ruling.
+**Choices this coder made that the dispatch does not** (listed in the hand-back): writing the intent before step 1; step 1's set-up (blob count, waits, adding the `put` files after the first runs); the `gc --auto` and `git commit` controls and the trace; reading the CI log; the scan after the abort; the backup was written before this terminal and before CI, not after CI as in the ruling's numbered list, so that this terminal can cite it (coder.md item 10), following batch 5's terminal -86; origin/main, the backup's subject, is not moved by this commit; the PR was opened before this terminal so that it can be named; `Working-state`'s wording (check_record requires the field for `abandoned`, and no document defines it).
