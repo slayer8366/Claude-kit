@@ -1299,3 +1299,40 @@ PR #14 then shows CI green on the new final commit. No new PR, no merge, no tag.
 - two failed fixes on one symptom (then data only)
 - a needed change outside scope
 - an owner message after line 757 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-21
+**Timestamp:** 2026-09-25T04:19:11Z
+**Closes:** 2026-09-25-20
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T13 follow-up, `preserved/2026-09-25-13.md`)
+**Observed:** Pushed on kit-v0.2-t13:
+- 8fdee07: store copy `2026-09-25-13.md`, byte-identical to the planner worktree's (sha256 ac4e55b0...0602), and intent 2026-09-25-20.
+- 2ecea6b: tests only. tests/test_install.py gains u9 (`test_u9_lock_path_outside_the_kit_stops`) in `Upgrade`, with subTests "absolute", "dotdot" and "owned". Each builds its own kit copy and adopter in a subdirectory of the test's temporary root. It writes its file (for "absolute" and "dotdot", beside that adopter; for "owned", the adopter's RECORD.md) and first asserts the file lies under the temporary root. It adds the key with the file's sha256 to the installed lock, tags the second release with a changed hook, and upgrades. It asserts, in order: exit 1, the file exists, its bytes are unchanged, stderr names `.claude/kit.lock` and the key, and the adopter snapshot is unchanged.
+- 807bbbf: the fix. install.py gains `lock_path_problem`, which gives "absolute path" (`PurePosixPath(p).is_absolute()`, a leading `/` or a drive letter), "has a '..' part" or "adopter-owned" (the existing `adopter_owned`). `read_lock` applies it to every key after its type checks and before `plan_upgrade` runs. Any rejection raises "<lock> (.claude/kit.lock) is malformed: it lists paths an upgrade may not touch. Nothing was written or removed. ...", followed by one "  <path>: <reason>" line per offending key, sorted, and exit 1. The docstring gains one sentence. README.md is unchanged, as the intent records.
+
+Tests-only commit, against install.py at 7f8fe22: "Ran 38 tests", "FAILED (failures=3)". The three u9 subTests each failed on the first assertion with "AssertionError: 0 != 1 : install.py: installed v0.0.1-test into .../<case>/adopter:", as predicted. A second run of u9 alone showed each upgrade printing its removal: "removed /tmp/kit_upgrade_test_ybkyewnh/absolute/outside_abs.txt", "removed ../outside.txt", "removed RECORD.md". All three files were inside the test's temporary root. Hook tests: 106 OK.
+
+After the fix (807bbbf):
+- tests/: "Ran 38 tests" OK
+- hook tests: "Ran 106 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match." (unchanged)
+- find_dispatches.py: "Counts: in-store 17, record 15, refused 2, stop 0" (refused: D2 and D5)
+- both checkers: PASS before each RECORD.md commit (46 entries and preserved=27 after the intent; 47 entries with this terminal)
+
+Revert check: 807bbbf's tree was extracted to /tmp/t13fu_revert_71iZ, with install.py replaced by 7f8fe22's. Result: "Ran 38 tests", "FAILED (failures=3)", the same three subTests with "0 != 1". This coder made that directory and deleted it.
+
+Owner messages after this dispatch's Agent call (line 757): the planner log, read before this entry, has 764 lines. Lines 758-764 hold no owner message and no planner message to this coder. Line 764 (04:13:03.807Z) is the planner's note to the owner that the dispatch was sent.
+**Deviations:**
+- None from the finish line up to this entry. The PR #14 CI status on the final commit is reported in the hand-back.
+- The planner's prediction and the intent's mechanism prediction held, including every count.
+- `ADOPTER_OWNED` is at install.py:56, not near :32. That was its line at 3a5a13d. This is recorded in the intent as line drift.
+- Choices the dispatch did not make are listed in the hand-back under Decisions I made. They include:
+  - the check sits in `read_lock`
+  - the reason texts and the message wording
+  - u9's extra assertions after the file-exists check
+  - one kit copy per subTest
+  - the owned test runs on the lock's key as written, not normalised. By reading install.py, not by a run, a key such as `./RECORD.md` would pass the check and still reach the adopter's RECORD.md through `target / path`. This is flagged, not fixed
