@@ -77,6 +77,16 @@ sit at the repository root.
    for a file that appears later, such as a pulse sent during the
    dispatch, goes in the next dispatch's sweep. No checker enforces this
    order: CI checks out a single commit with no history.
+10. **Merging.** Merge a pull request only if the dispatch's `Merge`
+    section reads `authorised`. First `git fetch`, then write the backup: a
+    new folder under the `backup_dir` that `.claude/kit.json` names,
+    holding a bundle of `origin/<base branch>` (`git bundle create`),
+    `merge.json` (`pr`, `branch`, `sha` of `origin/<base branch>`,
+    `bundle`), and `MANIFEST.sha256` over both, with one line naming the
+    folder added to that directory's `INDEX.md`. Then merge by pull request
+    number with a merge commit or a squash, and cite the backup folder in
+    your terminal. history_guard refuses the merge if any of this is
+    missing.
 
 ## Non-negotiables
 

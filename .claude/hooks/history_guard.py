@@ -1,14 +1,43 @@
 """PreToolUse on Bash, every role: history is the operator's.
 
-Merging into a protected branch is the operator's approval, and a history
-rewrite is run by the operator by hand. The protected branches are the
-config's protected_branches. Blocked:
+The merge rule. A Bash command containing `gh pr merge` is denied unless
+every condition holds, and each denial names the condition that failed:
+
+(a) Role. The calling agent's role (the config's agent_roles, looked up by
+    the payload's agent_type) is `coder`. The main session, with no
+    agent_type, is the planner and is denied.
+(b) Form. The command is one segment, with no other command in it. Its
+    tokens are `gh pr merge <N>`, N all digits, and exactly one method
+    flag: `--merge`/`-m` or `--squash`/`-s`. The only other flags allowed
+    are `--subject`/`-t <text>`, `--body`/`-b <text>` and
+    `--match-head-commit <sha>`. Anything else is denied by name:
+    `--rebase`/`-r`, `--auto`, `--admin`, `--delete-branch`/`-d`,
+    `--repo`/`-R`, `--disable-auto`, any unknown flag, and a missing N.
+(c) Config. backup_dir is set in kit.json (`~` is expanded). Unset, the
+    merge is denied with a message saying to set it.
+(d) The backup. Exactly one folder directly under backup_dir holds a
+    merge.json with `"pr": N`. That file is a JSON object with `pr` (int),
+    `branch` (string), `sha` (40 lowercase hex) and `bundle` (a file name
+    in that folder). In that folder, MANIFEST.sha256 lists at least
+    merge.json and the bundle, and every listed file's sha256 matches;
+    `git bundle list-heads <bundle>` lists `sha`; and backup_dir/INDEX.md
+    has a line containing the folder's name.
+(e) Freshness. `git rev-parse origin/<branch>` in the payload's cwd equals
+    `sha`. The hook does not fetch; coder.md tells the coder to fetch
+    first.
+
+A merge that passes gets no decision from this check, like any other
+allowed call. `git merge` handling is unchanged by this rule.
+
+Otherwise, merging into a protected branch is the operator's approval, and
+a history rewrite is run by the operator by hand. The protected branches
+are the config's protected_branches. Blocked:
 
 - git push --force, --force-with-lease, -f (alone or in a cluster);
 - git merge while the repository is on a protected branch;
 - git push to a protected branch: an explicit refspec naming one, --all or
   --mirror, or a push with no refspec (or HEAD) while on one;
-- gh pr merge;
+- gh pr merge, unless the merge rule above lets it through;
 - git filter-repo and git filter-branch.
 
 Force, gh pr merge and the filters match the whole command text. Push
