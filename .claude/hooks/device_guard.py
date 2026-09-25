@@ -16,6 +16,8 @@ adb, aapt2 and apksigner can be replaced through the environment variables
 Wherever the guard needs a device or tool answer and cannot get one, it
 denies and says what it could not determine. These are patterns over the
 command text, not every program that could do the same thing.
+
+Known bypasses: .claude/hooks/BYPASSES.md B-06
 """
 import glob
 import os

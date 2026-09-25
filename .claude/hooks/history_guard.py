@@ -59,6 +59,8 @@ blocked only if it contains a git push call (`git`, git's global options,
 then `push`). Any other unparseable command is let through by this check.
 The force, `gh pr merge`, filter and merge checks above still read the
 whole, unstripped text.
+
+Known bypasses: .claude/hooks/BYPASSES.md B-01, B-02, B-03, B-04, B-05
 """
 import hashlib
 import json

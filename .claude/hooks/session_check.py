@@ -38,6 +38,8 @@ The rule:
 
 Unlike the PreToolUse guards it does not use guardlib.run(), which denies on
 a config error.
+
+Known bypasses: .claude/hooks/BYPASSES.md none
 """
 import hashlib
 import json
