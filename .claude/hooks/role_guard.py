@@ -14,6 +14,19 @@ whose role is not one of the kit's roles below, is denied every tool.
 - planner: an allowlist of tools; every other tool, including every mcp__
   tool and any tool added later, is denied until the operator adds it by
   name. Bash is limited to read-only git and gh.
+
+  SendMessage (planner only): the target must be an agent this session
+  started, that is, an ID that `toolUseResult.agentId` gives on the
+  transcript line holding the result of one of the session's own Agent
+  calls (matched by tool_use_id). Any other target is denied, and so is
+  every target when the transcript cannot be read. The hook asks nothing:
+  each message is approved by the operator before it is sent, because the
+  operator writes or requests it, or the planner offers it and the operator
+  agrees. No message is sent on the planner's own initiative. The hook
+  cannot check that approval; coder.md item 6 makes a coder stop on a
+  message that widens its scope without quoting an owner ruling. The
+  transcript is written asynchronously, so a message sent just after an
+  Agent result can be denied until the result is on disk; send it again.
 - pulse: Read, Grep, Glob, SubagentHandback (to deliver its report), and
   Bash limited to read-only git and gh plus the adb reads getprop, dumpsys
   and screencap. device_guard.py separately
@@ -25,6 +38,7 @@ The Bash checks are patterns over the command text. They hold the command
 forms an agent usually writes, not every program that could do the same
 thing.
 """
+import json
 import re
 import sys
 from pathlib import Path
@@ -36,7 +50,8 @@ import guardlib as g  # noqa: E402
 # Claude Code 2.1.280. They are still listed for the pulse, where they are
 # inert on that version.
 PLANNER_TOOLS = {"Read", "Bash", "Agent", "Skill", "WebFetch",
-                 "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite"}
+                 "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite",
+                 "SendMessage"}
 # SubagentHandback delivers a subagent's report to its caller; without it a
 # pulse runs and delivers nothing. The pulse's only, not the planner's.
 PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash", "SubagentHandback"}
@@ -176,6 +191,64 @@ def check_bash(command, role):
     return f"`{head}` is not read-only {allowed}"
 
 
+SEND_RULE = ("role_guard: the planner may SendMessage only to an agent this "
+             "session started (an ID that toolUseResult.agentId gives on the "
+             "transcript line holding the result of one of the session's own "
+             "Agent calls).")
+
+
+def own_agent_ids(transcript_path):
+    """The agent IDs the session's own Agent calls returned, read from its
+    JSONL transcript. Lines that do not decode as UTF-8 or parse as JSON are
+    skipped. Raises OSError if the file cannot be read."""
+    agent_calls, results = set(), []
+    with open(transcript_path, "rb") as f:
+        for raw in f:
+            try:
+                line = json.loads(raw.decode("utf-8"))
+            except ValueError:
+                continue
+            if not isinstance(line, dict):
+                continue
+            message = line.get("message")
+            content = message.get("content") if isinstance(message, dict) else None
+            if not isinstance(content, list):
+                continue
+            blocks = [b for b in content if isinstance(b, dict)]
+            for b in blocks:
+                if b.get("type") == "tool_use" and b.get("name") == "Agent":
+                    agent_calls.add(b.get("id"))
+            tool_results = [b for b in blocks if b.get("type") == "tool_result"]
+            use_result = line.get("toolUseResult")
+            if len(tool_results) == 1 and isinstance(use_result, dict):
+                agent_id = use_result.get("agentId")
+                if isinstance(agent_id, str) and agent_id:
+                    results.append((tool_results[0].get("tool_use_id"), agent_id))
+    return {agent_id for use_id, agent_id in results if use_id in agent_calls}
+
+
+def check_send_message(payload):
+    tool_input = payload.get("tool_input")
+    to = tool_input.get("to") if isinstance(tool_input, dict) else None
+    if not isinstance(to, str) or not to.strip():
+        return f"{SEND_RULE} Blocked: `to` is missing or empty."
+    target = to.strip()
+    path = payload.get("transcript_path")
+    if not isinstance(path, str) or not path:
+        return (f"{SEND_RULE} Blocked: target {target!r}; the hook input has no "
+                f"transcript_path, so the session's agents cannot be read.")
+    try:
+        ids = own_agent_ids(path)
+    except OSError as exc:
+        return (f"{SEND_RULE} Blocked: target {target!r}; the transcript could "
+                f"not be read ({type(exc).__name__}: {exc}).")
+    if target not in ids:
+        return (f"{SEND_RULE} Blocked: target {target!r} is not one of them. "
+                f"If its Agent call has only just returned, send again once "
+                f"the result is on disk.")
+    return None
+
+
 def guard(payload):
     agent = payload.get("agent_type")
     if not agent:
@@ -205,6 +278,10 @@ def guard(payload):
             return ("deny", f"role_guard: the {who} role's Bash is read-only "
                             f"({'git and gh' if who == 'planner' else 'git, gh and adb reads'}). "
                             f"Blocked: {problem}.")
+    if tool == "SendMessage" and who == "planner":
+        problem = check_send_message(payload)
+        if problem:
+            return ("deny", problem)
     return None
 
 
