@@ -348,6 +348,60 @@ class Upgrade(unittest.TestCase):
                 self.assertIn(key, r.stderr)
                 self.assertEqual(snapshot(self.adopter), before)
 
+    def test_u10_lock_path_checked_where_it_lands(self):
+        # A key spelled to dodge the owned-path test, or reaching outside the
+        # adopter through a symlinked directory. Each case gets its own kit
+        # copy and adopter in a subdirectory of the test's temporary root;
+        # every file and symlink it creates lies under that root.
+        def dot_record(case):
+            return case / "adopter" / "RECORD.md", "./RECORD.md"
+
+        def dot_prompts(case):
+            (case / "adopter" / "prompts").mkdir()
+            return case / "adopter" / "prompts" / "x.md", "./prompts/x.md"
+
+        def symlinked_dir(case):
+            outside = case / "outside_dir"
+            outside.mkdir()
+            link = case / "adopter" / "ext"
+            link.symlink_to(outside, target_is_directory=True)
+            self.assertIn(self.root.resolve(), link.parent.resolve().parents)
+            self.assertIn(self.root.resolve(), link.resolve().parents)
+            return outside / "outside.txt", "ext/outside.txt"
+
+        def double_slash_prompts(case):
+            (case / "adopter" / "prompts").mkdir()
+            return case / "adopter" / "prompts" / "x.md", "prompts//x.md"
+
+        cases = {
+            "dot_record": dot_record,
+            "dot_prompts": dot_prompts,
+            "symlinked_dir": symlinked_dir,
+            "double_slash_prompts": double_slash_prompts,
+        }
+        for name, where in cases.items():
+            with self.subTest(name):
+                case = self.root / name
+                case.mkdir()
+                self.kit = make_kit_copy(case)
+                self.adopter = make_adopter(case)
+                self.first_install()
+                victim, key = where(case)
+                self.assertIn(self.root.resolve(), victim.resolve().parents)
+                content = f"# not the kit's ({name})\n".encode()
+                victim.write_bytes(content)
+                lock = self.lock()
+                lock["files"][key] = hashlib.sha256(content).hexdigest()
+                (self.adopter / ".claude" / "kit.lock").write_text(
+                    json.dumps(lock, indent=2) + "\n")
+                make_second_tag(self.kit, change_hook=True)
+                r = self.install(TAG2)
+                self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+                self.assertTrue(victim.exists())
+                self.assertEqual(victim.read_bytes(), content)
+                self.assertIn(".claude/kit.lock", r.stderr)
+                self.assertIn(key, r.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
