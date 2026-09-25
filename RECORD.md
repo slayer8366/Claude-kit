@@ -2037,3 +2037,43 @@ The injected context's first two lines are "Claude-kit session_check: this sessi
 - Merge backup: after `git fetch`, a new folder ~/forager-backups/2026-09-25-08 holds main.bundle, merge.json (pr, branch main, sha 22723e0... unless main moved) and MANIFEST.sha256, with one INDEX row naming the folder, the PR number and the SHA. Then `gh pr merge <N> --merge`, which history_guard lets through.
 **Finish line:** Pushed on kit-v0.2-batch1: (1) this store copy and intent, (2) the tests-only commit, (3) the fix, (4) terminal 2026-09-25-39. Then the PR with CI green on its final commit, and the merge with `--merge` after item 10's backup. Merge commit reported. No tag.
 **Abort conditions:** any Base-and-state mismatch other than the dispatch's name; a needed change outside scope; a failure for any reason other than the predicted one; two failed fixes on one symptom; a denylist hit; CI not green (no merge); history_guard denying the merge after the backup (quoted); an owner message after the Agent call (line 789) that tells the coder to do or not do something in this scope or changes a decision here; a planner message that widens the scope or changes a closed decision without quoting an owner ruling.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-39
+**Timestamp:** 2026-09-25T10:41:00Z
+**Closes:** 2026-09-25-38
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (batch 1, `preserved/2026-09-25-22.md`)
+**Observed:**
+- a57379a on kit-v0.2-batch1 (from origin/main 22723e0): store copy `2026-09-25-22.md` (byte-identical to W's by cmp) and intent 2026-09-25-38, which includes T5's owner check. Both checkers PASS.
+- 220bbc8, tests only: t8 (`test_t8_update_worktree_present_is_named_in_the_advice`) writes an untracked `update_worktree.py` at the fixture's toplevel, pushes a README.md change from another clone so HEAD is 1 commit behind, and asserts the advice contains `update_worktree.py` and `--apply`. Hook tests: "Ran 125 tests", "FAILED (failures=1)". The only failure was t8: "AssertionError: 'update_worktree.py' not found in ..." with the text ending in the old `git -C ... fetch && git -C ... merge --ff-only origin/main` line, as predicted.
+- 9ee28a8, the fix:
+  - `.claude/hooks/session_check.py`: a new constant `UPDATER = "update_worktree.py"`. `check` uses the new advice line when `os.path.isfile(<toplevel>/update_worktree.py)`, and otherwise the old line, unchanged. The docstring's item 4 says the same.
+  - README.md: the Layout `tests/` row and the "Tests" paragraph name `test_install.py` (install and drift), `test_release_check.py`, `test_find_dispatches.py` and `test_update_worktree.py`.
+  - `docs/standing-rulings.md`: B-13, with B-11's proposed-ruling text word for word (checked by script, whitespace-normalised: equal), B-11's Source and Scope, Enforced by history_guard.py (a)-(e) with lines at 22723e0 plus coder.md:80-90, and Evidence for #17, #19, #20 and #21 with their backup folders and terminals. `- **Superseded-by:** B-13` was added to B-11, and "- B-11, superseded by B-13." to "Superseded rulings". The diff is 74 added lines and 0 removed; "None yet." was not in the file at base.
+- After the fix: hook tests "Ran 125 tests" OK (t1-t7 unchanged; the test file's diff only adds t8); tests/ "Ran 47 tests" OK; render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"; release_check "PASS: 22 release file(s), 5927 line(s), 18 denylist pattern(s), no match."; both checkers PASS; `grep -c '^\*\*Accepted:\*\*' docs/standing-rulings.md` gives 0.
+- Revert check: in a full copy of the checkout, /tmp/batch1_revert2_xjgK/repo, with session_check.py from 22723e0: "Ran 125 tests", "FAILED (failures=1)", t8 only, the same AssertionError. A first attempt, /tmp/batch1_revert_TorH, copied only `.claude/`. It also gave the t8 failure, plus 21 dispatch_guard errors, because that copy had no repository or checkers; it is not counted.
+- Live check (read-only; W's `git status` is unchanged):
+  - W's own session_check.py (3847590), cwd W, payload cwd W: "HEAD is 3 commits behind origin/main (as of the last fetch)." and the old advice, `git -C <W> fetch && git -C <W> merge --ff-only origin/main`.
+  - The branch's session_check.py, cwd W, payload cwd W: the same two lines, then "To update (advice; not run by the hook): `python3 <W>/update_worktree.py <W>` (dry run), then the same with `--apply`. It moves aside untracked copies that the branch now tracks, then fast-forwards." W has `update_worktree.py`.
+  - The branch's session_check.py, cwd W, payload cwd the fixes checkout: it lists `.claude/hooks/session_check.py` and `.claude/hooks/tests/test_session_check.py` as differing from origin/main, then the new advice naming `/home/zynergy-labs/Zynergy/Claude-kit-fixes/update_worktree.py`.
+- PR #22 (kit-v0.2-batch1 -> main) opened. CI was green on 9ee28a8 (push and pull_request runs, Python 3.8 and 3.14).
+- Backup for the merge (coder.md item 10), written after CI was green on 9ee28a8 and before this entry, after `git fetch origin` (origin/main 22723e0a3993dffd911ffb20267ad79cabb4f669). /home/zynergy-labs/forager-backups/2026-09-25-08/ holds:
+  - `main.bundle`, a `git bundle create` of refs/remotes/origin/main (557056 bytes)
+  - `merge.json` {"pr": 22, "branch": "main", "sha": "22723e0a3993dffd911ffb20267ad79cabb4f669", "bundle": "main.bundle"}
+  - MANIFEST.sha256 (sha256 2cd67d547b5d63b9ffac671ed7d32c83a10c998a96e5cc9ebec325289edee276)
+
+  Verification: `sha256sum -c` gave OK for both files; `git bundle list-heads` gave "22723e0a3993dffd911ffb20267ad79cabb4f669 refs/remotes/origin/main"; `git bundle verify` gave "The bundle records a complete history." One row was added to INDEX.md (23 to 24 lines), naming 2026-09-25-08, #22 and the SHA. The merge runs after CI is green on this entry's commit, so its result is in the hand-back, not here.
+- Every prediction in the intent held, except the note in the dispatch's live check that W has no `update_worktree.py` (recorded in the intent's Baseline). Both variants were run.
+- Planner log: read before each record commit (802 lines at the intent; 819 before this entry). Owner messages after the Agent call (line 789), neither of them about this dispatch's scope:
+  - line 806 (10:37:54.947Z), "It is after midnight UTC?"
+  - line 812 (10:38:40.775Z), "Run the backlog now. It was scheduled to run yesterday at 7pm". This is about the T3 backlog, which is out of scope here.
+
+  Lines 803 and 819 are PR #22's pr-link metadata. Line 815 (10:39:10.577Z) is the planner to the owner: it will send the backlog dispatch once this batch hands back. No planner message to this coder.
+**Deviations:**
+- The dispatch's live check says W has no `update_worktree.py`. W has it (from #20). Both runs were done: payload cwd W, and payload cwd the fixes checkout.
+- The dispatch asks for the backup "after coder.md item 10" and the merge once CI is green on the final commit; coder.md asks the terminal to cite the backup folder. So the backup was written after CI was green on the fix commit and before this terminal, as in 2026-09-25-37. The merge still waits for CI to be green on this entry's commit.
+- The first revert-check copy was incomplete (see above) and was redone in a full copy.
+- Scratch left in place: /tmp/kitv02_batch1_intent.md, /tmp/kitv02_batch1_terminal.md, /tmp/batch1_revert_TorH, /tmp/batch1_revert2_xjgK. Nothing deleted.
