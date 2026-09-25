@@ -50,7 +50,7 @@ def files_under(root):
 
 
 class Fixture(unittest.TestCase):
-    def build(self, backup=True):
+    def build(self, backup=True, protected=("main",)):
         self.tmp = Path(tempfile.mkdtemp(prefix="update_worktree_"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         origin = self.tmp / "origin.git"
@@ -60,7 +60,7 @@ class Fixture(unittest.TestCase):
                        capture_output=True)
         git(main, "checkout", "-q", "-b", "main")
         self.backups = self.tmp / "backups"
-        conf = {"protected_branches": ["main"]}
+        conf = {"protected_branches": list(protected)}
         if backup:
             conf["backup_dir"] = str(self.backups)
             self.backups.mkdir()
@@ -84,6 +84,22 @@ class Fixture(unittest.TestCase):
         copy = wt / STORE_REL
         copy.parent.mkdir(parents=True)
         copy.write_bytes(STORE_BYTES)
+
+    def origin_ahead(self):
+        """Push one more store file to origin from a second clone, and put a
+        byte-identical untracked copy of it in the main checkout. Returns
+        (relative path, new origin/main SHA)."""
+        other = self.tmp / "other"
+        subprocess.run(["git", "clone", "-q", str(self.tmp / "origin.git"), str(other)],
+                       check=True, capture_output=True)
+        rel = "prompts/preserved/2026-01-01-02.md"
+        data = STORE_BYTES.replace(b"body", b"second body")
+        (other / rel).write_bytes(data)
+        git(other, "add", "-A")
+        git(other, "commit", "-q", "-m", "second store")
+        git(other, "push", "-q", "origin", "main")
+        (self.main / rel).write_bytes(data)
+        return rel, git(other, "rev-parse", "HEAD").strip()
 
     def run_tool(self, path, *args):
         return subprocess.run([sys.executable, str(TOOL), str(path), *args],
@@ -170,12 +186,50 @@ class TestUpdateWorktree(Fixture):
         self.assertIn("README.md", r.stdout + r.stderr)
         self.assertEqual(self.snapshot(), before)
 
-    def test_u6_protected_branch_stops(self):
+    def test_u6_main_checkout_on_target_fast_forwards(self):
         self.build()
+        rel, new = self.origin_ahead()
+        data = (self.main / rel).read_bytes()
+        r = self.run_tool(self.main, "--apply")
+        self.assertExit(r, 0)
+        self.assertEqual(git(self.main, "ls-files", "--", rel).strip(), rel)
+        self.assertIn(rel, r.stdout)
+        folders = [p for p in self.backups.iterdir() if p.is_dir()]
+        self.assertEqual(len(folders), 1, folders)
+        self.assertEqual((folders[0] / rel).read_bytes(), data)
+        self.assertEqual(git(self.main, "rev-parse", "HEAD").strip(), new)
+        self.assertEqual(git(self.main, "rev-parse", "origin/main").strip(), new)
+        self.assertEqual(git(self.main, "status", "--porcelain"), "")
+
+    def test_u6b_detached_head_stops(self):
+        self.build()
+        self.origin_ahead()
+        git(self.main, "checkout", "-q", "--detach")
         before = self.snapshot()
         r = self.run_tool(self.main, "--apply")
         self.assertExit(r, 1)
-        self.assertIn("main", r.stdout + r.stderr)
+        self.assertIn("detached", r.stdout + r.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_u6c_other_protected_branch_stops(self):
+        self.build(protected=("main", "release"))
+        git(self.main, "checkout", "-q", "-b", "release")
+        self.origin_ahead()
+        before = self.snapshot()
+        r = self.run_tool(self.main, "--apply")
+        self.assertExit(r, 1)
+        self.assertIn("release", r.stdout + r.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_u6d_main_checkout_not_fast_forward_stops(self):
+        self.build()
+        self.origin_ahead()
+        (self.main / "local.txt").write_text("local\n")
+        git(self.main, "add", "local.txt")
+        git(self.main, "commit", "-q", "-m", "local, not on origin")
+        before = self.snapshot()
+        r = self.run_tool(self.main, "--apply")
+        self.assertExit(r, 1)
         self.assertEqual(self.snapshot(), before)
 
     def test_u7_apply_without_backup_dir_stops(self):

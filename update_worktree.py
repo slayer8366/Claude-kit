@@ -1,13 +1,27 @@
 #!/usr/bin/env python3
-"""Fast-forward a harness worktree after moving aside untracked copies that
-the target branch already tracks byte for byte.
+"""Fast-forward a harness worktree, or the main checkout, after moving aside
+untracked copies that the target branch already tracks byte for byte.
 
     python3 update_worktree.py <worktree path> [--apply]
 
-A dispatch saved by the dispatch hook sits untracked in the planner's
-worktree; once the store copy is merged, the same path is tracked on the
-default branch and `git merge --ff-only` refuses to overwrite the untracked
+The rule first: the checkout must be on the target branch (the first of
+`protected_branches`, the main checkout) or on an unprotected branch (a
+harness worktree), with no commits of its own and no changes to tracked
+files. Untracked files identical to origin/<target>'s copies are moved to a
+backup, then HEAD is fast-forwarded to origin/<target>, and nothing else.
+A detached HEAD, another protected branch, and anything that is not a
+fast-forward are refused.
+
+Updating the main checkout this way is not a history_guard bypass: a
+fast-forward to origin's own tip changes nothing on the remote and merges
+nothing new into the branch; the branch only catches up with commits that
+were already merged there through a pull request.
+
+A dispatch saved by the dispatch hook sits untracked in the checkout the
+planner runs in; once the store copy is merged, the same path is tracked on
+the default branch and a fast-forward refuses to overwrite the untracked
 file. This tool moves such files into a backup folder and then fast-forwards.
+coder.md item 10 runs it on the main checkout after every merge.
 
 Rules:
 
@@ -16,9 +30,11 @@ Rules:
    target, `origin/<first of protected_branches>`, and `backup_dir`.
 
 2. Stops before changing anything, printing every reason, exit 1, if:
-   - the worktree's current branch is a protected branch, or HEAD is
-     detached (the main checkout is updated with `git pull` by its owner);
-   - `git rev-list origin/<branch>..HEAD` is not empty (own commits);
+   - HEAD is detached, or the current branch is protected but is not the
+     target branch (a checkout on the target branch itself, the main
+     checkout, is updated like any worktree);
+   - `git rev-list origin/<branch>..HEAD` is not empty (own commits: the
+     update would not be a fast-forward);
    - `git status --porcelain --untracked-files=no` is not empty (changes to
      tracked files);
    - an untracked file (`git ls-files --others --exclude-standard`) exists
@@ -119,9 +135,9 @@ def survey(top, protected, branch):
     current = text(out) if rc == 0 else None
     if current is None:
         reasons.append("HEAD is detached")
-    elif current in protected:
-        reasons.append(f"the current branch `{current}` is protected; update the main "
-                       f"checkout with `git pull` yourself")
+    elif current in protected and current != branch:
+        reasons.append(f"the current branch `{current}` is protected and is not the "
+                       f"target branch `{branch}`")
     rc, out, _ = git(top, "rev-parse", "--verify", "--quiet", ref)
     if rc != 0:
         reasons.append(f"origin/{branch} does not exist here (fetch first)")
@@ -137,7 +153,8 @@ def survey(top, protected, branch):
         reasons.append(f"git rev-list failed: {err}")
     elif text(out):
         n = len(text(out).splitlines())
-        reasons.append(f"the worktree has {n} commit(s) not on origin/{branch}")
+        reasons.append(f"the worktree has {n} commit(s) not on origin/{branch} "
+                       f"(not a fast-forward)")
     rc, out, err = git(top, "status", "--porcelain", "--untracked-files=no")
     if rc != 0:
         reasons.append(f"git status failed: {err}")
@@ -277,8 +294,8 @@ def apply(top, protected, branch, backup):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Fast-forward a harness worktree to "
-                                 "origin/<first protected branch>.")
+    ap = argparse.ArgumentParser(description="Fast-forward a harness worktree, or the "
+                                 "main checkout, to origin/<first protected branch>.")
     ap.add_argument("path", help="top level of the worktree")
     ap.add_argument("--apply", action="store_true", help="fetch, move, fast-forward")
     args = ap.parse_args(argv)
