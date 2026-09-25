@@ -33,7 +33,9 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent / "kit.json"
 CONFIG_REQUIRED = ("android_package", "protected_branches", "dispatchable_agents",
                    "type_targets", "required_sections", "approval_exempt_types",
                    "agent_roles")
-CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_"}
+# backup_dir: where a coder's merge backups live (history_guard's merge
+# rule). Optional with no default: unset, every pull-request merge is denied.
+CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_", "backup_dir": None}
 CONFIG = None  # set by run() before the guard is called
 
 
@@ -113,6 +115,8 @@ def validate_config(data):
     prefix = data.get("guard_env_prefix", CONFIG_DEFAULTS["guard_env_prefix"])
     if not (isinstance(prefix, str) and re.fullmatch(r"[A-Z_][A-Z0-9_]*", prefix)):
         problems.append("guard_env_prefix must be an upper-case environment-variable prefix")
+    if "backup_dir" in data and not isinstance(data["backup_dir"], str):
+        problems.append("backup_dir must be a string (a directory path)")
     if problems:
         raise ConfigError("; ".join(problems))
     config = dict(CONFIG_DEFAULTS)
