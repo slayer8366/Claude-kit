@@ -2720,3 +2720,29 @@ A read-only pulse on the session-log format, for the T6 dispatch: how Agent call
 - **Layout.** Besides the new `session_agents.py` row, the Layout table's `tests/` row now names `test_session_agents.py`, as it names the other test files.
 - **Backup before this terminal,** as in -37, -58 and -64: coder.md item 10 asks the terminal to cite the backup folder, so the backup was written after CI was green on c6f159a and before this entry. The merge still waits for CI on this entry's commit; the freshness check compares only origin/main's SHA, which a commit on this branch does not move.
 - The choices listed in intent -67 under "Choices this coder made that the dispatch does not" are implemented as listed.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-69
+**Dispatch-file:** preserved/2026-09-25-33.md
+**Type:** build
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Yes go ahead and send the move-and-pull for the main checkout, -30 to -32, bringing it to 9e6ff6b" at 2026-09-25T18:21:36.742Z (line 340); the Agent call at 18:21:52.216Z (line 343, to `coder`, tool_use `toolu_01TCviVDo8s9wLzuyq14aNVc`, description "Move -30..-32 aside, pull main checkout", foreground); its hand-back from agent af901fbe4e359a247, a `queued_command` attachment with `origin.handback` true at 18:23:05.930Z (line 350); the Agent result at 18:23:14.567Z (line 349).
+**Observed:** `prompts/preserved/2026-09-25-33.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (3940 bytes, sha256 4fac09f955e6b4d3fdeff000b433bef02802410f0807af20df11c1bc9cbae5bf; header "Preserved: 2026-09-25T18:21:52Z by .claude/hooks/dispatch_guard.py", HEAD db742d2bd6f0926d908ad5919f9fc28806a68547, target coder, type build). Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the Agent call at line 343 byte for byte (3757 characters).
+
+This was the owner-requested move-and-pull of the main checkout, a repeat of 2026-09-25-30 with new names and SHAs. It opened no intent and handed its recording to this sweep, as -30 did (2026-09-25-65). It ran to its end and reported. From the hand-back: the three untracked store copies -30, -31 and -32 were moved (not deleted) into ~/forager-backups/2026-09-25-15/ with a MANIFEST.sha256 and one new INDEX.md line; then the pull printed "Updating db742d2..9e6ff6b / Fast-forward". This coder saw ~/forager-backups/2026-09-25-15/ and its INDEX.md row, and the main checkout on main at 9e6ff6b with -33, -34 and -35 untracked.
+
+The outcome is `answered`, as in 2026-09-25-65: check_record.py has no dispatch-note Outcome for an executed build that opened no intent (NOTE_OUTCOMES, check_record.py:120).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-70
+**Dispatch-file:** preserved/2026-09-25-34.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Go-ahead and send it" at 2026-09-25T18:31:24.071Z (line 360), answering the planner's "Should I send a pulse to gather the facts and then bring you those two choices?" at 18:23:20.412Z (line 354); the Agent call at 18:31:43.779Z (line 363, to `pulse`, tool_use `toolu_012axxq7VEUFpdSBwZcwKtCT`, description "T7 pulse: launcher facts", background); the launch result at 18:31:43.918Z (line 365); its hand-back from agent a8cf960bd6a788a4b, a `type:"user"` record with `origin.kind` "peer" and `handback` true at 18:38:13.805Z (line 376); its completion notice, a `queued_command` attachment (line 385).
+**Observed:** `prompts/preserved/2026-09-25-34.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (3520 bytes, sha256 3178cec205a38eba1cff784dd6f2429fa038d32a848bda71d24d134c0488e696; header "Preserved: 2026-09-25T18:31:43Z by .claude/hooks/dispatch_guard.py", HEAD 9e6ff6b2c2b06bbd8fd4d73f4a04b23e415046ad, target pulse, type pulse). Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the Agent call at line 363 byte for byte (3339 characters).
+
+A read-only pulse for the T7 dispatch: the origin of spec item 7, past launches, session identity in logs, leftovers, the exercise cases, existing timeout code and the Python minimum. It answered with a "Pulse report for T7 (launcher) and T8 (runner)" read at HEAD 9e6ff6b.
