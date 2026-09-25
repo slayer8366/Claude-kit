@@ -234,6 +234,105 @@ class PlannerSendMessage(unittest.TestCase):
                 self.assertRuleDenied(self.send(to, path))
 
 
+class PlannerTaskStop(unittest.TestCase):
+    """The planner may TaskStop only an agent this session started: the same
+    target rule as SendMessage, applied to task_id; shell_id is always denied
+    (Claude-kit v0.2 T11)."""
+
+    RULE = "may TaskStop only an agent this session started"
+    AGENT_ID = "a02810510ac421daf"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="kit_transcript_")
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+
+    def agent_lines(self):
+        return [PlannerSendMessage.call("toolu_agent1", "Agent"),
+                PlannerSendMessage.result(
+                    "toolu_agent1",
+                    f"Async agent launched successfully.\nagentId: {self.AGENT_ID}",
+                    {"isAsync": True, "status": "async_launched",
+                     "agentId": self.AGENT_ID})]
+
+    def transcript(self, lines):
+        path = self.dir / "session.jsonl"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return str(path)
+
+    def stop(self, tool_input, transcript_path, agent_type=None):
+        p = tool("TaskStop", agent_type, tool_input)
+        if transcript_path is not None:
+            p["transcript_path"] = transcript_path
+        return run_hook(HOOK, p)
+
+    def assertRuleDenied(self, result, target=None):
+        decision, reason = result
+        self.assertEqual(decision, "deny", f"expected deny, got {decision!r}")
+        self.assertIn(self.RULE, reason)
+        if target is not None:
+            self.assertIn(target, reason)
+
+    # s1
+    def test_an_agent_the_session_started_is_allowed(self):
+        path = self.transcript(self.agent_lines())
+        decision, reason = self.stop({"task_id": self.AGENT_ID}, path)
+        self.assertIsNone(decision, reason)
+
+    # s2
+    def test_an_unknown_id_is_denied(self):
+        path = self.transcript(self.agent_lines())
+        self.assertRuleDenied(self.stop({"task_id": "a0000000000000000"}, path),
+                              "a0000000000000000")
+
+    # s3
+    def test_an_id_only_in_a_read_result_is_denied(self):
+        other = "a2222222222222222"
+        lines = self.agent_lines() + [
+            PlannerSendMessage.call("toolu_read1", "Read"),
+            PlannerSendMessage.result(
+                "toolu_read1", f"agentId: {other}",
+                {"type": "text", "file": {"filePath": "/tmp/notes.md",
+                                          "content": f"agentId: {other}"}})]
+        self.assertRuleDenied(self.stop({"task_id": other}, self.transcript(lines)),
+                              other)
+
+    # s4
+    def test_a_missing_empty_or_blank_task_id_is_denied(self):
+        path = self.transcript(self.agent_lines())
+        for label, tool_input in (("absent", {}), ("empty", {"task_id": ""}),
+                                  ("blank", {"task_id": "   "})):
+            with self.subTest(label):
+                self.assertRuleDenied(self.stop(tool_input, path))
+
+    # s5
+    def test_a_shell_id_is_always_denied(self):
+        path = self.transcript(self.agent_lines())
+        for label, tool_input in (
+                ("with a valid task_id", {"task_id": self.AGENT_ID, "shell_id": "x"}),
+                ("without task_id", {"shell_id": "x"})):
+            with self.subTest(label):
+                self.assertRuleDenied(self.stop(tool_input, path), "shell_id")
+
+    # s6
+    def test_a_missing_or_unreadable_transcript_is_denied(self):
+        cases = {"missing file": str(self.dir / "no-such.jsonl"),
+                 "a directory": str(self.dir),
+                 "transcript_path absent": None}
+        for label, path in cases.items():
+            with self.subTest(label):
+                self.assertRuleDenied(self.stop({"task_id": self.AGENT_ID}, path),
+                                      self.AGENT_ID)
+
+    # s7
+    def test_the_pulse_may_not_stop_tasks(self):
+        path = self.transcript(self.agent_lines())
+        decision, reason = self.stop({"task_id": self.AGENT_ID}, path,
+                                     agent_type="pulse")
+        self.assertEqual(decision, "deny", reason)
+        self.assertIn("the pulse role may not use TaskStop", reason)
+
+
 class OtherRoles(unittest.TestCase):
     def test_coder_is_not_restricted_by_this_guard(self):
         for payload in (tool("Write", "coder"), bash("rm -rf build", "coder"),
