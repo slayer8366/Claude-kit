@@ -3438,3 +3438,99 @@ It rules on the question this coder raised. It changes how Fix 2 is built, not a
   - B-05's sentence is capitalized as its own sentence.
   - The docstring wording and its placement.
   - The PR was opened before this terminal so that the terminal can name it.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-85
+**Timestamp:** 2026-09-25T22:55:00Z
+**Title:** Claude-kit v0.2 batch 5: B-09 ruled `accepted`; history_guard resolves a relative `git -C` directory against the payload's cwd for the push and `git merge` checks; the session_agents docstring states what the fallback does; history_guard's docstring notes that a quoted `~` is expanded too
+**Dispatch-file:** preserved/2026-09-25-43.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the main checkout ~/Zynergy/Claude-kit as `prompts/preserved/2026-09-25-43.md` (6553 bytes, sha256 9aac5d94c804daceb7eae8c958dcabbbf13240e6103d917fcc36bf0ad6b5500a; header "Preserved: 2026-09-25T22:50:33Z by .claude/hooks/dispatch_guard.py", HEAD 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f, target coder, type build). This is the hook's name, and it is free in this store. It was copied byte for byte (cmp) into this store. Planner's Agent call: B line 774, `toolu_015nUWMEw6qRpuH9zHn7tXue`, 2026-09-25T22:50:33.085Z.
+**Sweep:** none. On origin/main 68a1ef4 every store file is claimed. check_prompts.py in C failed only on -43, this dispatch's copy. `prompts/preserved/2026-09-25-44.md` appeared in C during this dispatch (the Fable review pulse, B line 802). Under coder.md item 9, it goes in the next dispatch's sweep, not here.
+**Stop and resume:** This coder first stopped before writing anything. The dispatch's two line citations did not match 68a1ef4, and its abort list allowed only the dispatch's name as a mismatch. The planner then ruled, by SendMessage (B line 786, `toolu_017PGNYbPcAfRN1yy3yfA2Ls`, 2026-09-25T22:52:12.316Z). Verbatim:
+
+> Planner ruling on your batch-5 stop: resume and do the batch as dispatched (option B).
+>
+> My line numbers were stale. You verified the behaviour at the correct lines, so this is line drift, not a mismatch.
+>
+> **Why this is my call:** earlier dispatches wrote their abort condition as "any Base-and-state mismatch other than the dispatch's name or line drift" (for example intent 2026-09-25-24's abort list). I left out "or line drift" here. That was an omission. It is not a scope change and it changes no closed decision.
+>
+> **Record it in the intent** under Baseline, as earlier intents did ("line drift, as recorded in the intent", for example 2026-09-25-23):
+> - history_guard.py `current_branch`: :219-226 at 68a1ef4 (the dispatch cited :209-216, which is 6a848ac's)
+> - session_agents.py's fallback: :252 (the dispatch cited :251)
+> - terminal -84's :251 has the same drift
+>
+> Quote this message verbatim per coder.md item 6.
+>
+> The intent claims -43, so no `stopped` note is needed. Everything else stands.
+
+  Both precedents were checked. Intent 2026-09-25-24's abort list (RECORD.md line 1512) reads "any Base-and-state mismatch other than the dispatch's name or line drift". Terminal 2026-09-25-23 (line 1435) reads "(line drift, as recorded in the intent)". The ruling answers the question this coder raised. It does not widen the scope or change a closed decision, so under item 6 no owner ruling is needed.
+**Change:**
+- `.claude/hooks/BYPASSES.md`: B-09's Status changes from `open` to `accepted`. Its Test cell and the "Known bypasses" citations of B-09 in history_guard.py and role_guard.py stay.
+- `.claude/hooks/history_guard.py`:
+  - The `-C` directory of the push check and of the `git merge` check (`dash_c`) is first expanded with `os.path.expanduser`, as now. If it does not start with `~` and is not absolute, it is then joined to the payload's cwd. A directory that is absolute, or starts with `~`, is used as it is after expansion.
+  - The docstring states this rule. It also gains one sentence: a quoted `~` in a `-C` path is expanded as well, unlike in the shell; such a command fails in git anyway, so the check errs toward reading the home-directory repo.
+- `session_agents.py`: docstring only. Rules 1 and 3 read the text with an optional leading "Error: " stripped, and the fallback prints the text's first line as it is, prefix included. No code change.
+- `.claude/hooks/tests/test_history_guard.py`: a new class with a fixture and three tests. The payload cwd is a temporary repo `outer` on branch `feature`. It holds two nested repositories: `outer/sub` on `main` and `outer/sub2` on `feature`. The hook process runs from the harness's default directory (run_hook's `cwd=None`, the test runner's own directory), which is not `outer`.
+  - `git -C sub push origin` is denied as a push from protected `main`. The test asserts "protected branch" and "which is main".
+  - `git -C sub merge x` is denied as a merge while on main. The test asserts "while on main".
+  - `git -C sub2 push origin feature` gets no decision.
+**Scope boundary:**
+- Files: the four named above, RECORD.md, and this store copy.
+- Not changed: session_agents.py's code; any guard's behaviour other than the `-C` resolution in history_guard; guardlib.py; the quoted-`~` behaviour; the checkers; CI; kit.json; release.json; README.
+- Out of scope: the quoted-`~` fix; the T3 backlog; D2 and D5; other PRs, tags, and deleting anything.
+- The merge: this PR only (kit-v0.2-batch5 -> main), with `--merge`, from C without `--repo`, as one Bash call, once CI is green on the final commit and after coder.md item 10's backup. Then C is updated by update_worktree.py (dry run, then `--apply`).
+**Baseline:**
+- ~/Zynergy/Claude-kit-fixes (a worktree of C) is on the new local branch `kit-v0.2-batch5`, made from origin/main 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f (PR #32 merge) after `git fetch`. `git ls-remote --tags origin` lists no tags.
+- The record's last entry is 2026-09-25-84. No intent is open, and check_record reports PASS.
+- C is on main at 68a1ef4. Untracked at the start: `.claude/worktrees/` and `prompts/preserved/2026-09-25-43.md` (then -44, see Sweep).
+- BYPASSES.md: B-09 is `open`. B-01 to B-08 are ruled (B-03 and B-05 `fixed`, the rest `accepted`).
+- history_guard.py at 68a1ef4:
+  - `current_branch` is at :219-226. It runs `git -C <directory>` with no `cwd=`, so a relative directory is read from the hook process's own directory. This is line drift: the dispatch cited :209-216, which is 6a848ac's position (planner ruling above).
+  - The merge check strips quotes from `dash_c` and expands `~` only (:505-506).
+  - The push check expands `~` only (:529-530).
+- session_agents.py: `denial` is at :240-252. Rules 1 and 3 test `bare`, with "Error: " stripped (:242-251), but the fallback returns `first_line(text)` on the unstripped text at :252. This is line drift: the dispatch cited :251. Terminal 2026-09-25-84's ":251" has the same drift.
+- The docstring (session_agents.py:33-47) says the text is read "with an optional leading "Error: " stripped" for every rule.
+- The harness: `run_hook(..., cwd=None)` (harness.py:71-80) runs the hook in the test process's directory. `bash()` (:94) puts the payload's cwd in the payload.
+- Counts at 68a1ef4, run in this worktree: hook tests "Ran 144 tests" OK; tests/ "Ran 94 tests" OK.
+**Closed decisions:** From B:
+- The owner's AskUserQuestion (tool_use `toolu_01MwHXYRCw46xn3adKK9sFPo`, B line 765, 2026-09-25T22:07:39.291Z; answered at line 766, 22:50:06.576Z). Chosen options, label and description verbatim:
+  - B-09: "Accept (Recommended)": "Documented, no fix. It needs a token passed by hand and a deliberate HTTP call, the same class as B-01/B-02 (wrappers and interpreters), which you accepted. Pattern-matching every HTTP client's syntax would be open-ended."
+  - Flags: "Fix the relative-path one, doc the rest (Recommended)": "One small task: history_guard resolves a relative `-C` path against the payload's cwd (a real wrong-repo risk, failing test first); the session_agents docstring is corrected to match the code; the quoted-`~` case is noted in history_guard's docstring. Done before the backlog task."
+- The planner's choices, per the dispatch: `~` expansion comes before relative resolution; the fixture layout.
+- B-11/B-13: coders merge at the planner's discretion. The merge rests on the dispatch's Merge section ("authorised: this PR only").
+- Owner messages in B after the dispatch call (line 774), read through line 809 before this entry: one. Line 798 (2026-09-25T22:52:43.216Z), verbatim: "Have a Fable 5.1 agent review our work for Opus 5.5 blind spots". It asks the planner for a review. It tells this coder nothing to do or not do in this scope, so it does not trigger the abort. The only planner message to this coder is the ruling quoted above.
+**Prediction (outcome — planner):** not authored
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit: the two relative-path deny tests fail. Today the hook reads `sub` from its own directory, which gives either "could not read the current branch" (a deny with the wrong reason) or no decision. The tests assert on the reason text, so they fail either way. The feature-branch test may pass or fail. Counts start from 144 hook tests and 94 tests/.
+- After the fix: all hook tests and tests/ pass. Render checks 30/30 and 13/13. Both checkers PASS. release_check PASS, 27 files, no denylist hit.
+- Revert check: history_guard.py from 68a1ef4 gives the same failures.
+**Prediction (mechanism — coder):**
+- New tests: 3 hook tests. None are added in tests/.
+- Tests-only commit, hook tests: "Ran 147 tests", "FAILED (failures=3)". The hook process's directory (the runner's own, the checkout root) has no `sub` or `sub2`. `current_branch` runs `git -C sub …` there, git exits 128 with "fatal: cannot change to 'sub': No such file or directory", and the error path runs (history_guard.py:219-226).
+  - Push from sub: denied "push blocked: could not read the current branch (fatal: cannot change to 'sub' …)" (:530-533). This is a deny with the wrong reason, so the test fails on the missing "protected branch".
+  - Merge in sub: denied "`git merge` blocked: could not read the current branch of sub (fatal: …)" (:507-510). The test fails on the missing "while on main".
+  - Push from sub2: the same "could not read" deny as the first, so the feature-branch test fails as well ("'deny' != None").
+- Tests-only commit, tests/: "Ran 94 tests", "FAILED (failures=1)", test_vendored_hook_tests_pass_in_the_adopter, which runs the vendored hook tests (the same 3 failures inside).
+- After the fix: hook tests "Ran 147 tests" OK; tests/ "Ran 94 tests" OK. Render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 13 checks failed". Both checkers PASS. release_check "PASS: 27 release file(s)" with no denylist match. The existing `~` tests pass, because a `~` path stays as expanded. The absolute `-C` test (test_merge_with_dash_c_uses_that_repository) passes, because an absolute path is not changed.
+- Revert check: history_guard.py from 68a1ef4 over the new tests gives "Ran 147 tests", "FAILED (failures=3)", the same three failures.
+**Finish line:**
+1. Pushed on kit-v0.2-batch5: (a) this store copy and intent; (b) the tests-only commit; (c) the fix (history_guard.py, the session_agents.py docstring, BYPASSES.md); (d) the terminal.
+2. CI green on the final commit.
+3. coder.md item 10's backup.
+4. The merge of this PR with `--merge`, from C without `--repo`, as one Bash call. Report the merge commit and its parents.
+5. C updated by update_worktree.py (dry run, then `--apply`), with both outputs reported.
+6. No tag.
+**Abort conditions:**
+- Any Base-and-state mismatch other than the dispatch's name or line drift (the planner's ruling above).
+- Any existing test failing after the fix.
+- A needed change to another guard's behaviour.
+- A failure for any reason other than the predicted one.
+- Two failed fixes on one symptom.
+- A denylist hit.
+- CI not green (no merge).
+- The merge denied by anything (quoted).
+- The dry run or `--apply` exiting 1.
+- An owner message after the dispatch that tells this coder to do or not do something in this scope.
+- A planner message that widens the scope without quoting an owner ruling.
