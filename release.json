@@ -24,7 +24,8 @@
     "find_dispatches.py",
     "update_worktree.py",
     "session_agents.py",
-    "launch_session.py"
+    "launch_session.py",
+    "run_exercise.py"
   ],
   "templates": {
     "templates/kit.json": ".claude/kit.json"
