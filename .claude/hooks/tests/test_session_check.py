@@ -162,6 +162,14 @@ class SessionCheck(unittest.TestCase):
         text = self.assertWarning(data)
         self.assertIn(".claude/hooks/role_guard.py", text)
 
+    def test_t8_update_worktree_present_is_named_in_the_advice(self):
+        write(self.repo, "update_worktree.py", "# the kit's worktree updater\n")
+        self.push_change("README.md", "readme v2\n")
+        _, data, _, _ = self.run_hook()
+        text = self.assertWarning(data)
+        self.assertIn("update_worktree.py", text)
+        self.assertIn("--apply", text)
+
 
 if __name__ == "__main__":
     unittest.main()
