@@ -744,3 +744,128 @@ Nothing was stopped. Owner messages: the planner log, read at 02:17Z, has 439 li
 - The wording of `STOP_RULE` after its required opening, and of each Blocked clause.
 - The new tests call T9's static fixture helpers rather than refactoring T9's class.
 - The docstring paragraph sits as an indented continuation of the planner bullet.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-13
+**Timestamp:** 2026-09-25T02:46:00Z
+**Title:** Claude-kit v0.2 T4: dispatch-note outcome `stopped`, a `continuation` entry kind, and the copy-versus-notes order written in coder.md
+**Dispatch-file:** preserved/2026-09-25-09.md
+**Dispatch source:** The dispatch hook (shared counter, `2026-09-25 09`) saved this dispatch in the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB as `prompts/preserved/2026-09-25-09.md` (9509 bytes, sha256 5318921e4071c52d7fe64947c5d2fbe023dff55abfeea453d53948b57958e53d; header "Preserved: 2026-09-25T02:42:03Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The text after the delimiter equals the prompt of the Agent call at line 493 (2026-09-25T02:42:03.614Z, tool_use `toolu_01VYbuv96qedcSyTkJ6YvkFX`, description "T4: record format changes", run_in_background true) of the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl (9320 characters on both sides, exact). The hook's name was free in this store, and the copy is byte for byte (cmp reports them identical).
+**Sweep:** None needed. Both checkers PASS at 4852368 with every store file claimed (24 dispatch-recording entries, 22 preserved files). D2 (`2026-09-25-02.md`) and D5 (`2026-09-25-05.md`) in the planner worktree stay cited, not copied. Its `-07.md` and `-08.md` are identical to the store's files of those names.
+**Change:**
+- `check_record.py`:
+  - `stopped` joins `NOTE_OUTCOMES`. Nothing else about notes changes.
+  - A new `continuation` kind with its own validation:
+    - Required fields: Kind, ID, Timestamp, Continues, Dispatch-file, Reason, Changes.
+    - Forbidden fields, each an error naming the field: Closes, Superseded-by, Outcome, Finish line, and the two prediction fields.
+    - A malformed ID is reported, and so is a duplicate ID, as for the other kinds.
+    - A position check on Continues, with errors naming the continuation and the value when the ID is unknown or is not an intent, when the intent appears later in the file, or when an earlier terminal already closed it.
+    - A continuation opens and closes nothing.
+  - A "Claude-kit v0.2 addition" paragraph in the module docstring.
+  - Render-check cases c24-c30, with `total = 30`.
+- `check_prompts.py`:
+  - A continuation may only claim a file under `preserved/`. The error mirrors the dispatch-note one.
+  - Render-check cases p9-p10, with `total = 10`.
+- `.claude/agents/coder.md`:
+  - Item 3's first sentence becomes the dispatch's text.
+  - Items 7-9 are added verbatim.
+- `docs/specs/2026-09-24-kit-v0.2-tasks.md`: T4's done-when cell only, replaced verbatim.
+**Scope boundary:** Files: `check_record.py`, `check_prompts.py`, `.claude/agents/coder.md`, and T4's done-when cell in `docs/specs/2026-09-24-kit-v0.2-tasks.md`. Record: this dispatch's store copy, this intent, and terminal 2026-09-25-14.
+
+No change to:
+- hooks
+- README (its stale "diff from upstream" counts are flagged, not fixed)
+- kit.json, install, release tooling or CI
+- any existing RECORD.md entry
+
+Also out of scope: T10, the T3 backlog, updating the planner worktree, merge, tag, and deleting anything. The T3-chain dry run is scratch under /tmp and is not committed.
+**Baseline:** ~/Zynergy/Claude-kit-fixes, local `kit-v0.2-t4` created from origin/main 4852368a1eb5d22c692ae0de87b3e2077460648f (PR #11 merge). `git fetch` at about 02:44Z showed no tags. The record's last entry is 2026-09-25-12 (terminal closing 2026-09-25-11), and no intent is open. Counts at 4852368:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 23 checks failed" and "PASS: 0 of 8 checks failed"
+- both checkers: PASS
+- release_check.py: "PASS: 19 release file(s), 4572 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 12, record 15, refused 3, stop 0" (refused: 2026-09-25-02, -05, -09, each "T1+: the hook's name; dated today"), exit 0
+
+The code premises were checked at 4852368:
+- check_record.py:106 is `NOTE_OUTCOMES = {"answered", "declined", "exercise"}`.
+- `validate_entries` spans :173-304. Any Kind other than `dispatch-note`, `intent` or `terminal` gets "missing or invalid Kind" (:205-208).
+- Terminal outcomes are not whitelisted. Only `superseded` and `abandoned` get extra field checks (:239-245).
+- The render check ends with `total = 23` (:1019).
+- In check_prompts.py, `dispatch_claims` (:128-140) counts every entry that has a Dispatch-file. The preserved-only rule applies to dispatch-notes only (:233-242), and the render check ends with `total = 8` (:481).
+
+The planner worktree is at d59280f, with D2, D5, -07, -08 and -09 untracked.
+**Closed decisions:**
+- The continuation's shape and the order rule's placement: the AskUserQuestion at planner log line 488 (2026-09-25T02:40:10.566Z, tool_use `toolu_01E3q3zA3jvafF7zKjozqQhQ`), answered at line 489 (02:41:10.740Z): "Your questions have been answered: \"What should the new continuation entry carry?\"=\"Light (Recommended)\", \"The order rule (sweep notes first, then one commit holding the dispatch's own copy and its intent or continuation). How is it held?\"=\"coder.md + amend (Recommended)\"."
+  - "Light (Recommended)" text from the tool_use input: "Kind `continuation`, with fields ID, Timestamp, Continues (an intent still open at that point), Dispatch-file (the new dispatch's copy), Reason (why the last dispatch stopped) and Changes (what this dispatch changes, or \"none\"). The scope, predictions and finish line stay the intent's; a change to those needs a new intent, closing the old one as superseded, as today. The intent's single terminal closes the whole chain. The checker rejects a continuation after the terminal, or one naming an ID that isn't an intent. Today's chain would have been one intent, three continuations and one terminal, instead of four intents and four terminals."
+  - "coder.md + amend (Recommended)" text from the tool_use input: "coder.md states the rule exactly. The checker enforces what one checkout can show: the intent's or continuation's Dispatch-file exists under preserved/, and no note claims the same file (both already enforced). T4's done-when is amended in T4's own commit to say the order is written, not machine-checked, and why (CI has one commit, no history), as T12's was."
+- This task: line 457 (2026-09-25T02:38:47.807Z), the owner's "Merged. Let's fo T4" (enqueued at line 455).
+- `stopped`: spec item 4 (`docs/specs/2026-09-24-kit-v0.2-spec.md:23`, "Record format: a dispatch-note outcome `stopped`; ..."), and the deferred list in intent 2026-09-23-07 (RECORD.md:202, "dispatch-note outcome `stopped`").
+- The planner's rules 1-4, as the dispatch states them in full. Rule 4 fixes the done-when text, which is committed together with the coder.md text before the tests-only commit.
+- Owner messages after line 493: an abort only if one tells the coder to do or not do something in T4's scope, or changes a decision above. Any other message is recorded in the terminal and the work continues. A planner message follows coder.md item 6.
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit: c24 fails on the Outcome error, and c25-c30 on the invalid Kind, so 7 of 30 fail. p9 fails through entry validation and p10 because nothing rejects it, so 2 of 10 fail. Hook tests (106) and tests/ (29) stay OK.
+- After the fix: 30/30 and 10/10. Both checkers PASS on the real record. 106 and 29 OK. release_check PASS with 19 files and no denylist hit.
+- Revert check: the same failures.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+(a) Tests-only commit. A new fixture helper `_minimal_continuation` (ID 2026-01-01-03, Continues 2026-01-01-01, Dispatch-file `preserved/2026-01-01-03.md`, Timestamp, Reason, Changes) sits beside `_minimal_note`. At 4852368, `validate_entries` sends any Kind other than the three known ones to :205-208, which appends "<id>: missing or invalid Kind (got 'continuation')" and skips the entry, so it is never in `entries`. So:
+- c24: `_validate_note` (:126-128) reports "Outcome 'stopped' is not one of ['answered', 'declined', 'exercise']", and the "no errors" assertion fails with it.
+- c25 and c30: the "no errors" assertion fails with the Kind message.
+- c26, c27, c28 and c29 assert error text naming the field, the value or the rule (for example "'Reason'", "closed", "not an intent", "'Closes'"). Each fails with a message listing only the Kind error.
+- c1-c23 are unchanged and pass.
+
+Result: "FAIL: 7 of 30 checks failed", exit 1.
+
+In check_prompts.py, p9 stores intent plus continuation claiming `preserved/2026-01-01-03.md`. That name is before the store-name cutoff, so exempt. Binding is clean, because `dispatch_claims` takes any entry with a Dispatch-file and the name has one claimant. Entry validation reports the invalid Kind, so p9 fails on its "not entry" assertion. p10 claims `recovered/2026-01-01-03.md`. The check at :233-242 tests only `cr.NOTE_KIND`, so binding has no error, and p10's assertion (an error naming 2026-01-01-03, "continuation" and "preserved/") fails. Result: "FAIL: 2 of 10 checks failed". p1-p8 pass.
+
+Hook tests and tests/ are unchanged: 106 and 29 OK. Neither runs the render checks (established at T2).
+
+(b) Fix.
+- `NOTE_OUTCOMES` gains `stopped`.
+- New constants `CONT_KIND`, `CONT_REQUIRED` and `CONT_FORBIDDEN`, and `_validate_continuation` for the ID format, required fields and forbidden fields.
+- `validate_entries` gets a continuation branch like the note branch (duplicate IDs are handled the same way), and appends the entry to `entries`.
+- After the loop, one pass over `entries` in file order checks each continuation's Continues against the first entry holding that ID:
+  - absent: unknown
+  - not Kind intent: not an intent
+  - its position after the continuation: appears later
+  - a terminal before the continuation whose Closes equals it: already closed, naming that terminal
+- `closed_ids` and `unterminated` still come only from terminals, so a continuation closes nothing, and c25 keeps its intent unterminated while c30's single terminal closes it.
+- `check_duplicate_terminals` and `check_superseded_by` look only at terminals and intents, so they are unaffected.
+
+In check_prompts.py the preserved-only test becomes `kind in (cr.NOTE_KIND, cr.CONT_KIND)`, with the message naming the kind. Expected results:
+- render checks: "PASS: 0 of 30" and "PASS: 0 of 10"
+- the real record: both checkers PASS, with no continuation in it and no `stopped` note
+- hook tests 106 and tests/ 29 OK
+- release_check: PASS with 19 files, a higher line count, and no denylist hit
+
+Revert check: check_record.py and check_prompts.py from origin/main against the committed render checks give 7 of 30 and 2 of 10 again. p9 and p10 run the reverted check_record through `import check_record as cr`, so both files are reverted together.
+
+(c) Scratch dry run under /tmp:
+1. Copy the tree without .git.
+2. Rewrite the T3 chain:
+   - intent 2026-09-24-14 stays
+   - 2026-09-25-02 and -04 become continuations of 2026-09-24-14, keeping their IDs and Dispatch-files (`preserved/2026-09-25-03.md`, `-04.md`)
+   - terminals 2026-09-25-03 and -05 are removed
+   - 2026-09-25-06 closes 2026-09-24-14
+3. `git init` and one commit, so the history walk is vacuous.
+
+Both checkers then PASS, and no intent is left unterminated.
+**Finish line:** Pushed on kit-v0.2-t4:
+1. this dispatch's store copy and this intent
+2. the coder.md text and the done-when amendment
+3. the tests-only commit
+4. the fix
+5. terminal 2026-09-25-14
+
+PR kit-v0.2-t4 -> main open, with CI green on its final commit. No merge, no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name
+- the real RECORD.md failing either checker after the fix
+- a needed change outside scope
+- a new case failing first for another reason
+- two failed fixes on one symptom
+- a denylist hit
+- an owner message after line 493 that qualifies under the rule in Closed decisions
