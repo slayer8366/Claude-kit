@@ -128,6 +128,17 @@ class Config(unittest.TestCase):
                 decision, reason = run_hook(hook, payload, config=config)
                 self.assertIsNone(decision, reason)
 
+    def test_c1_backup_dir_string_is_valid(self):
+        config = with_change(backup_dir="~/kit-backups")
+        for hook, payload in SILENT.items():
+            with self.subTest(hook):
+                decision, reason = run_hook(hook, payload, config=config)
+                self.assertIsNone(decision, reason)
+
+    def test_c2_backup_dir_not_a_string_blocks(self):
+        self.assertEveryHookBlocks(with_change(backup_dir=3),
+                                   "backup_dir must be a string")
+
     def test_null_package_is_valid(self):
         config = with_change(android_package=None)
         for hook, payload in SILENT.items():

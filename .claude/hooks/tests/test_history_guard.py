@@ -1,5 +1,7 @@
 """history_guard.py. Crafted Bash payloads, with cwd a throwaway
 repository checked out on main or on a feature branch."""
+import hashlib
+import json
 import shutil
 import subprocess
 import tempfile
@@ -146,6 +148,121 @@ class HistoryGuard(unittest.TestCase):
                               ("git push \\\norigin main", "main")):
             with self.subTest(command):
                 self.assertDenied(command, self.on_feature, word)
+
+
+def git_in(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), "-c", "user.name=t",
+                           "-c", "user.email=t@example.invalid"] + list(args),
+                          check=True, capture_output=True, text=True).stdout.strip()
+
+
+def sha256_of(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+class MergeRule(unittest.TestCase):
+    """The merge rule: a coder's PR merge passes only with a verified,
+    fresh backup under backup_dir. Each test gets its own bare origin, a
+    clone with origin/main fetched, and an empty backup directory."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="history_guard_merge_"))
+        self.origin = self.root / "origin.git"
+        self.work = self.root / "work"
+        self.backups = self.root / "backups"
+        self.backups.mkdir()
+        subprocess.run(["git", "init", "-q", "--bare", str(self.origin)], check=True)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(self.work)], check=True)
+        git_in(self.work, "commit", "-q", "--allow-empty", "-m", "base")
+        git_in(self.work, "remote", "add", "origin", str(self.origin))
+        git_in(self.work, "push", "-q", "origin", "main")
+        git_in(self.work, "fetch", "-q", "origin")
+        self.config = dict(TEST_CONFIG, backup_dir=str(self.backups))
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def write_backup(self, pr, index=True):
+        """A backup as coder.md item 10 describes it, for origin/main."""
+        folder = self.backups / f"2026-01-01-pr{pr}"
+        folder.mkdir()
+        sha = git_in(self.work, "rev-parse", "origin/main")
+        git_in(self.work, "bundle", "create", "-q", str(folder / "main.bundle"),
+               "origin/main")
+        (folder / "merge.json").write_text(json.dumps(
+            {"pr": pr, "branch": "main", "sha": sha, "bundle": "main.bundle"}))
+        (folder / "MANIFEST.sha256").write_text("".join(
+            f"{sha256_of(folder / name)}  {name}\n"
+            for name in ("merge.json", "main.bundle")))
+        with open(self.backups / "INDEX.md", "a") as f:
+            f.write(f"- {folder.name}: PR {pr}, main at {sha}\n" if index
+                    else "- some other backup\n")
+        return folder
+
+    def decide(self, command, who="coder", config=None):
+        return run_hook(HOOK, bash(command, who, cwd=str(self.work)),
+                        config=self.config if config is None else config)
+
+    def assertMergeDenied(self, command, *words, config=None):
+        decision, reason = self.decide(command, config=config)
+        self.assertEqual(decision, "deny", f"{command!r}: got {decision!r} {reason}")
+        for w in words:
+            self.assertIn(w, reason, command)
+
+    def test_m1_coder_merge_commit_with_valid_backup_allowed(self):
+        self.write_backup(12)
+        decision, reason = self.decide("gh pr merge 12 --merge")
+        self.assertIsNone(decision, reason)
+
+    def test_m2_coder_squash_with_valid_backup_allowed(self):
+        self.write_backup(12)
+        decision, reason = self.decide("gh pr merge 12 --squash")
+        self.assertIsNone(decision, reason)
+
+    def test_m3_backup_dir_unset_denied(self):
+        self.write_backup(12)
+        self.assertMergeDenied("gh pr merge 12 --merge", "(c) config", "backup_dir",
+                               config=TEST_CONFIG)
+
+    def test_m4_no_backup_for_that_pr_denied(self):
+        self.write_backup(7)
+        self.assertMergeDenied("gh pr merge 8 --merge", "(d) backup", "merge.json")
+
+    def test_m5_bundle_altered_after_manifest_denied(self):
+        folder = self.write_backup(12)
+        with open(folder / "main.bundle", "ab") as f:
+            f.write(b"x")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup", "MANIFEST.sha256")
+
+    def test_m6_origin_moved_since_backup_denied(self):
+        self.write_backup(12)
+        git_in(self.work, "commit", "-q", "--allow-empty", "-m", "later")
+        git_in(self.work, "push", "-q", "origin", "main")
+        git_in(self.work, "fetch", "-q", "origin")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness")
+
+    def test_m7_index_without_the_folder_denied(self):
+        self.write_backup(12, index=False)
+        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup", "INDEX.md")
+
+    def test_m8_forms_denied_by_name(self):
+        self.write_backup(12)
+        for command, word in (("gh pr merge 12 --rebase", "--rebase"),
+                              ("gh pr merge 12 --merge --auto", "--auto"),
+                              ("gh pr merge 12 --merge --admin", "--admin"),
+                              ("gh pr merge 12 --merge --delete-branch", "--delete-branch"),
+                              ("gh pr merge 12 --merge -R x/y", "-R"),
+                              ("gh pr merge --merge", "pull request number"),
+                              ("gh pr merge 12 --merge && echo done", "one command")):
+            with self.subTest(command):
+                self.assertMergeDenied(command, "(b) form", word)
+
+    def test_m9_planner_and_pulse_denied_even_with_a_backup(self):
+        self.write_backup(12)
+        for who in (None, "pulse"):
+            with self.subTest(who):
+                decision, _ = self.decide("gh pr merge 12 --merge", who)
+                self.assertEqual(decision, "deny")
 
 
 if __name__ == "__main__":
