@@ -41,15 +41,28 @@ are the config's protected_branches. Blocked:
 - git push to a protected branch: an explicit refspec naming one, --all or
   --mirror, or a push with no refspec (or HEAD) while on one;
 - gh pr merge, unless the merge rule above lets it through;
+- a `gh api` call that writes to a pull request's merge endpoint;
 - git filter-repo and git filter-branch.
 
-Force, gh pr merge and the filters match the whole command text. Push
+The merge endpoint. A `gh api` call to a pull request's merge endpoint,
+`repos/<owner>/<repo>/pulls/<N>/merge` with or without a leading `/`, is
+denied for every role when it would write: `-X`/`--method` with a method
+other than GET, a field flag (`-f`, `-F`, `--field`, `--raw-field`), or
+`--input`. It is denied outright, not tested against the merge rule: the
+one allowed route to merge is `gh pr merge` under that rule. A plain GET,
+which only checks whether the pull request is merged, is let through.
+
+Force, gh pr merge, the merge endpoint and the filters match the whole
+command text. Push
 refspecs and the merge branch check are parsed per command segment, so a
 command hidden in a quoted string (sh -c '...') is seen by the first group
 and not by the second.
 
 Before the push check parses a command, heredoc bodies are removed. For
-each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"`, the lines after that
+each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"` that stands outside
+single quotes, double quotes and `#` comments (the states that separate
+commands below, carried from one kept line to the next; a marker inside
+quotes or a comment opens nothing), the lines after that
 line, up to and including the first line that is only WORD (after `<<-`,
 leading tabs are allowed), are data, not commands, and are dropped. A
 heredoc with no such closing line is not removed. Newlines outside quotes
@@ -60,7 +73,7 @@ then `push`). Any other unparseable command is let through by this check.
 The force, `gh pr merge`, filter and merge checks above still read the
 whole, unstripped text.
 
-Known bypasses: .claude/hooks/BYPASSES.md B-01, B-02, B-03, B-04, B-05
+Known bypasses: .claude/hooks/BYPASSES.md B-01, B-02, B-04
 """
 import hashlib
 import json
@@ -91,19 +104,59 @@ MERGE = re.compile(r"\bgit\b((?:\s+(?:-C\s+\S+|-c\s+\S+|--no-pager))*)\s+merge\b
 PUSH_OPTS_WITH_VALUE = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
 GIT_PUSH = re.compile(r"\bgit\b" + GIT_OPTS + r"\s+push\b")
 HEREDOC = re.compile(r"<<(-?)(['\"]?)(\w+)\2")
+# The merge endpoint check: a gh api call's text (up to ; & |, as PR_MERGE),
+# the endpoint in it, and the flags that make the call a write.
+GH_API = re.compile(r"\bgh\b[^;&|]*?\sapi\b[^;&|]*")
+MERGE_ENDPOINT = re.compile(
+    r"(?<![\w-])/?repos/[^\s/'\"]+/[^\s/'\"]+/pulls/[^\s/'\"]+/merge(?![\w/.-])")
+API_METHOD = re.compile(r"(?<![^\s'\"])(?:-X|--method)(?:=|\s+)?['\"]?([A-Za-z]+)")
+API_WRITE_FLAG = re.compile(
+    r"(?<![^\s'\"])(-[fF]|(?:--field|--raw-field|--input)(?=[\s='\"]|$))")
+
+
+def heredoc_markers(line, quote):
+    """(the HEREDOC matches on line that start outside quotes and # comments,
+    the quote state at the line's end). quote is the state the line starts
+    in. The states and their changes are command_lines'."""
+    code, i, n = set(), 0, len(line)
+    while i < n:
+        c = line[i]
+        if quote == "'":
+            if c == "'":
+                quote = None
+        elif quote == '"':
+            if c == "\\" and i + 1 < n:
+                i += 1
+            elif c == '"':
+                quote = None
+        elif c == "\\" and i + 1 < n:
+            i += 1
+        elif c in "'\"":
+            quote = c
+        elif c == "#":
+            break
+        else:
+            code.add(i)
+        i += 1
+    return ([m for m in HEREDOC.finditer(line)
+             if m.start() in code and m.start() + 1 in code], quote)
 
 
 def strip_heredocs(command):
     """The command with heredoc bodies removed, per the module docstring:
-    for each heredoc operator, the lines after its line up to and including
-    the first line that is only WORD (leading tabs allowed after <<-). A
-    heredoc with no closing line is kept."""
+    for each heredoc operator outside quotes and # comments, the lines after
+    its line up to and including the first line that is only WORD (leading
+    tabs allowed after <<-). A heredoc with no closing line is kept. The
+    quote state carries from one kept line to the next; dropped lines are
+    data and change no state."""
     lines = command.split("\n")
     drop = set()
+    quote = None
     for i, line in enumerate(lines):
         if i in drop:
             continue
-        for m in HEREDOC.finditer(line):
+        markers, quote = heredoc_markers(line, quote)
+        for m in markers:
             tabs_ok, word = m.group(1), m.group(3)
             for j in range(i + 1, len(lines)):
                 if (lines[j].lstrip("\t") if tabs_ok else lines[j]) == word:
@@ -395,6 +448,23 @@ def merge_problem(payload, command, cwd):
     return None
 
 
+def merge_endpoint_write(command):
+    """(endpoint, what makes it a write) for a gh api call that writes to a
+    pull request's merge endpoint, per the module docstring, else None."""
+    for span in GH_API.finditer(command):
+        text = span.group(0)
+        endpoint = MERGE_ENDPOINT.search(text)
+        if not endpoint:
+            continue
+        for m in API_METHOD.finditer(text):
+            if m.group(1).upper() != "GET":
+                return endpoint.group(0), f"method {m.group(1)}"
+        m = API_WRITE_FLAG.search(text)
+        if m:
+            return endpoint.group(0), f"`{m.group(1)}`"
+    return None
+
+
 def guard(payload):
     if payload.get("tool_name") != "Bash":
         return None
@@ -410,6 +480,12 @@ def guard(payload):
         problem = merge_problem(payload, command, cwd)
         if problem:
             return ("deny", f"history_guard: `gh pr merge` denied, {problem}")
+    found = merge_endpoint_write(command)
+    if found:
+        return ("deny", f"history_guard: `gh api` write to a pull request's merge "
+                        f"endpoint ({found[0]}, {found[1]}) is denied for every role. "
+                        f"The one allowed route to merge is `gh pr merge`, under the "
+                        f"merge rule (T17: role, form, backup, freshness).")
     m = FILTERS.search(command)
     if m:
         return ("deny", f"history_guard: `git {m.group(1)}` rewrites history and "
