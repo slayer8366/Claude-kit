@@ -2626,3 +2626,29 @@ check_record.py has no dispatch-note Outcome for an executed build that opened n
 - **Mechanism prediction placement.** check_record.py forbids prediction fields in a continuation (:158-160), so this coder's mechanism prediction is in -63's Changes field.
 - **Backup before this terminal.** The dispatch lists the backup after this entry's CI. coder.md item 10 asks the terminal to cite the backup folder, so, as in -37 and -58, the backup was written after CI was green on 4b521cd and before this entry. The merge still waits for CI on this entry's commit; the freshness check compares only origin/main's SHA, which a commit on this branch does not move.
 - Scratch left in place, nothing deleted: the extracts at4497 and ata94f and this draft, under /tmp/claude-1000/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e/scratchpad/.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-65
+**Dispatch-file:** preserved/2026-09-25-30.md
+**Type:** build
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Have a coder move the three untracked copies in ~/Zynergy/Claude-kit aside and pull main up to db742d2" at 2026-09-25T17:15:34.928Z (line 267); the Agent call at 17:15:53.434Z (line 270, to `coder`, tool_use `toolu_01WnkPyLRM6KuZXFW8Y3rEAw`, description "Move store copies, pull main checkout", foreground); its hand-back from agent a07464304992359c0, a `queued_command` attachment with `origin.handback` true at 17:17:25.766Z (line 276); the Agent result at 17:17:27.959Z (line 275).
+**Observed:** `prompts/preserved/2026-09-25-30.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (4044 bytes, sha256 73b02adcafcbad5a1309c6a495c3a04da7f157b3b2de1f6cd7c96bb356316a9a; header "Preserved: 2026-09-25T17:15:53Z by .claude/hooks/dispatch_guard.py", HEAD 1599a53975b8f980035c594d52f7d125de768370, target coder, type build). Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the Agent call at line 270 byte for byte (3861 characters).
+
+This was the owner-requested move-and-pull of the main checkout. It opened no intent and handed its recording to this sweep, as -28 did (2026-09-25-62). It ran to its end and reported. From the hand-back: the three untracked store copies -27, -28 and -29, each byte-identical to origin/main's copy, were moved (not deleted) into ~/forager-backups/2026-09-25-13/ with a MANIFEST.sha256 that checks OK and one new INDEX.md line; then `git pull --ff-only` printed "Updating 1599a53..db742d2 / Fast-forward" and exited 0. No hook denied anything; it wrote no entry, commit, push, branch or merge, and deleted nothing. This coder saw the main checkout on main at db742d2 with -30, -31 and -32 untracked, as the dispatch for T6 says.
+
+The outcome is `answered`, as in 2026-09-25-62: check_record.py has no dispatch-note Outcome for an executed build that opened no intent (NOTE_OUTCOMES, check_record.py:120), and `answered` means the dispatch ran to its end and reported (the owner's meaning at 2026-09-25-40).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-25-66
+**Dispatch-file:** preserved/2026-09-25-31.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit/2d9316b0-e46a-5c35-b7e4-125fac5c9a3e.jsonl: the owner's "Go ahead" at 2026-09-25T17:20:49.817Z (line 285), answering the planner's "Should I prepare the T6 dispatch?" at 17:17:33.753Z (line 282); the Agent call at 17:21:19.388Z (line 296, to `pulse`, tool_use `toolu_01DP365HjxY9NxpTmTsUCeKu`, description "T6 pulse: session log format", foreground); its hand-back from agent aec423ac382f3ba0d, a `queued_command` attachment with `origin.handback` true at 17:34:22.405Z (line 302); the Agent result at 17:34:24.611Z (line 301).
+**Observed:** `prompts/preserved/2026-09-25-31.md` from the main checkout ~/Zynergy/Claude-kit, under the hook's name (3981 bytes, sha256 29cdcc39c374458ec10ad23a647b7e99b4a1b605c805c72ab2bd8f2f97e14105; header "Preserved: 2026-09-25T17:21:19Z by .claude/hooks/dispatch_guard.py", HEAD db742d2bd6f0926d908ad5919f9fc28806a68547, target pulse, type pulse). Copied byte for byte (cmp). Its text after the delimiter equals the prompt of the Agent call at line 296 byte for byte (3800 characters).
+
+A read-only pulse on the session-log format, for the T6 dispatch: how Agent calls, launch and foreground results, completion notices, hand-backs and SendMessages appear in a session log, how a resume rewrites a log, and where subagent transcripts sit. It answered with a "Pulse report: session-log facts for the T6 dispatch" read at HEAD db742d2. It disclosed that the harness saved some of its large grep outputs as files under the session's `tool-results/` directory.
