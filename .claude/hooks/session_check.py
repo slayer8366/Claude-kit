@@ -25,7 +25,11 @@ The rule:
    `{"hookEventName": "SessionStart", "additionalContext": <the full text>}`.
    The full text holds the differing paths, the commit count, and, as advice
    that is never run, `git -C <toplevel> fetch && git -C <toplevel> merge
-   --ff-only origin/<branch>`. If `.claude/settings.json` differs it adds
+   --ff-only origin/<branch>`. If `<toplevel>/update_worktree.py` is a file,
+   the advice is instead `python3 <toplevel>/update_worktree.py <toplevel>`
+   (dry run), then the same with `--apply`, which moves aside untracked
+   copies that the branch now tracks, then fast-forwards. If
+   `.claude/settings.json` differs it adds
    "settings.json differs: start a new session after updating, since hooks
    are read at session start". When nothing differs it prints nothing.
 5. Never block. It always exits 0, and reports any internal error as a
@@ -45,6 +49,7 @@ HOOK = "session_check"
 PATHS = [".claude/hooks", ".claude/agents", ".claude/settings.json", ".claude/kit.json"]
 SETTINGS = ".claude/settings.json"
 LOCK = ".claude/kit.lock"
+UPDATER = "update_worktree.py"
 RESTART = ("settings.json differs: start a new session after updating, since "
            "hooks are read at session start")
 GIT_TIMEOUT = 20
@@ -154,8 +159,14 @@ def check(payload):
     text = [f"Claude-kit {HOOK}: this session's hooks may be stale. Claude Code read "
             f"them from {top} when the session started."]
     text += lines + lock
-    text.append(f"To update (advice; not run by the hook): git -C {top} fetch && "
-                f"git -C {top} merge --ff-only {ref}")
+    updater = os.path.join(top, UPDATER)
+    if os.path.isfile(updater):
+        text.append(f"To update (advice; not run by the hook): `python3 {updater} {top}` "
+                    f"(dry run), then the same with `--apply`. It moves aside untracked "
+                    f"copies that the branch now tracks, then fast-forwards.")
+    else:
+        text.append(f"To update (advice; not run by the hook): git -C {top} fetch && "
+                    f"git -C {top} merge --ff-only {ref}")
     if SETTINGS in paths:
         text.append(RESTART)
     if not ref_exists:

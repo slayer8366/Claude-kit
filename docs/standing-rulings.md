@@ -298,6 +298,7 @@ owner's yes, no or changed wording before it moves to Part A.
   owner's statement was in the a5d14103 handover, not in the record.
 - **Supersedes:** B-07, whose proposed ruling reads: "Only the owner merges a
   pull request. No agent merges."
+- **Superseded-by:** B-13
 
 ### B-12. Agents delete nothing
 
@@ -332,8 +333,81 @@ owner's yes, no or changed wording before it moves to Part A.
   agent may delete its own scratch files under `/tmp`, provided each deletion
   is reported in its hand-back."
 
+### B-13. Coders merge at the planner's discretion, after a backup
+
+- **Proposed ruling:** In the owner's words (planner log 791cc457 line 712):
+  "coders should be able to merge at the discretion of the planner. All
+  merged work must contain a backup, so any merge should be able to be undone
+  by the owner later on". The backup: before merging, the coder writes a git
+  bundle of the target branch as it stands, with the pre-merge SHA and the PR
+  number, in a new ~/forager-backups folder with MANIFEST.sha256 and one
+  INDEX.md line. history_guard checks it.
+- **Source:** As B-11: the owner, planner log 791cc457 line 712
+  (2026-09-25T03:33:54.808Z), point 2, and the owner's answers at line 717
+  (03:34:45.988Z) to the questions at line 716: "Bundle in forager-backups
+  (Recommended)", "history_guard checks (Recommended)" and "Next, after T13
+  (Recommended)". The owner approved B-11's ruling wording at line 903
+  (05:07:45.503Z, "That works as written"). Recorded in 2026-09-25-24. These
+  line numbers are those of the planner log before the session was resumed
+  at 2026-09-25T10:22Z; the resumed file numbers its lines differently (line
+  712 is now line 467), so the timestamps identify the messages. This entry
+  replaces B-11 on the owner's "do 1 and 2 together sequentially, then 3"
+  (line 785 of the resumed file, 2026-09-25T10:25:43.347Z), recorded in
+  2026-09-25-38.
+- **Scope:** Merges of pull requests into the protected branch.
+- **Enforced by:** Code, history_guard.py at 22723e0. A `gh pr merge` command
+  is denied unless every condition of the merge rule holds (stated in the
+  docstring, history_guard.py:3-30; combined in `merge_problem`, :381-393,
+  called from `guard` at :407-410), and each denial names the condition that
+  failed:
+  - (a) role: the caller's role is `coder`; the main session, the planner,
+    is denied (`merge_role_problem`, :224-234).
+  - (b) form: one command, `gh pr merge <N>` with exactly one of
+    `--merge`/`-m` or `--squash`/`-s`; `--rebase`, `--auto`, `--admin`,
+    `--delete-branch`, `--repo`, unknown flags and a missing N are denied
+    (`merge_form`, :237-276).
+  - (c) config: `backup_dir` is set in kit.json (`merge_backup_problem`,
+    :289-292).
+  - (d) backup: exactly one folder directly under `backup_dir` holds a
+    merge.json for PR N; its MANIFEST.sha256 lists and matches merge.json
+    and the bundle; `git bundle list-heads` lists the pre-merge SHA; and
+    INDEX.md has a line naming the folder, `#N` and the SHA (:293-366).
+  - (e) freshness: `origin/<branch>` in the payload's cwd equals merge.json's
+    SHA (:368-377).
+
+  And by coder.md item 10 (coder.md:80-90 at 22723e0): the coder merges only
+  if the dispatch's `Merge` section reads `authorised`, fetches first, writes
+  the backup, merges by pull request number with a merge commit or a squash,
+  and cites the backup folder in its terminal.
+- **Evidence:** The four coder merges so far, each after a backup in
+  ~/forager-backups:
+  - #17 (kit-v0.2-wt-move), merged 2026-09-25T08:20:26Z as 80f3f8c; backup
+    `2026-09-25-03`, pre-merge SHA 8b1c88a; terminal 2026-09-25-31
+    (RECORD.md:1787).
+  - #19 (kit-v0.2-t5), merged 2026-09-25T08:58:27Z as 2e37dfc; backup
+    `2026-09-25-04`, pre-merge SHA 80f3f8c; terminal 2026-09-25-33
+    (RECORD.md:1852).
+  - #20 (kit-v0.2-update-wt), merged 2026-09-25T09:53:21Z as 3847590; backup
+    `2026-09-25-05`, pre-merge SHA 2e37dfc; terminal 2026-09-25-35
+    (RECORD.md:1911).
+  - #21 (kit-v0.2-wt-update), merged 2026-09-25T10:12:32Z as 22723e0; backup
+    `2026-09-25-07`, pre-merge SHA 3847590; terminal 2026-09-25-37
+    (RECORD.md:1981).
+- **Supersedes:** B-11, whose proposed ruling reads: "In the owner's words
+  (planner log 791cc457 line 712): "coders should be able to merge at the
+  discretion of the planner. All merged work must contain a backup, so any
+  merge should be able to be undone by the owner later on". The backup:
+  before merging, the coder writes a git bundle of the target branch as it
+  stands, with the pre-merge SHA and the PR number, in a new ~/forager-backups
+  folder with MANIFEST.sha256 and one INDEX.md line. history_guard checks
+  it." Its "Enforced by" read: "Not yet. Today history_guard blocks `gh pr
+  merge` for every role, the coder included (history_guard.py:192-194 at
+  742d10f). Task T17 adds the check: the coder only, a backup for that PR
+  indexed with a passing manifest, and its SHA equal to the branch tip."
+
 ## Superseded rulings
 
 - SR-02, superseded by SR-04.
 - B-01, superseded by B-12.
 - B-07, superseded by B-11.
+- B-11, superseded by B-13.
