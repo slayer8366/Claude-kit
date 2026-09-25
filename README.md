@@ -423,7 +423,13 @@ prompt and the prompt is denied. In the v0.1 exercise, run by hand, the
 owner declined it, and the log showed `toolDenialKind` "user-rejected". An
 automatic denial proves the same thing, that the build did not run without
 approval, but its `toolDenialKind` may differ, so the runner does not
-require a particular value.
+require a particular value. In the first run of this runner (Claude Code
+2.1.282, 2026-09-25) it was "permission-rule", the same value as a hook
+block, with the result text "Permission for this tool use was denied. It
+requires approval, and this session has no approval surface — nobody can
+answer a permission prompt here — so it was denied automatically." So
+`toolDenialKind` alone does not tell an unanswered approval from a hook
+block; dispatch_guard's `ask` decision, logged before the denial, does.
 
 The output is `<out-dir>/evidence.txt`, one line per case, and the same lines
 on stdout:
