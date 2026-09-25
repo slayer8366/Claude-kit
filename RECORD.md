@@ -1053,3 +1053,49 @@ PR kit-v0.2-rulings -> main open, with CI green on its final commit. No merge, n
 - a denylist hit
 - any needed change outside scope
 - an owner message after line 595 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-16
+**Timestamp:** 2026-09-25T03:23:59Z
+**Closes:** 2026-09-25-15
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (standing rulings, `preserved/2026-09-25-10.md`)
+**Observed:** Pushed on kit-v0.2-rulings (a new remote branch):
+- 30d0321: store copy `2026-09-25-10.md`, byte-identical to the planner worktree's (sha256 719bcb14...d87d), and intent 2026-09-25-15.
+- f8d0d80: new `docs/standing-rulings.md` (243 lines) and the coder.md paragraph.
+  - coder.md: one paragraph after the base-verification paragraph (new lines 29-32). The path and `Accepted:` are formatted as code; with the backticks removed, the unwrapped text equals the owner's line-584 sentence exactly.
+  - The file follows the dispatch's items 1-10. Each source, line reference and enforcement claim was re-read at 82725c4 (hooks, checkers, install.py, tests, RECORD.md) or in the planner logs, and is cited in the file. SR-03's "Enforced by: Unverified." is kept as drafted.
+
+Facts that differ in detail from the draft or the dispatch's pointers, recorded here and corrected in the file. None changes a ruling's meaning:
+- B-02: intent 2026-09-23-06 (abort conditions at RECORD.md:177) has no two-failed-fixes clause. Every other intent from 2026-09-23-01 to 2026-09-24-11 has one, and so does every intent since, up to 2026-09-25-13.
+- B-07: "No merge, no tag" appears in every build dispatch in the store from 2026-09-23-07 on. The v0.1 build dispatches 2026-09-23-01 to -06 do not prohibit merging. The "planner's handover" is the handover message at planner log line 25 (2026-09-24T22:31:06.080Z). It says "GitHub does not protect main" and "Coders never merge or tag."; the file cites it and says it is not in the record. GitHub's branches API gave `"protected": false` for main. The file says this was read "at about 03:25Z", a mis-estimate made before checking the clock: the read came between the intent (03:15:02Z) and 03:24Z. The file is not changed for this, since it is append-only and the finish line puts it in one commit. The rulesets API returned 403 ("Upgrade to GitHub Pro or make this repository public").
+- B-01: the deletion of `/tmp/t9_fd.txt` is only in the second T9 coder's hand-back (planner log line 356, 01:38:40.773Z, agent a13b0028...). Terminal 2026-09-25-08 does not mention it. The first T9 coder, D5 (agent a19d108c..., hand-back at line 339, 01:25:48.017Z), listed the same path as its own scratch file. The file says it is not established whose file was deleted.
+- SR-01: no hook under `.claude/hooks/` mentions `tag`, not only history_guard.py and role_guard.py. settings.json has no permissions block.
+- SR-02: the sabotage claim is confirmed at RECORD.md:80 (2026-09-23-02's Observed).
+
+Checks at f8d0d80:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 14, record 15, refused 3, stop 0"
+- `grep -c '^\*\*Accepted:\*\*' docs/standing-rulings.md`: 0
+- grep for "DRAFT" and for "2026-09-24-12 up to" in the file: no match (exit 1)
+
+Stop and resume: this coder first stopped on the draft's line count (111, not 112) before writing anything. The planner's message at log line 625, quoted in the intent, settled it, and the work continued under the intent.
+
+Owner messages after this dispatch's Agent call (line 595): the planner log, read at 03:24Z, has 642 lines. It holds three owner messages. None tells this coder to do or not do anything in this scope, so each is recorded here and the work continued:
+- line 605 (2026-09-25T03:04:40.463Z): "All are approved"
+- line 623 (03:12:05.411Z): "yes, send it please", approving the planner's message at line 625
+- line 631 (03:20:52.054Z): "If anything can be sent to a second coder while the other one works, that is fine too."
+
+The only planner message that reached this coder is the one at line 625. The planner dispatched a pulse at line 635 (03:21:28.903Z, "Pulse: T13 and T5 design facts"). The hook saved it in the planner worktree as `prompts/preserved/2026-09-25-11.md` (3521 bytes, sha256 4cff14be...c6df). Per coder.md item 9 its note goes in the next dispatch's sweep; it is not copied here.
+**Deviations:**
+- None from the finish line up to this entry. The PR and CI status on the final commit are reported in the hand-back.
+- The planner's prediction held.
+- The intent's mechanism prediction held except for find_dispatches' refused count. It predicted "refused 2" and got "refused 3": this dispatch's copy left the refused list as predicted, but the pulse's `2026-09-25-11.md`, saved during this dispatch, joined it.
+- release_check's 4845 lines is within the predicted 4846 ±1.
+- Wording choices the dispatch did not fix are listed in the hand-back under Decisions I made. These include the proposed-ruling and scope text for B-05 to B-10, the corrected evidence lines, and coder.md line citations marked "at 82725c4".
