@@ -23,7 +23,7 @@ source files unchanged; later steps make them generic.
 | `templates/` | files an install writes only when absent | yes |
 | `install.py`, `release.json` | vendors a tag into an adopter; the release set | no |
 | `release_check.py` | scans the release set against the workshop denylist | no |
-| `tests/` | install, drift, release-check and find_dispatches tests | no |
+| `tests/` | install and drift (`test_install.py`), release_check (`test_release_check.py`), find_dispatches (`test_find_dispatches.py`) and update_worktree (`test_update_worktree.py`) tests | no |
 | `workshop/` | private sources, drafts and the release denylist | no |
 | `RECORD.md`, `prompts/`, `docs/` | this repository's own record | no |
 
@@ -189,8 +189,11 @@ The rules are in the script's docstring.
     python3 check_prompts.py --render-check
     python3 -m unittest discover -s tests
 
-`tests/` (install, drift and release checks) is not released. The install
-tests tag only a throwaway copy of this repository, never this repository.
+`tests/` is not released. It holds four test files: `test_install.py`
+(install and drift), `test_release_check.py` (release_check),
+`test_find_dispatches.py` (find_dispatches) and `test_update_worktree.py`
+(update_worktree). The install tests tag only a throwaway copy of this
+repository, never this repository.
 
 The hook tests never read the repository's own `kit.json`: the harness copies
 the hooks into a temporary `.claude/hooks/` with a test config beside them.
