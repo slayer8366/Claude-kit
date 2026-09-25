@@ -1399,3 +1399,44 @@ PR #14 then shows CI green on the new final commit. No new PR, no merge, no tag.
 - two failed fixes on one symptom (then data only)
 - a needed change outside scope
 - an owner message after line 782 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-23
+**Timestamp:** 2026-09-25T04:38:37Z
+**Closes:** 2026-09-25-22
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T13 follow-up 2, `preserved/2026-09-25-14.md`)
+**Observed:** Pushed on kit-v0.2-t13:
+- d2fb02b: store copy `2026-09-25-14.md`, byte-identical to the planner worktree's (sha256 988ee935...5de0), and intent 2026-09-25-22.
+- b4be5a4: tests only. tests/test_install.py gains u10 (`test_u10_lock_path_checked_where_it_lands`) in `Upgrade`, with subTests "dot_record" (`./RECORD.md`), "dot_prompts" (`./prompts/x.md`), "symlinked_dir" (`ext/outside.txt`, where the adopter's `ext` is a symlink to `<case>/outside_dir`) and "double_slash_prompts" (`prompts//x.md`). Each builds its own kit copy and adopter in `self.root/<case>`. For "symlinked_dir" it asserts that the link's parent and the link's resolved target lie under the temporary root. Each subTest asserts that its file resolves under the temporary root, adds the key with the file's sha256 to the installed lock, tags the second release with a changed hook, and upgrades. It asserts, in order: exit 1, the file exists, its bytes are unchanged, and stderr names `.claude/kit.lock` and the key.
+- a4616cc: the fix. `lock_path_problem(path, target)`: the absolute, drive-letter and `..` checks are unchanged. `posixpath.normpath(path)` equal to `.` or empty gives "names the target itself", and adopter-owned gives "owned after normalising". `(target / path).resolve().relative_to(target.resolve())` raising ValueError gives "resolves outside the target", and a relative path that is adopter-owned gives "resolves to an owned path". `read_lock` passes `target`. The stop message is unchanged. The docstring sentence now names normalising and resolving, and `import posixpath` is added.
+
+Tests-only commit, against install.py at dc0ad41: "Ran 39 tests", "FAILED (failures=3)". The failures were dot_record, dot_prompts and symlinked_dir, each "AssertionError: 0 != 1 : install.py: installed v0.0.1-test into ...", as predicted; double_slash_prompts passed. u10 alone showed the upgrade printing "removed ./RECORD.md", "removed ./prompts/x.md" and "removed ext/outside.txt", all under the test's temporary root, which tearDown removed. Hook tests: 106 OK. CI on b4be5a4 (runs 36095090555 push, 36095093101 pull_request) failed with the same 3 failures on both Python 3.8 and 3.14, so symlinks were created on both.
+
+After the fix (a4616cc):
+- tests/: "Ran 39 tests" OK; u9 passes.
+- A run of u9 and u10 with the second upgrade's stderr printed showed, one per subTest: "absolute path", "has a '..' part", "RECORD.md: owned after normalising" (u9), "./RECORD.md: owned after normalising", "./prompts/x.md: owned after normalising", "ext/outside.txt: resolves outside the target", "prompts//x.md: owned after normalising"; each exit 1.
+- hook tests: "Ran 106 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match." (unchanged)
+- find_dispatches.py: "Counts: in-store 18, record 15, refused 2, stop 0"
+- both checkers: PASS before each RECORD.md commit (48 entries and preserved=28 after the intent; 49 entries with this terminal)
+- CI on a4616cc: runs 36095183109 (push) and 36095185845 (pull_request) succeeded.
+
+Revert check: a4616cc's tree was extracted to /tmp/t13fu2_revert_2ZOb, with install.py replaced by dc0ad41's (diff empty). Result: "Ran 39 tests", "FAILED (failures=3)", the same three subTests with "0 != 1". This coder made that directory and deleted it.
+
+Messages after this dispatch's Agent call (line 782): the planner log, read before this entry, has 809 lines. Line 794 is the planner's proposal to the owner, line 801 the owner's "Send it", and line 803 the planner's ruling, quoted in the intent. Lines 804-809 hold no further owner message and no further planner message to this coder; line 809 is the planner's note to the owner that the ruling was sent.
+**Deviations:**
+- The dispatch's subTest (b) `prompts//x.md` was replaced by `./prompts/x.md`, and `prompts//x.md` was added as (d), under the planner's ruling at line 803 after this coder's stop. The intent records the stop, the ruling and the correction to 2026-09-25-21.
+- Otherwise none from the finish line up to this entry; the PR #14 CI status on this terminal's commit is reported in the hand-back. The planner's amended prediction and the intent's mechanism prediction held, including every count.
+- u9's `RECORD.md` key is now reported "owned after normalising", not "adopter-owned". u9 does not assert the reason text.
+- `ADOPTER_OWNED` is at install.py:59 at dc0ad41 (line drift, as recorded in the intent).
+- Choices the dispatch did not make are listed in the hand-back under Decisions I made. They include:
+  - the reason texts
+  - the subTest names
+  - the new `target` parameter
+  - `import posixpath`
+  - u10 not repeating u9's snapshot assertion
+- Flagged, not fixed, unverified (from this coder's memory of the Python documentation, not a run or a reading of the code): non-strict `Path.resolve()` on a symlink loop raises RuntimeError before Python 3.13 and OSError from 3.13, and `lock_path_problem` catches neither. If so, a lock key under a looping symlink would end the upgrade with a traceback before anything is written, not the malformed-lock stop.
