@@ -1440,3 +1440,77 @@ Messages after this dispatch's Agent call (line 782): the planner log, read befo
   - `import posixpath`
   - u10 not repeating u9's snapshot assertion
 - Flagged, not fixed, unverified (from this coder's memory of the Python documentation, not a run or a reading of the code): non-strict `Path.resolve()` on a symlink loop raises RuntimeError before Python 3.13 and OSError from 3.13, and `lock_path_problem` catches neither. If so, a lock key under a looping symlink would end the upgrade with a traceback before anything is written, not the malformed-lock stop.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-24
+**Timestamp:** 2026-09-25T05:08:20Z
+**Title:** Claude-kit v0.2 rulings file, second update: SR-04 supersedes SR-02, B-11 supersedes B-07 (coders merge with a backup), B-12 supersedes B-01; all proposals or unaccepted, no `Accepted:` line
+**Dispatch-file:** preserved/2026-09-25-15.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB as `prompts/preserved/2026-09-25-15.md` (7643 bytes, sha256 bca10229fc8349a1accef858fce4ba2716cc0a5567f2abb300865bba5e445729; header "Preserved: 2026-09-25T04:48:00Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The name is the one the dispatch expected and was free in this store; the copy is byte for byte (cmp reports them identical). The text after the delimiter equals the prompt of the Agent call at line 835 of the planner log (2026-09-25T04:48:00.236Z, tool_use `toolu_01A9CGThaMMxDJoVw6TYsUhT`, description "Docs: rulings file adjustments"; 7462 characters on both sides, exact). The planner log is /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl; line numbers below refer to it unless another log is named.
+**Stop and resumption:** This coder first stopped before writing anything (hand-back at planner-log line 845, 2026-09-25T05:01:01.697Z). The dispatch's B-11 Evidence cited "the handover line 'Coders never merge or tag' (log a5d14103 line 25)" as not the owner's. That sentence is in two different handovers: a5d14103 line 25 (2026-09-24T21:32:03.853Z, the T12 handover) and 791cc457 line 25 (2026-09-24T22:31:06.080Z, the handover that opened the current session). The planner's question at line 683 was about the second. The choice also decided whether B-08, whose Source names the a5d14103 handover as the owner's, needed a superseding entry. Owner messages after the stop, from the planner log:
+- Line 853 (05:04:07.678Z), AskUserQuestion answer to "The handover that opened the previous planner session (T12's, log a5d14103 line 25) also contains \"Coders never merge or tag\" and \"The owner accepted this\" about T12. Did you write that one?": "That one is mine".
+- Line 861 (05:04:31.532Z): "That isn't mine."
+- Line 869 (05:04:46.691Z), answer to "What isn't yours?": "[No preference]".
+- Line 875 (05:04:58.905Z): "Show the options again".
+- Line 878 (05:05:16.363Z), answer to "\"That isn't mine\": what isn't yours?": "The prior options".
+- Line 882 (05:05:40.758Z), answer to the line-852 question asked again: "That one is mine".
+- Line 891 (05:05:56.630Z): "But coders can merge".
+- Line 897 (05:06:25.302Z): "And that they should also.  Remember my instructions from earlier".
+- Line 903 (05:07:45.503Z): "That works as written", approving the message the planner drafted at line 900.
+
+The planner's reading, not the owner's words: at line 885 the planner took "That isn't mine" (line 861) as referring again to this session's handover, since the owner answered "That one is mine" for the T12 handover both times. The planner's ruling, sent after line 903, is planner-log line 905 (SendMessage, 2026-09-25T05:07:50.391Z, tool_use `toolu_01Xh5zHWpncni5XKrtEwQX2E`), quoted verbatim per coder.md item 6:
+> "Ruling on your stop (owner's answers 'That one is mine', twice). B-11's ruling is the owner's own words, verbatim, from 791cc457 line 712: 'coders should be able to merge at the discretion of the planner. All merged work must contain a backup, so any merge should be able to be undone by the owner later on.' Then: the backup is a git bundle of the target branch with the pre-merge SHA and PR number in a new ~/forager-backups folder with MANIFEST.sha256 and one INDEX.md line, and history_guard will check it (answers at 716/717). Enforced by: history_guard blocks the merge command for every role until T17 adds that check. Evidence: this session's handover (791cc457 line 25) is not the owner's; the owner's T12 handover (a5d14103 line 25) said 'Coders never merge or tag', which line 712 replaces, so B-07's 'No owner ruling in the record' was wrong. B-08 unchanged. No entries for B-05, B-06, B-09, B-10. Everything else stands. Record this message per coder.md item 6, citing the owner's messages from line 712 on."
+It rules on the question this coder raised. It changes B-11's ruling text and Evidence from the dispatch, quoting the owner's line 712 and answers at 853 and 882, with the owner's approval of its text at line 903, so it is followed, not a stop. The owner's line 712 has no final full stop; B-11 quotes line 712 as written.
+**Change:** `docs/standing-rulings.md` only, by insertion:
+- SR-04 at the end of Part A (no `Accepted:` line): on an upgrade, `.claude/settings.json` is replaced only if its sha256 equals the old lock's; an edited one stops the upgrade before anything is written; on a first install, one that exists and differs still stops. Source (iv). Enforced by install.py and tests u4/u5. `Supersedes:` quotes SR-02's ruling.
+- B-11, B-12 at the end of Part B. B-11: the owner's line-712 ruling verbatim, then the backup form and the check (answers at 716/717), Scope (merges of pull requests into the protected branch), Enforced by (not yet; history_guard blocks the merge command for every role; T17 adds the check), Evidence per the line-905 ruling, `Supersedes:` quoting B-07. B-12: B-01's proposed ruling unchanged, Evidence adding the owner's statement on `/tmp/t9_fd.txt` and the T13 coders' `/tmp` deletions (terminals 2026-09-25-19, -21, -23), `Supersedes:` quoting B-01.
+- One `Superseded-by:` line each in SR-02 (SR-04), B-01 (B-12) and B-07 (B-11), as the last line of that entry.
+- "None yet." under "Superseded rulings" replaced by one line each for SR-02, B-01 and B-07.
+- No entry for B-05, B-06, B-08, B-09 or B-10: re-checked at 742d10f, nothing is wrong (details in the terminal).
+**Scope boundary:** Files: `docs/standing-rulings.md`, with only the changes listed under Change; no other existing text changed or removed. Record: this dispatch's store copy with this intent, and terminal 2026-09-25-25. Nothing else. Out of scope: T17 code, the spec and task list, coder.md, README, the planner worktree, the T3 backlog, accepting any ruling, merge, tag, and deleting anything.
+**Baseline:** ~/Zynergy/Claude-kit-fixes on new branch `kit-v0.2-rulings2` from origin/main 742d10f7b572ba95c7c4d8a6d20904a5b327572e (PR #14 merge). No tags. The record's last entry is 2026-09-25-23, which closes -22; no intent is open. The repository has no CLAUDE.md. The dispatch has every section kit.json requires for a build (structural check only). It cites no standing ruling.
+
+Counts at 742d10f:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 39 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS (49 entries; preserved=28)
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 18, record 15, refused 3, stop 0" (refused: -02, -05 and this dispatch's -15)
+- `docs/standing-rulings.md`: 243 lines, 0 lines matching `^\*\*Accepted:\*\*`
+
+No sweep: every other store file is claimed; -15 is claimed by this intent. The earlier stop wrote nothing and does not need a coder.md item 8 `stopped` note, since this intent claims the file.
+
+Premises checked at 742d10f:
+- SR-04: install.py classification of a kept path at :164-180 (edited: :170-171; unchanged and kept: :172-173); an upgrade's stops raise at :200-205 before the first write at :207; the first-install settings check at :191-197. Tests: u4 `test_u4_unedited_settings_json_is_replaced` (tests/test_install.py:270-277), u5 `test_u5_edited_settings_json_stops` (:279-285); the first-install test `test_differing_settings_json_stops_and_writes_nothing` is at :176 (SR-02 cites :139-148 at 82725c4; line drift).
+- B-11: history_guard.py:192-194 denies the PR merge command for every role (pattern `PR_MERGE` at :43).
+- B-12: terminal 2026-09-25-19 (RECORD.md:1221) records its coder deleting its `/tmp/t13_adhoc_*` directory; its hand-back (planner-log line 738) also lists /tmp scratch files it left in place. Terminals 2026-09-25-21 (RECORD.md:1326) and -23 (:1428) record their coders deleting their own /tmp revert directories.
+- B-05, B-06, B-08, B-09, B-10: role_guard.py, history_guard.py, check_prompts.py and check_record.py are unchanged between 82725c4 and 742d10f; coder.md gained 5 lines at :29-33, so its citations moved by 5.
+**Closed decisions:** From the planner log:
+- (i) Line 712 (2026-09-25T03:33:54.808Z; enqueued at line 710, 03:33:54.390Z), the owner, three paragraphs: "1 I don't know who wrote it, it's not mine." / "2 coders should be able to merge at the discretion of the planner. All merged work must contain a backup, so any merge should be able to be undone by the owner later on" / "3 I'll read them". It answers the planner's three points at line 683 (03:30:32.259Z): (1) whose file `/tmp/t9_fd.txt` was, (2) whether the owner wrote the handover's "Coders never merge or tag", (3) the coder-written wording. The planner's reading (line 715, 03:34:14.031Z), not the owner's words: point 1 covers both (1) and (2), so the handover line is not the owner's and whose the `/tmp` file was is unknown.
+- (ii) Line 716 (03:34:22.231Z, tool_use `toolu_01CYKWhrL8u522sTEfgERr8r`), answered at line 717 (03:34:45.988Z): "Your questions have been answered: \"What is the backup that makes a coder's merge undoable by you?\"=\"Bundle in forager-backups (Recommended)\", \"How is \"no merge without a backup\" held?\"=\"history_guard checks (Recommended)\", \"When is this built?\"=\"Next, after T13 (Recommended)\"". Option texts from the tool_use input: "Bundle in forager-backups (Recommended)": "Before merging, the coder writes a git bundle of main as it stands, with the pre-merge SHA and the PR number, into a new ~/forager-backups folder with MANIFEST.sha256 and one INDEX.md line, like the T0 backup. To undo, you reset main to the recorded SHA, or revert the merge commit. It lives on the local drive and survives anything done to the remote." "history_guard checks (Recommended)": "history_guard lets `<the PR merge command> <N>` through only for the coder, and only if a backup for PR N is recorded (an INDEX.md line naming PR N and the pre-merge SHA, whose MANIFEST checks) and that SHA equals origin/main's current tip. Planner and pulse stay blocked. Mechanical, like the other guards." (the command's literal text is replaced here because history_guard blocks any Bash command containing it). "Next, after T13 (Recommended)": "Add it to v0.2 as a new task (T17), dispatched right after T13 merges and before T5. Until it merges, dispatches keep \"no merge\" and you merge as now. The planner states the merge decision in each dispatch's scope from then on."
+- (iii) Line 723 (03:36:10.906Z), the owner: "Make the corrections I gave, run the B5 to B10 with the necessary adjustments ". Then the AskUserQuestion at line 727 (03:36:28.660Z), answered at line 731 (03:39:51.579Z): "Adjust, keep as proposals" (option text: "Write the adjusted versions into Part B, superseding the old B entries, with no `Accepted:` lines. Nothing becomes standing yet; you accept later after reading.").
+- (iv) Line 668 (03:30:16.967Z), the owner's T13 answer on SR-02, "Unedited may update", already recorded in intent 2026-09-25-18 (RECORD.md:1147, :1152) as superseding ruling 4(6) of 2026-09-23-01.
+- The planner's ruling at line 905, quoted above, with the owner's messages at lines 853-903.
+- Owner messages after line 905: an abort only if one tells this coder to do or not do something in this scope, or changes a decision above. Every other message is recorded in the terminal. A planner message follows coder.md item 6.
+**Planner prediction (stated in the dispatch, not withheld):** No behaviour changes: 106 hook tests, 39 tests/, render checks 30/30 and 10/10, both checkers PASS, release_check PASS with 19 files and an unchanged line count. `grep -c '^\*\*Accepted:\*\*' docs/standing-rulings.md` prints 0. The file's diff against origin/main shows only added lines and the "None yet." line replaced; exactly 1 removed line.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+- Only `docs/standing-rulings.md` and RECORD.md/the store change. No hook, test, checker or release file is touched, so hook tests 106 OK, tests/ 39 OK, render checks 30/30 and 10/10 (fixtures only). release_check reads only release.json's set, which has no `docs/` path: "19 release file(s), 4845 line(s)" unchanged.
+- check_record.py: 50 entries after this intent, 51 after the terminal; check_prompts.py: preserved=29, -15 claimed by this intent. find_dispatches.py: refused 2 (-02, -05), stop 0, if nothing else is saved meanwhile.
+- The Accepted grep prints 0: no new entry carries an `Accepted:` field.
+- `git diff --numstat origin/main -- docs/standing-rulings.md` shows 1 deleted line: every new entry and `Superseded-by:` line is inserted at the end of an existing entry or section, and the only replaced line is "None yet.".
+**Finish line:** Pushed on kit-v0.2-rulings2:
+1. this dispatch's store copy and this intent
+2. the file change in one commit
+3. terminal 2026-09-25-25
+
+Then PR kit-v0.2-rulings2 -> main open, with CI green on its final commit. No merge, no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name or line drift
+- a needed removal or change of existing text beyond the allowed ones
+- a denylist hit
+- any change outside scope
+- an owner message after line 905 that qualifies under the rule in Closed decisions
