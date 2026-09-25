@@ -1336,3 +1336,66 @@ Owner messages after this dispatch's Agent call (line 757): the planner log, rea
   - u9's extra assertions after the file-exists check
   - one kit copy per subTest
   - the owned test runs on the lock's key as written, not normalised. By reading install.py, not by a run, a key such as `./RECORD.md` would pass the check and still reach the adopter's RECORD.md through `target / path`. This is flagged, not fixed
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-22
+**Timestamp:** 2026-09-25T04:33:00Z
+**Title:** Claude-kit v0.2 T13 follow-up 2: the old kit.lock's paths are checked where they land (normalised, symlinks followed), not as spelled, tested
+**Dispatch-file:** preserved/2026-09-25-14.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the planner worktree ~/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_013ve7bxjxrGv4tLa8p1kdHB as `prompts/preserved/2026-09-25-14.md` (5449 bytes, sha256 988ee935b6ded742406837c6165e7c399248e3e731a25b1cf38ed2be5ac75de0; header "Preserved: 2026-09-25T04:28:31Z by .claude/hooks/dispatch_guard.py", HEAD d59280fceb136d04d2165d3851bdd2466a04ace6, target coder, type build). The name is the one the dispatch expected and was free in this store; the copy is byte for byte (cmp reports them identical). The text after the delimiter equals the prompt of the Agent call at line 782 of the planner log (2026-09-25T04:28:31.215Z, tool_use `toolu_01L3aK6Nftg2M6wwkfbtRBit`, description "T13 follow-up 2: resolved paths"; 5266 characters on both sides, exact). The planner log is /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-013ve7bxjxrGv4tLa8p1kdHB/791cc457-81b7-586e-b2bb-20985d9699d6.jsonl; line numbers below refer to it.
+**Stop and resumption:** This coder first stopped before writing anything (hand-back at planner-log line 792, 2026-09-25T04:30:16.312Z). A premise check (install.py imported in memory at dc0ad41, `lock_path_problem` called on each key; no file written) gave `'./RECORD.md' -> None`, `'prompts//x.md' -> adopter-owned`, `'ext/outside.txt' -> None`, `'./prompts/x.md' -> None`. So the dispatch's subTest (b) `prompts//x.md` would not fail first, against its prediction of 3 failure records. The planner's ruling, sent after the owner's "Send it" (line 801, 2026-09-25T04:31:02.103Z), is planner-log line 803 (SendMessage, 2026-09-25T04:31:05.803Z), quoted verbatim per coder.md item 6:
+> "Ruling on your stop: take your option 3. SubTest (b) becomes `./prompts/x.md` (fails first); add subTest (d) `prompts//x.md`, which passes before and after as a regression guard. Prediction: 39 run, 3 failure records before the fix ((a), (b), (c)), all OK after. In the intent, add a `Correction to 2026-09-25-21:` field: its claim that `prompts//x` passes the check is wrong (`adopter_owned` matches the `prompts/` prefix); the planner's line 772 repeated it. Everything else in the dispatch stands. Record this message per coder.md item 6."
+It rules on a question this coder raised and stays inside u10, so it does not widen the scope. The owner saw its text quoted at line 794 before approving it.
+**Correction to 2026-09-25-21:** Terminal 2026-09-25-21's Deviations says that, by reading install.py, a key such as `./RECORD.md` would pass the check. That holds. The planner's message at line 772 extended it to `prompts//x` ("`./RECORD.md` and `prompts//x` aren't absolute, have no `..` part, and don't exactly equal an owned path. So they pass the check"), and the dispatch repeated it. That part is wrong: `adopter_owned` (install.py:74-76 at dc0ad41) matches any path starting with `prompts/`, so `prompts//x` and `prompts//x.md` are rejected as "adopter-owned" at dc0ad41, shown by the in-memory call above. A leading `./` (`./RECORD.md`, `./prompts/x.md`) and a symlinked directory do get past it.
+**Change:**
+- `install.py`: `lock_path_problem` takes the target as well as the path, and `read_lock` passes it. For each key `p` of the old lock's `files` map: the existing absolute, drive-letter and `..` checks stay. Then `n = posixpath.normpath(p)` is rejected if it is `.` or empty, or adopter-owned by the existing `adopter_owned`. Then `r = (target / p).resolve()` (non-strict) must lie inside `target.resolve()`, tested with `relative_to` in a try block. It is rejected if it does not, or if its path relative to `target.resolve()` is adopter-owned. Each reason names the key and says why. The stop is unchanged: nothing written or removed, the lock and each path named, exit 1. The docstring sentence on malformed locks is updated to say this.
+- `tests/test_install.py`: test u10 in `Upgrade`, subTests (a) `./RECORD.md`, (b) `./prompts/x.md` (a file under the adopter's `prompts/`), (c) `ext/outside.txt`, where the adopter's `ext` is a symlink to a sibling directory of the adopter inside the test's temporary root, and (d) `prompts//x.md`, a regression guard. Each subTest builds its own kit and adopter under `self.root`, puts the key in the old lock with the file's sha256, tags the second release with a changed hook (which drops no path), and upgrades. It asserts the exit code first, then that the file exists with its bytes unchanged. Every file and symlink is asserted to lie under the temporary root before the upgrade runs.
+**Scope boundary:** Files: `install.py` (`lock_path_problem`, how `read_lock` calls it, and its docstring sentence) and `tests/test_install.py` (u10). Record: this dispatch's store copy with this intent, the tests-only commit, the fix, and terminal 2026-09-25-23. Nothing else. Out of scope: paths in the new release (the kit's release.json), check_kit.py, `docs/standing-rulings.md`, T17, T5, merge, tag, a new PR, and deleting anything outside the tests' temporary directories.
+**Baseline:** ~/Zynergy/Claude-kit-fixes on `kit-v0.2-t13`, HEAD = origin/kit-v0.2-t13 = dc0ad41aeb196325fd3b64e7b7c6cd8981671d36 (terminal 2026-09-25-21), clean tree before this copy. origin/main is 3a5a13d268bdbc0ae5c8111ff9e38abf7c222848. PR #14 is OPEN, unmerged, head dc0ad41. No tags. The record's last entry is 2026-09-25-21, which closes -20; no intent is open. The repository has no CLAUDE.md. The dispatch has every section kit.json requires for a build (structural check only). It cites no standing ruling.
+
+Counts at dc0ad41:
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 38 tests" OK
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS (47 entries; preserved=27)
+- release_check.py: "PASS: 19 release file(s), 4845 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 17, record 15, refused 3, stop 0" (refused: the planner worktree's -02, -05 and this dispatch's -14)
+
+No sweep: every other store file is claimed; -14 is claimed by this intent. The earlier stop wrote nothing and does not need a coder.md item 8 `stopped` note, since this intent claims the file.
+
+Premises checked at dc0ad41:
+- `lock_path_problem` (install.py:124-133) is called in `read_lock` (:114-115).
+- `adopter_owned` (:74-76) is applied to the key as written (:131).
+- Drive letters use `re.match(r"[A-Za-z]:", path)` (:126-127).
+- `ADOPTER_OWNED` is at install.py:59, not :56. The docstring sentence and `import re` added in 807bbbf moved it. The substance holds, so this is recorded as line drift, as in 2026-09-25-20.
+**Closed decisions:** From the planner log:
+- Line 772 (2026-09-25T04:21:20.265Z, the planner to the owner), the rule: "normalise the path before the owned-path check" and "require the resolved path, symlinks followed, to stay inside the adopter's folder". Its option 1: "**Fix it on `kit-v0.2-t13` before merging #14** (recommended). This is the check the last dispatch was meant to be."
+- Line 779 (2026-09-25T04:28:04.776Z; enqueued at line 777, 04:28:04.752Z), the owner: "Fix before merge".
+- Line 803 (2026-09-25T04:31:05.803Z), the planner's ruling quoted above: option 3 for the subTests, after the owner's "Send it" at line 801.
+- The planner's rules 1-4 as the dispatch states them (summarised under Change; the store copy holds the full text).
+- Owner messages after line 782: an abort only if one tells this coder to do or not do something in this scope, or changes a decision above. Every other message is recorded in the terminal. A planner message follows coder.md item 6.
+**Planner prediction (stated in the dispatch, as amended at line 803, not withheld):**
+- Tests-only commit: u10 with subTests (a)-(d). Before the fix, (a), (b) and (c) each fail "0 != 1": the upgrade succeeds and removes the file (for (c), the file outside the adopter). (d) passes. tests/: 39 run, 3 failure records. Hook tests: 106.
+- After the fix: 39 OK, u9 still passes; 106 OK; render checks 30/30 and 10/10; both checkers PASS; release_check PASS with 19 files.
+- Revert check: install.py from dc0ad41 gives the same 3 failures.
+**Prediction (outcome — planner):** not authored
+**Prediction (mechanism — coder):**
+- Before the fix: `lock_path_problem` returns None for `./RECORD.md`, `./prompts/x.md` and `ext/outside.txt`: none is absolute, none has a `..` part (PurePosixPath drops the `.`), and none, as spelled, equals or starts with an owned path. `plan_upgrade` (:146-165) sees each key in the old lock and not in the new release. `on_disk(target / key)` reads the file, following the `ext` symlink for (c), and its sha256 matches, so the key is listed for removal. `install` unlinks `target / key`, which for (c) removes `outside.txt` in the sibling directory because the parent symlink is followed. `main` exits 0, so the first assertion fails with "0 != 1". (d) `prompts//x.md` is rejected as "adopter-owned" at :131: exit 1, the file is intact, and the subTest passes. tests/: "Ran 39 tests", "FAILED (failures=3)". Hook tests 106 OK; they do not touch install.py.
+- After the fix: (a) and (b) normalise to `RECORD.md` and `prompts/x.md`, both owned, and (d) to `prompts/x.md`. (c) resolves into the sibling directory, and `relative_to(target.resolve())` raises ValueError, so it "resolves outside the target". `read_lock` raises before `plan_upgrade`: exit 1 and every file intact. u9's absolute and `..` keys still hit the kept checks, and `RECORD.md` is owned after normalising, so u9 passes. tests/ 39 OK; 106 OK.
+- Render checks read only fixtures: 30/30 and 10/10. check_record.py passes with 48 entries after this intent and 49 after the terminal; check_prompts.py with preserved=28. release_check.py reads only the release set, which holds neither install.py nor tests/: "19 release file(s), 4845 line(s)" unchanged. find_dispatches.py: in-store 18, refused 2 (-02, -05), stop 0, if no further dispatch is saved meanwhile.
+- Revert check (install.py from dc0ad41 over the committed tests, in a scratch copy under /tmp): the same 3 failures, (a), (b), (c), with "0 != 1".
+**Finish line:** Pushed on kit-v0.2-t13:
+1. this dispatch's store copy and this intent
+2. the tests-only commit
+3. the fix (install.py)
+4. terminal 2026-09-25-23
+
+PR #14 then shows CI green on the new final commit. No new PR, no merge, no tag.
+**Abort conditions:**
+- any Base-and-state mismatch other than the dispatch's name or line drift
+- a failure for any reason other than the predicted one, including symlinks that cannot be created in the test environment
+- two failed fixes on one symptom (then data only)
+- a needed change outside scope
+- an owner message after line 782 that qualifies under the rule in Closed decisions
