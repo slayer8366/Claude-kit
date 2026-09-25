@@ -3296,3 +3296,82 @@ It rules on the question this coder raised. It changes how Fix 2 is built, not a
   - The B-03 and B-05 rows' Bypass and Guard text kept unchanged as history.
   - The README sentence's placement in Tests (README has no bypass section).
   - The PR was opened before this terminal so that the terminal can name it.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-25-83
+**Timestamp:** 2026-09-25T21:56:00Z
+**Title:** Claude-kit v0.2 batch 4: a test for session_agents' `denied: <first line>` fallback; history_guard expands a leading `~` in `git -C` for the push and `git merge` checks; a `<<<` here-string is not a heredoc marker (if the bypass is real); BYPASSES.md row B-09 (PR merge through curl, `open`)
+**Dispatch-file:** preserved/2026-09-25-42.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the main checkout ~/Zynergy/Claude-kit as `prompts/preserved/2026-09-25-42.md` (7938 bytes, sha256 bff5d641ac26a6ede8ee0418562358337519895cd2f05f88d8317ee599fcd406; header "Preserved: 2026-09-25T21:49:49Z by .claude/hooks/dispatch_guard.py", HEAD 6a848aca23a50fdde28d3580b3d7447b1c5002de, target coder, type build). This is the hook's name, and it is free in this store. It was copied byte for byte (cmp) into this store. Planner's Agent call: B line 730, `toolu_01K99CJ281Q37JRusGKgPh34`, 2026-09-25T21:49:49.630Z.
+**Sweep:** none. On origin/main 6a848ac every store file is claimed. check_prompts.py in C failed only on -42, this dispatch's copy.
+**Change:**
+- `tests/test_session_agents.py`: a new test. A `denied` result whose text matches none of the four rules shows `denied: <first line>`, and its second line is not printed.
+- `.claude/hooks/history_guard.py`:
+  - The `git -C` directory has a leading `~` or `~user` expanded with `os.path.expanduser` before the branch is read. This applies to the push check and to the `git merge` check (`dash_c`), which has the same gap (history_guard.py:495-497 passes the literal path to `current_branch`). Nothing else is expanded; `$VAR` stays as written (B-04).
+  - If the `<<<` bypass proves real: in `heredoc_markers`, a `<<` preceded by `<` or followed by `<` is not a heredoc marker.
+  - The docstring states both rules. Its "Known bypasses:" line adds B-09.
+- `.claude/hooks/role_guard.py`: the "Known bypasses:" docstring line adds B-09. Nothing else changes.
+- `.claude/hooks/BYPASSES.md`: new row B-09 (history_guard, role_guard; PR merge through the REST API with `curl` or another HTTP client; `open`; `test_b09_pr_merge_through_curl`). If `<<<` is fixed, B-05's row gains the sentence "also `<<<` here-strings (batch 4)". No row for `<<<`.
+- Tests: in `.claude/hooks/tests/test_history_guard.py`, `~` tests for push and merge, using a temporary HOME passed through run_hook's `env`. In `.claude/hooks/tests/test_bypasses.py`, the `<<<` regression test and `test_b09_pr_merge_through_curl` (payloads only).
+**Scope boundary:**
+- Files: the five named above, RECORD.md, and this store copy.
+- Not changed: session_agents.py; any guard's behaviour other than history_guard's; guardlib.py; `command_lines`; the `gh pr merge` rule (a)-(e); the B-03 `gh api` check; the checkers; CI; kit.json; release.json; README.
+- Out of scope: fixing B-09 or any accepted row; `$VAR` expansion; D2 and D5; other PRs, tags, and deleting anything. No curl, gh or network call is run for real to test anything.
+- The merge: this PR only (kit-v0.2-batch4 -> main), with `--merge`, from C without `--repo`, as one Bash call, once CI is green on the final commit and after coder.md item 10's backup. Then C is updated by update_worktree.py (dry run, then `--apply`).
+**Baseline:**
+- ~/Zynergy/Claude-kit-fixes (a worktree of C) is on the new local branch `kit-v0.2-batch4`, made from origin/main 6a848aca23a50fdde28d3580b3d7447b1c5002de (PR #31 merge) after `git fetch`. There are no tags locally or on origin (`git ls-remote --tags origin` is empty).
+- The record's last entry is 2026-09-25-82. No intent is open (38 intents, 38 terminals), and check_record reports PASS.
+- C is on main at 6a848ac. Untracked: `.claude/worktrees/` and `prompts/preserved/2026-09-25-42.md`.
+- history_guard.py at 6a848ac:
+  - `current_branch` (:209-216) runs `git -C <directory>` with the directory as given.
+  - The push check passes `git_invocation`'s `-C` value unexpanded (:519-523).
+  - The merge check strips quotes from `dash_c` but does not expand it (:495-497).
+  - `HEREDOC` is `<<(-?)(['"]?)(\w+)\2` (:106). `heredoc_markers` (:117-142) keeps each match whose first two positions are outside quotes and comments, and does not look at the characters around the match.
+  - The "Known bypasses:" line is "B-01, B-02, B-04" (:76); role_guard's is "B-08" (role_guard.py:48).
+- session_agents.py: `denial` (:240-251) returns `first_line(text)` for text that matches no rule.
+- BYPASSES.md: rows B-01 to B-08; B-03 and B-05 are `fixed`, the rest `accepted`. There is no row for a curl merge.
+**Closed decisions:** From B:
+- The owner at 2026-09-25T21:31:18.979Z (line 705), verbatim: "Do both small follow-ups as a task after this merges". The planner's reply (line 708) names the two follow-ups as the fallback test and the `~` expansion.
+- The owner's AskUserQuestion answer (tool_use `toolu_01Y9ATyPMS7GQkmx82GyaPmQ`, B line 719, 2026-09-25T21:48:03.216Z; answered at line 720, 21:49:14.634Z). Option label and description, verbatim: "Fix <<<, record curl (Recommended)": "Add to the follow-up: history_guard ignores `<<<` here-strings when looking for heredoc markers (failing test first, B-05's family), and a new bypass row B-09 for a REST merge through `curl`, status open, with a proving test, for you to rule on later."
+- The planner's choices, per the dispatch: `expanduser` only, with no `$VAR` expansion; B-09's wording; for item 3, "prove it first, drop the fix if not real".
+- B-11/B-13: coders merge at the planner's discretion. The merge rests on the dispatch's Merge section ("authorised: this PR only").
+- Owner messages in B after the dispatch call (line 730), read through line 742 before this entry: one. Line 739 (2026-09-25T21:51:19.580Z), verbatim: "What's left of the plan?". It is a question to the planner. It tells this coder nothing to do or not do in this scope, so it does not trigger the abort. There were no planner messages to this coder.
+**Prediction (outcome — planner):** not authored
+**Planner prediction (stated in the dispatch, not withheld):**
+- Tests-only commit: the `~` tests fail, with both the feature push and the main push refused with "could not read the current branch". The `<<<` test fails if the planner's reading is right. The fallback test and test_b09 pass. The consistency test passes. In tests/, the vendored-hook-tests case fails if the hook tests fail. Counts start from 140 hook tests and 93 tests/.
+- After the fix: all hook tests and tests/ OK; render checks 30/30 and 13/13; both checkers PASS; release_check PASS with 27 files and no denylist hit.
+- Revert checks: history_guard.py from 6a848ac gives the same `~` and `<<<` failures. The fallback sabotage fails only the fallback test. Removing the B-09 row while keeping the citations fails the consistency test.
+**Prediction (mechanism — coder):**
+- New tests: 4 hook tests (`~` push and `~` merge in test_history_guard.py, each with a feature and a main subTest; the `<<<` test and test_b09 in test_bypasses.py) and 1 in tests/ (the fallback).
+- Tests-only commit, hook tests: "Ran 144 tests", "FAILED (failures=5)":
+  - `~` push, 2 subTests: both get "push blocked: could not read the current branch (fatal: cannot change to '~/…')". `git_invocation` hands back `~/<repo>` literally (history_guard.py:241), `current_branch` runs `git -C ~/<repo>` with no shell to expand it, and git fails (:210-216, :520-523). The feature subTest fails on "deny is not None" and the main subTest on the missing "protected branch" words.
+  - `~` merge, 2 subTests: both are denied "`git merge` blocked: could not read the current branch of ~/…" (:495-500), so the on-feature subTest fails "not None" and the on-main one lacks "while on main".
+  - `<<<`, 1 failure, "None != 'deny'". On `cat <<<EOF`, `HEREDOC.finditer` fails at the first `<` (the third `<` is not `\w`) and matches `<<EOF` at the second. Both of its first positions are code, so `strip_heredocs` drops `git push origin main` and `EOF`. What is left, `cat <<<EOF`, has no push.
+  - test_b09 passes for both hooks. history_guard: the text has no `gh` word (`\bgh\b` does not match "github") and no `git`. role_guard does not restrict a coder's curl (unverified until the test runs).
+  - The fallback test passes, and the consistency test passes (no docstring cites B-09 yet, and it does not require every row to be cited).
+- Tests-only commit, tests/: "Ran 94 tests", "FAILED (failures=1)", test_vendored_hook_tests_pass_in_the_adopter. It runs the vendored hook tests, the same 5 failures.
+- After the fix: hook tests "Ran 144 tests" OK, tests/ "Ran 94 tests" OK. Render checks "PASS: 0 of 30 checks failed" and "PASS: 0 of 13 checks failed"; both checkers PASS; release_check "PASS: 27 release file(s)" with no denylist match. The T12 and B-05 heredoc tests and the merge-rule tests pass. The `<<<` fix only drops matches next to a third `<`, and none of them has one.
+- Revert check 1: history_guard.py from 6a848ac over the new tests and table gives "FAILED (failures=5)", the same `~` and `<<<` failures. The consistency test passes, because 6a848ac's docstring cites no B-09.
+- Revert check 2 (fallback sabotage, never committed): `denial`'s last line returning other text fails only the new fallback test, "Ran 94 tests", "FAILED (failures=1)".
+- Revert check 3: without the B-09 row, but with the citations kept, the consistency test fails in one subTest (cited=B-09): "history_guard.py, role_guard.py cites B-09, which is not a row of BYPASSES.md".
+**Finish line:**
+1. Pushed on kit-v0.2-batch4: (a) this store copy and intent; (b) the tests-only commit; (c) the fix (history_guard.py, BYPASSES.md, the docstring lines); (d) the terminal.
+2. CI green on the final commit.
+3. coder.md item 10's backup.
+4. The merge of this PR with `--merge`, from C without `--repo`, as one Bash call. Report the merge commit and its parents.
+5. C updated by update_worktree.py (dry run, then `--apply`), with both outputs reported.
+6. No tag.
+**Abort conditions:**
+- Any Base-and-state mismatch other than the dispatch's name.
+- A T12, B-05 or merge-rule test failing after the fix.
+- A needed change to any guard other than history_guard's behaviour (docstring lines are allowed).
+- A failure for any reason other than the predicted one.
+- Two failed fixes on one symptom.
+- A denylist hit.
+- CI not green (no merge).
+- The merge denied by anything (quoted).
+- The dry run or `--apply` exiting 1.
+- An owner message after the dispatch that tells this coder to do or not do something in this scope.
+- A planner message that widens the scope without quoting an owner ruling.
