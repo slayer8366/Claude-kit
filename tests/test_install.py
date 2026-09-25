@@ -47,6 +47,43 @@ def make_kit_copy(root):
     return kit
 
 
+TAG2 = "v0.0.1-test"
+DROPPED = "find_dispatches.py"
+CHANGED_HOOK = ".claude/hooks/role_guard.py"
+NEW_FILE = "kit_new_tool.py"
+
+
+def make_second_tag(kit, drop=False, change_hook=False, change_settings=False,
+                    add_new=False):
+    """Commit changes on top of TAG in the throwaway kit copy and tag TAG2:
+    DROPPED leaves the release set, CHANGED_HOOK gains a line, settings.json
+    gains a trailing newline (still valid JSON), NEW_FILE joins the release
+    set. Only the copy is tagged."""
+    spec = json.loads((kit / "release.json").read_text())
+    if drop:
+        spec["vendored"].remove(DROPPED)
+        (kit / DROPPED).unlink()
+    if change_hook:
+        hook = kit / CHANGED_HOOK
+        hook.write_bytes(hook.read_bytes() + b"# changed in " + TAG2.encode() + b"\n")
+    if change_settings:
+        settings = kit / ".claude" / "settings.json"
+        settings.write_bytes(settings.read_bytes() + b"\n")
+    if add_new:
+        spec["vendored"].append(NEW_FILE)
+        (kit / NEW_FILE).write_text(f"# new in {TAG2}\n")
+    (kit / "release.json").write_text(json.dumps(spec, indent=2) + "\n")
+    git(kit, "add", "-A")
+    git(kit, "commit", "-q", "-m", "kit, second tag")
+    git(kit, "tag", TAG2)
+
+
+def snapshot(root):
+    """{relative path: bytes} for every file under root."""
+    return {p.relative_to(root).as_posix(): p.read_bytes()
+            for p in sorted(root.rglob("*")) if p.is_file()}
+
+
 def make_adopter(root):
     adopter = root / "adopter"
     adopter.mkdir()
@@ -165,6 +202,116 @@ class InstallAndDrift(unittest.TestCase):
         self.installed()
         r = run(["-m", "unittest", "discover", "-s", ".claude/hooks/tests"], self.adopter)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr[-3000:])
+
+
+class Upgrade(unittest.TestCase):
+    """Installing TAG, then TAG2 over it (install.py reads the old lock)."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="kit_upgrade_test_"))
+        self.kit = make_kit_copy(self.root)
+        self.adopter = make_adopter(self.root)
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def install(self, tag):
+        return run([str(self.kit / "install.py"), "--target", str(self.adopter),
+                    "--tag", tag], self.kit)
+
+    def first_install(self):
+        r = self.install(TAG)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def lock(self):
+        return json.loads((self.adopter / ".claude" / "kit.lock").read_text())
+
+    def assert_stopped_unchanged(self, r, before, paths):
+        """Exit 1, each path named, and every file under the adopter the same
+        as before, bytes and presence."""
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        for path in paths:
+            self.assertIn(path, r.stderr)
+        self.assertEqual(snapshot(self.adopter), before)
+
+    def append(self, rel, text="# local edit\n"):
+        f = self.adopter / rel
+        f.write_bytes(f.read_bytes() + text.encode())
+
+    def test_u1_unchanged_dropped_file_is_removed(self):
+        self.first_install()
+        make_second_tag(self.kit, drop=True)
+        r = self.install(TAG2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((self.adopter / DROPPED).exists())
+        lock = self.lock()
+        self.assertEqual(lock["tag"], TAG2)
+        self.assertNotIn(DROPPED, lock["files"])
+        self.assertIn(DROPPED, r.stdout)
+
+    def test_u2_edited_kept_file_stops(self):
+        self.first_install()
+        make_second_tag(self.kit, change_hook=True)
+        self.append(CHANGED_HOOK)
+        before = snapshot(self.adopter)
+        r = self.install(TAG2)
+        self.assert_stopped_unchanged(r, before, [CHANGED_HOOK])
+        self.assertIn("edited since the installed tag", r.stderr)
+
+    def test_u3_edited_dropped_file_stops(self):
+        self.first_install()
+        make_second_tag(self.kit, drop=True)
+        self.append(DROPPED)
+        before = snapshot(self.adopter)
+        r = self.install(TAG2)
+        self.assert_stopped_unchanged(r, before, [DROPPED])
+        self.assertIn("edited since the installed tag", r.stderr)
+
+    def test_u4_unedited_settings_json_is_replaced(self):
+        self.first_install()
+        make_second_tag(self.kit, change_settings=True)
+        r = self.install(TAG2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((self.adopter / ".claude" / "settings.json").read_bytes(),
+                         (self.kit / ".claude" / "settings.json").read_bytes())
+        self.assertEqual(self.lock()["tag"], TAG2)
+
+    def test_u5_edited_settings_json_stops(self):
+        self.first_install()
+        make_second_tag(self.kit, change_settings=True)
+        self.append(".claude/settings.json", " ")
+        before = snapshot(self.adopter)
+        r = self.install(TAG2)
+        self.assert_stopped_unchanged(r, before, [".claude/settings.json"])
+
+    def test_u6_adopter_file_at_new_path_stops(self):
+        self.first_install()
+        make_second_tag(self.kit, add_new=True)
+        (self.adopter / NEW_FILE).write_text("# the adopter's own\n")
+        before = snapshot(self.adopter)
+        r = self.install(TAG2)
+        self.assert_stopped_unchanged(r, before, [NEW_FILE])
+        self.assertIn("exists and is not the kit's", r.stderr)
+
+    def test_u7_changed_hook_only_upgrade_succeeds_and_check_kit_passes(self):
+        self.first_install()
+        make_second_tag(self.kit, change_hook=True)
+        r = self.install(TAG2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((self.adopter / CHANGED_HOOK).read_bytes(),
+                         (self.kit / CHANGED_HOOK).read_bytes())
+        self.assertEqual(self.lock()["tag"], TAG2)
+        c = run([str(self.adopter / "check_kit.py")], self.adopter)
+        self.assertEqual(c.returncode, 0, c.stdout + c.stderr)
+        self.assertIn(f"(kit {TAG2})", c.stdout)
+
+    def test_u8_malformed_lock_stops(self):
+        self.first_install()
+        make_second_tag(self.kit, change_hook=True)
+        (self.adopter / ".claude" / "kit.lock").write_text("{not json\n")
+        before = snapshot(self.adopter)
+        r = self.install(TAG2)
+        self.assert_stopped_unchanged(r, before, [".claude/kit.lock"])
 
 
 if __name__ == "__main__":
