@@ -247,6 +247,16 @@ Anything that reads a session log for blocked calls must match on
 where a Type/target mismatch and a general-purpose dispatch were each blocked
 and logged with `toolDenialKind` permission-rule.
 
+`toolDenialKind` "permission-rule" also marks an approval nobody answered.
+Under `--permission-prompts none` a dispatch that dispatch_guard sends to
+approval is denied automatically, and the log shows it just as it shows a
+hook block (T8's live case 2, RECORD.md 2026-09-25-77). Only dispatch_guard's
+"ask" decision tells the two apart: a `hook_success` attachment with
+`hookName` "PreToolUse:Agent" for the call's `toolUseID`, whose `stdout`
+holds the decision. `session_agents.py` shows which: `denied: by user`,
+`denied: approval not given`, `denied: blocked by <guard>`, or the text's
+first line.
+
 ## Resuming after a disconnect
 
 A session that drops (a network error, a closed terminal) can leave agents

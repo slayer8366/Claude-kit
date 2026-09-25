@@ -26,9 +26,30 @@ Outcome is one of:
   completed                        a foreground result, or a completed notice
   failed: <summary>                a notice whose status isn't completed, or
                                    an error result that isn't a denial
-  denied: <first line>             an error result with toolDenialKind
+  denied: <how>                    an error result with toolDenialKind
   launched, no completion notice   running, lost or cut off
   no result                        the log ends before any result
+
+A denial's <how> is decided by the first of these rules that matches. The
+text is the result's toolUseResult when that is a string, else its content,
+with an optional leading "Error: " stripped:
+
+  by user              the text is "Denied by user": an explicit decline,
+                       which wins even when a hook asked
+  approval not given   a PreToolUse:Agent hook_success attachment for the
+                       call's toolUseID printed permissionDecision "ask",
+                       and nobody answered: under --permission-prompts none
+                       this logs the same toolDenialKind ("permission-rule")
+                       as a hook block
+  blocked by <guard>   the text has "PreToolUse:<Tool> hook error: <guard>:"
+                       or starts "<guard>:", where <guard> is a word
+                       (letters, digits, underscores) ending "_guard"
+  <first line>         anything else: the text's first line
+
+An Agent decline's exact text is not yet observed in any log: the only
+"Denied by user" seen was on a Bash call. An error without toolDenialKind is
+"failed", whatever a hook decided. The summary counts every denial under
+"denied".
 
 Where an agent has several notices (it was resumed), the last one counts.
 Notices are read from task-notification user records, queued_command
@@ -58,6 +79,9 @@ import sys
 
 CUT = 200
 NOTICE_RE = re.compile(r"<task-notification>(.*?)(?:</task-notification>|$)", re.S)
+ERROR_PREFIX = "Error: "
+GUARD_HOOK_RE = re.compile(r"PreToolUse:\w+ hook error: (\w+_guard):")
+GUARD_START_RE = re.compile(r"(\w+_guard):")
 OUTCOME_ORDER = ["completed", "failed", "denied",
                  "launched, no completion notice", "no result"]
 
@@ -136,6 +160,7 @@ def scan(records):
     results, sends, send_errors = {}, [], set()
     notices, seen_notices = [], set()
     handbacks, seen_handbacks = [], set()
+    asked = set()
 
     def add_notices(text, when):
         for key in notices_in(text):
@@ -181,6 +206,9 @@ def scan(records):
                     handbacks.append((when, sender))
         elif rtype == "attachment":
             att = rec.get("attachment") if isinstance(rec.get("attachment"), dict) else {}
+            if (att.get("type") == "hook_success" and att.get("hookName") == "PreToolUse:Agent"
+                    and att.get("toolUseID") and hook_decision(att.get("stdout")) == "ask"):
+                asked.add(att["toolUseID"])
             if att.get("type") == "queued_command":
                 ao = att.get("origin") if isinstance(att.get("origin"), dict) else {}
                 if ao.get("kind") == "peer" and ao.get("handback"):
@@ -194,7 +222,34 @@ def scan(records):
         elif rtype == "queue-operation":
             if isinstance(rec.get("content"), str):
                 add_notices(rec["content"], when)
-    return calls, order, results, sends, send_errors, notices, handbacks
+    return calls, order, results, sends, send_errors, notices, handbacks, asked
+
+
+def hook_decision(stdout):
+    """The permissionDecision a hook printed on stdout, or None."""
+    if not isinstance(stdout, str):
+        return None
+    try:
+        data = json.loads(stdout)
+    except ValueError:
+        return None
+    out = data.get("hookSpecificOutput") if isinstance(data, dict) else None
+    return out.get("permissionDecision") if isinstance(out, dict) else None
+
+
+def denial(text, asked):
+    """How a denied call was denied (see the module docstring)."""
+    bare = str(text).strip()
+    if bare.startswith(ERROR_PREFIX):
+        bare = bare[len(ERROR_PREFIX):].strip()
+    if bare == "Denied by user":
+        return "by user"
+    if asked:
+        return "approval not given"
+    m = GUARD_HOOK_RE.search(bare) or GUARD_START_RE.match(bare)
+    if m:
+        return "blocked by %s" % m.group(1)
+    return first_line(text)
 
 
 def load_meta(subdir):
@@ -248,12 +303,13 @@ def last_activity(path):
     return lines
 
 
-def outcome_of(call, res, agent_notices):
+def outcome_of(call, res, agent_notices, asked=False):
     if res is not None:
         if res["is_error"]:
             text = res["tur"] if isinstance(res["tur"], str) else res["text"]
-            kind = "denied" if res["denial"] else "failed"
-            return "%s: %s" % (kind, first_line(text))
+            if res["denial"]:
+                return "denied: %s" % denial(text, asked)
+            return "failed: %s" % first_line(text)
         tur = res["tur"] if isinstance(res["tur"], dict) else {}
         if tur.get("status") == "completed":
             return "completed"
@@ -278,7 +334,7 @@ def main(argv):
         return 2
     stem = os.path.splitext(os.path.basename(log))[0]
     subdir = os.path.join(os.path.dirname(os.path.abspath(log)), stem, "subagents")
-    calls, order, results, sends, send_errors, notices, handbacks = scan(records)
+    calls, order, results, sends, send_errors, notices, handbacks, asked = scan(records)
     meta = load_meta(subdir)
 
     print("session log: %s" % log)
@@ -298,7 +354,7 @@ def main(argv):
                     agent_id = task_id
                     break
         mine = [x for x in notices if agent_id and x[1][0] == agent_id]
-        outcome = outcome_of(call, res, mine)
+        outcome = outcome_of(call, res, mine, tid in asked)
         for k in OUTCOME_ORDER:
             if outcome == k or outcome.startswith(k + ":"):
                 counts[k] += 1
