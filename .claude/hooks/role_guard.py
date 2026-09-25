@@ -27,6 +27,13 @@ whose role is not one of the kit's roles below, is denied every tool.
   message that widens its scope without quoting an owner ruling. The
   transcript is written asynchronously, so a message sent just after an
   Agent result can be denied until the result is on disk; send it again.
+
+  TaskStop (planner only): the same target rule as SendMessage, applied to
+  task_id; shell_id is always denied, since the planner starts no background
+  shells. A stop is approved by the operator before it is made, as a message
+  is: the operator asks for it, or the planner offers it and the operator
+  agrees. A stopped agent writes no terminal of its own; its open intent is
+  closed by the next dispatch's record, citing the stop by planner-log line.
 - pulse: Read, Grep, Glob, SubagentHandback (to deliver its report), and
   Bash limited to read-only git and gh plus the adb reads getprop, dumpsys
   and screencap. device_guard.py separately
@@ -51,7 +58,7 @@ import guardlib as g  # noqa: E402
 # inert on that version.
 PLANNER_TOOLS = {"Read", "Bash", "Agent", "Skill", "WebFetch",
                  "WebSearch", "AskUserQuestion", "ToolSearch", "TodoWrite",
-                 "SendMessage"}
+                 "SendMessage", "TaskStop"}
 # SubagentHandback delivers a subagent's report to its caller; without it a
 # pulse runs and delivers nothing. The pulse's only, not the planner's.
 PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash", "SubagentHandback"}
@@ -249,6 +256,40 @@ def check_send_message(payload):
     return None
 
 
+STOP_RULE = ("role_guard: the planner may TaskStop only an agent this session "
+             "started (an ID that toolUseResult.agentId gives on the transcript "
+             "line holding the result of one of the session's own Agent calls), "
+             "named by task_id; shell_id is always denied.")
+
+
+def check_task_stop(payload):
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        tool_input = {}
+    shell_id = tool_input.get("shell_id")
+    if shell_id is not None and shell_id != "":
+        return (f"{STOP_RULE} Blocked: shell_id {shell_id!r} is set; the planner "
+                f"starts no background shells.")
+    task_id = tool_input.get("task_id")
+    if not isinstance(task_id, str) or not task_id.strip():
+        return f"{STOP_RULE} Blocked: `task_id` is missing or empty."
+    target = task_id.strip()
+    path = payload.get("transcript_path")
+    if not isinstance(path, str) or not path:
+        return (f"{STOP_RULE} Blocked: target {target!r}; the hook input has no "
+                f"transcript_path, so the session's agents cannot be read.")
+    try:
+        ids = own_agent_ids(path)
+    except OSError as exc:
+        return (f"{STOP_RULE} Blocked: target {target!r}; the transcript could "
+                f"not be read ({type(exc).__name__}: {exc}).")
+    if target not in ids:
+        return (f"{STOP_RULE} Blocked: target {target!r} is not one of them. "
+                f"If its Agent call has only just returned, try again once the "
+                f"result is on disk.")
+    return None
+
+
 def guard(payload):
     agent = payload.get("agent_type")
     if not agent:
@@ -280,6 +321,10 @@ def guard(payload):
                             f"Blocked: {problem}.")
     if tool == "SendMessage" and who == "planner":
         problem = check_send_message(payload)
+        if problem:
+            return ("deny", problem)
+    if tool == "TaskStop" and who == "planner":
+        problem = check_task_stop(payload)
         if problem:
             return ("deny", problem)
     return None
