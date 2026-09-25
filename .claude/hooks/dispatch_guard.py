@@ -37,6 +37,10 @@ Code 2.1.63 and still appears in 2.1.280's init tool list).
 
 The section check is structural. A dispatch can carry every heading and
 still be wrong.
+
+A dispatch that this hook or role_guard blocks is logged in the session log
+with `toolDenialKind` (for example "permission-rule") on the tool_result,
+not with a `deny` decision.
 """
 import datetime
 import fcntl

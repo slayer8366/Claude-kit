@@ -187,6 +187,47 @@ untracked file that differs from the branch's copy, and (with `--apply`)
 without `backup_dir`. Ignored files are never touched and nothing is deleted.
 The rules are in the script's docstring.
 
+## Backups
+
+`backup_dir` in `.claude/kit.json` names the directory that holds backups
+(`~` is expanded). It has no default. Unset, history_guard denies every pull
+request merge and `update_worktree.py --apply` stops.
+
+Each backup is a new folder `<backup_dir>/<UTC date>-NN/`, NN the next free
+number for that date. The folder holds the backed-up files and a
+`MANIFEST.sha256` listing them in `sha256sum -c` format. Each backup appends
+one line to `<backup_dir>/INDEX.md` naming its folder. Agents create
+backups and never delete them; pruning is the owner's, by hand.
+
+- **Merge backups** (coder.md item 10), written by a coder before it merges
+  PR N, after `git fetch`: a bundle of `origin/<base branch>` (`git bundle
+  create`), `merge.json` (`pr`, `branch`, `sha` of `origin/<base branch>`,
+  `bundle`), and `MANIFEST.sha256` over both. The INDEX.md line names the
+  folder, `#<N>` and the pre-merge SHA. history_guard checks all of this
+  before it lets the merge through (see "Merging and undoing a merge").
+- **update_worktree.py's moves** (`--apply`): each untracked file that is
+  byte-identical to `origin/<branch>`'s copy is moved into the folder under
+  its repo-relative path, never overwriting. `MANIFEST.sha256` lists the
+  moved files. The INDEX.md line names the folder, the worktree path,
+  update_worktree.py and `origin/<branch>`'s SHA. With nothing to move, no
+  folder or line is written.
+
+**"Created after" means birth time.** Where a backup rule or a check asks
+whether a file was created after some moment, "created" is the file's birth
+time (`statx` btime), never its modification time (mtime). Where the
+filesystem gives no birth time, the backup's record says so. It never falls
+back to mtime.
+
+## Blocked calls in the session log
+
+When dispatch_guard or role_guard blocks a dispatch (an Agent call), the
+session log does not record a `deny` decision for it. The block shows as a
+`toolDenialKind` field on the tool_result, for example `"permission-rule"`.
+Anything that reads a session log for blocked calls must match on
+`toolDenialKind`, not on a `deny` decision. Evidence: RECORD.md 2026-09-23-10,
+where a Type/target mismatch and a general-purpose dispatch were each blocked
+and logged with `toolDenialKind` permission-rule.
+
 ## Tests
 
     python3 -m unittest discover -s .claude/hooks/tests
