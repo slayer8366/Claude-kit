@@ -869,3 +869,71 @@ PR kit-v0.2-t4 -> main open, with CI green on its final commit. No merge, no tag
 - two failed fixes on one symptom
 - a denylist hit
 - an owner message after line 493 that qualifies under the rule in Closed decisions
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-25-14
+**Timestamp:** 2026-09-25T02:51:23Z
+**Closes:** 2026-09-25-13
+**Outcome:** completed
+**Report:** the coder's hand-back to the planner for this dispatch (T4, `preserved/2026-09-25-09.md`)
+**Observed:** Pushed on kit-v0.2-t4 (a new remote branch):
+- b2d89bb: store copy `2026-09-25-09.md`, byte-identical to the planner worktree's (sha256 5318921e...e53d), and intent 2026-09-25-13.
+- c23bdc5: `.claude/agents/coder.md` and T4's done-when cell.
+  - coder.md: item 3's first sentence is replaced, and items 7-9 are added after item 6. The text is the dispatch's, rewrapped to the file's width; the unwrapped text contains each of the four sentences exactly.
+  - The done-when cell is replaced by the dispatch's text.
+- 5d95833: tests only.
+  - check_record.py: `_minimal_continuation` and c24-c30, `total = 30`.
+  - check_prompts.py: p9-p10, `total = 10`.
+- 32c27d2: the fix.
+  - check_record.py:
+    - `stopped` joins `NOTE_OUTCOMES`.
+    - New `CONT_KIND`, `CONT_REQUIRED`, `CONT_FORBIDDEN`, `_validate_continuation` and `_check_continues`.
+    - A continuation branch in `validate_entries`, and a call to `_check_continues` after `closed_ids` is built.
+    - A "Claude-kit v0.2 addition" paragraph at the end of the module docstring.
+  - check_prompts.py: the preserved-only check applies to `cr.NOTE_KIND` and `cr.CONT_KIND`, and its message names the entry's kind.
+
+Tests-only commit results:
+- check_record.py `--render-check`: "FAIL: 7 of 30 checks failed", exit 1.
+  - c24 failed with "dispatch-note 2026-01-01-05: Outcome 'stopped' is not one of ['answered', 'declined', 'exercise']".
+  - c25-c30 each failed with "2026-01-01-03: missing or invalid Kind (got 'continuation')". c30 also had the same message for 2026-01-01-04.
+  - c1-c23 passed.
+- check_prompts.py `--render-check`: "FAIL: 2 of 10 checks failed".
+  - p9 failed with "the claiming continuation is not a valid entry: [\"2026-01-01-03: missing or invalid Kind (got 'continuation')\"]".
+  - p10 failed with "a continuation claiming a prompt outside preserved/ was accepted: []".
+- hook tests: "Ran 106 tests" OK. tests/: "Ran 29 tests" OK.
+
+After the fix:
+- render checks: "PASS: 0 of 30 checks failed" and "PASS: 0 of 10 checks failed"
+- both checkers: PASS on the real record (31 commits walked; 25 dispatch-recording entries; preserved=23)
+- hook tests: "Ran 106 tests" OK
+- tests/: "Ran 29 tests" OK
+- release_check.py: "PASS: 19 release file(s), 4840 line(s), 18 denylist pattern(s), no match."
+- find_dispatches.py: "Counts: in-store 13, record 15, refused 2, stop 0"
+
+Ad hoc, not committed: each continuation error path was run once, and each error names the continuation and the value:
+- "Continues '2026-01-01-01' names an intent that appears later in the file"
+- "... names an intent already closed by terminal 2026-01-01-02, earlier in the file"
+- "... names a dispatch-note entry, not an intent"
+- "... names no entry in the record"
+- one error each for 'Closes', 'Outcome' and 'Finish line'
+- a continuation reusing its intent's ID gets the usual duplicate-ID error
+
+Revert check: HEAD's tree was extracted to /tmp and the fix commit's diff to the two checkers was reverse-applied. Against origin/main, that copy removes only the two `total` lines. It gave "7 of 30" and "2 of 10", with the same cases and messages as the tests-only commit.
+
+Scratch dry run: HEAD's tree was extracted to /tmp and RECORD.md rewritten there:
+- intent 2026-09-24-14 stays as it is
+- 2026-09-25-02 and -04 become continuations of 2026-09-24-14, keeping their IDs, Timestamps and Dispatch-files (`preserved/2026-09-25-03.md`, `-04.md`)
+- terminals 2026-09-25-03 and -05 are removed
+- terminal 2026-09-25-06 closes 2026-09-24-14
+
+After `git init` and one commit, check_record.py gave PASS with 37 entries. The only unterminated intent was 2026-09-25-13, open at that time. check_prompts.py gave PASS (25 dispatch-recording entries, preserved=23). Nothing was committed from it.
+
+Owner messages: the planner log, read at 02:51Z, has 505 lines, the same as when this dispatch started. It has one owner message after this dispatch's Agent call (line 493), at line 502 (2026-09-25T02:42:41.947Z): "How much left do we have of the plan?" (enqueued at line 474, 02:39:00.030Z, before the Agent call). It asks about the plan and gives no instruction in T4's scope, so it is recorded here and the work continued. No planner message reached this coder.
+**Deviations:** None from the finish line up to this entry. The PR and CI status on the final commit are reported in the hand-back. The planner's and the intent's predictions held throughout. The "appears later" rule has no render-check case, because the dispatch fixed the cases at c24-c30; it was exercised only ad hoc, as above. Implementation choices within the rulings are listed in the hand-back under Decisions I made:
+- the wording of each continuation error
+- separate messages for "names no entry" and "not an intent"
+- the fixture defaults of `_minimal_continuation`
+- where the docstring paragraph sits
+- the rewrap of the coder.md text
