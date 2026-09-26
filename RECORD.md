@@ -4196,3 +4196,18 @@ A read-only pulse run on Fable 5.1 (the Agent call's model override), a differen
 - history_guard's whole-text patterns caught this coder's own patch command and would catch any record entry that quotes the docstring's force-push sentence (deviation 3): R3's move to command position would end that.
 - test_install's `test_vendored_hook_tests_pass_in_the_adopter` makes tests/ fail whenever the hook tests fail, so a tests-first commit on a hook is never "94 OK"; dispatches predicting tests/ on such a commit could say so.
 - `MERGE`'s `\bgit\b` still matches inside a path ending in `git` (`--git-dir=.git`, `/x/.git`), which is now redundant with the option group but remains a source of accidental matches for unrelated text such as `.git merge-file`.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-24
+**Timestamp:** 2026-09-26T01:07:15Z
+**PR:** 36
+**Head:** kit-review-r2
+**Base:** pre-main
+**Merge-commit:** 0ff36345d0812c956ab1a423089d0b26ecf65468
+**Pre-merge:** 24e4f7fc54ef6c6e534ac35bebeb19c18c7fabf4
+**Backup:** 2026-09-26-02
+**Merged-by:** coder preserved/2026-09-26-01.md
+**Carries:** 2026-09-26-21, 2026-09-26-22, 2026-09-26-23
+**Sweep:** written by R3's coder (dispatch preserved/2026-09-26-02.md) under coder.md item 1 at 0ff3634: the one merge commit on origin/pre-main's first-parent chain newer than 24e4f7f (the newest Merge-commit a `merge` entry with Base pre-main records, 2026-09-26-21); origin/main's chain has no merge newer than 0319ccd (recorded by 2026-09-26-19). Merge-commit and Pre-merge from `git log --merges --first-parent --format=%H%x20%P -1 origin/pre-main` (0ff3634, first parent 24e4f7f, second parent 55ad7fd); PR, Head, Base and Timestamp (mergedAt) from `gh pr view 36 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (mergeCommit.oid equal to Merge-commit); Backup is the one ~/forager-backups/INDEX.md line whose "Pre-merge backup for PR #36" names folder 2026-09-26-02 and the SHA 24e4f7fc54ef6c6e534ac35bebeb19c18c7fabf4 (equal to Pre-merge; INDEX row 2026-09-26-03 is update_worktree.py's move of W's copy, not a merge backup); Merged-by names the dispatch R2's coder merged under, whose terminal 2026-09-26-23 (Dispatch-file preserved/2026-09-26-01.md) says the merge followed it. Carries lists the three IDs the PR's RECORD.md diff added (`git diff 24e4f7f..0ff3634 -- RECORD.md`); the PR also changed history_guard.py, BYPASSES.md and two test files, so it is not record only. No store file under prompts/preserved/ at 0ff3634 is unclaimed (check_prompts.py PASS, 77 files), so this sweep writes no dispatch-note.
