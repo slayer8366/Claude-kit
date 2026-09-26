@@ -187,11 +187,11 @@ def init_repo(path, branch):
     subprocess.run(g + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
 
 
-class RelativeDashC(unittest.TestCase):
-    """A relative `git -C` directory is read against the payload's cwd, not
-    the hook process's own directory. The payload cwd is `outer`, on
-    feature, holding `sub` on main and `sub2` on feature. The hook process
-    runs in the harness's default directory (the test runner's), not outer."""
+class OuterRepos(unittest.TestCase):
+    """The fixture RelativeDashC and PushWalk share: the payload cwd is
+    `outer`, on feature, holding `sub` on main and `sub2` on feature. The
+    hook process runs in the harness's default directory (the test
+    runner's), not outer. No tests of its own."""
 
     @classmethod
     def setUpClass(cls):
@@ -204,8 +204,13 @@ class RelativeDashC(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.outer, ignore_errors=True)
 
-    def decide(self, command):
-        return run_hook(HOOK, bash(command, "coder", cwd=str(self.outer)))
+    def decide(self, command, cwd=None):
+        return run_hook(HOOK, bash(command, "coder", cwd=str(cwd or self.outer)))
+
+
+class RelativeDashC(OuterRepos):
+    """A relative `git -C` directory is read against the payload's cwd, not
+    the hook process's own directory."""
 
     def test_relative_dash_c_push_from_main_denied(self):
         decision, reason = self.decide("git -C sub push origin")
@@ -221,6 +226,76 @@ class RelativeDashC(unittest.TestCase):
     def test_relative_dash_c_push_from_feature_allowed(self):
         decision, reason = self.decide("git -C sub2 push origin feature")
         self.assertIsNone(decision, reason)
+
+
+class PushWalk(OuterRepos):
+    """R2: the push walk follows `cd` and `pushd` from the payload's cwd,
+    sees git behind shell keywords, wrappers, assignments and a path to git,
+    denies `+` refspecs as force pushes, and the `git merge` check sees
+    `--git-dir=` and `--work-tree=`."""
+
+    def assertDenied(self, command, *words, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertEqual(decision, "deny", f"{command!r}: got {decision!r} ({reason})")
+        for w in words:
+            self.assertIn(w, reason, command)
+
+    def assertPasses(self, command, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertIsNone(decision, f"{command!r}: {reason}")
+
+    def test_cd_into_main_then_bare_push_denied(self):
+        for command in ("cd sub && git push origin",
+                        "cd sub; git push origin",
+                        "pushd sub && git push origin && popd",
+                        "cd sub && cd ../sub2 && cd ../sub && git push origin"):
+            with self.subTest(command):
+                self.assertDenied(command, "protected branch", "which is main")
+
+    def test_cd_into_feature_or_subshell_cd_then_push_allowed(self):
+        # outer is on feature: a cd inside `(...)` does not reach the push after it.
+        for command in ("cd sub2 && git push origin feature",
+                        "(cd sub) && git push origin"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
+    def test_unresolvable_cd_then_bare_push_denied_by_name(self):
+        for command in ("cd - && git push origin",
+                        'cd "$D" && git push origin'):
+            with self.subTest(command):
+                self.assertDenied(command, "cannot be determined")
+
+    def test_push_to_main_behind_keyword_wrapper_assignment_or_path_denied(self):
+        for command in ("{ git push origin main; }",
+                        "if true; then git push origin main; fi",
+                        "for x in 1; do git push origin main; done",
+                        "time git push origin main",
+                        "command git push origin main",
+                        "exec git push origin main",
+                        "env -u X git push origin main",
+                        "GIT_TRACE=1 git push origin main",
+                        "/usr/bin/git push origin main"):
+            with self.subTest(command):
+                self.assertDenied(command, "protected branch", "main")
+
+    def test_push_to_feature_behind_keyword_or_wrapper_allowed(self):
+        for command in ("{ git push origin feature; }",
+                        "time git push origin feature"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
+    def test_plus_refspec_denied_as_force_push_to_any_destination(self):
+        for command in ("git push origin +feature", "git push origin +main"):
+            with self.subTest(command):
+                self.assertDenied(command, "force")
+
+    def test_full_refspec_to_feature_allowed(self):
+        self.assertPasses("git push origin feature:refs/heads/feature")
+
+    def test_merge_with_git_dir_or_work_tree_on_main_denied(self):
+        for command in ("git --git-dir=.git merge x", "git --work-tree=. merge x"):
+            with self.subTest(command):
+                self.assertDenied(command, "while on main", cwd=self.outer / "sub")
 
 
 def git_in(repo, *args):
