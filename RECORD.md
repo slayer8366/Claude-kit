@@ -3835,3 +3835,258 @@ A read-only pulse run on Fable 5.1 (the Agent call's model override), a differen
 - The kit.json order change: session_check, launch_session, run_exercise and update_worktree read the first protected branch, so their tests, which use their own configs, do not change; hook tests 147 and tests/ 94 unchanged.
 **Finish line:** Pushed on kit-review-r1: (1) the sweep note for -46 (83fe1c2); (2) this copy and this intent; (3) the tests-first commit; (4) the fix, with the 17 merge entries; (5) kit.json, coder.md, README and the plan document; (6) the terminal, Outcome `completed`, written under the new coder.md item 3: it closes at the PR open, CI green on the final commit and the backup written. Then the merge and the two updates (C, then W), reported in the hand-back only. No tag. Deferral is not allowed in this build.
 **Abort conditions:** a Base-and-state mismatch other than the copies' names or line drift; any existing test or render check failing after the fix; any existing record entry failing the new checks (report it; do not loosen the check); a needed change to any hook's code; a failure for any reason other than the predicted one; two failed fixes on one symptom; a denylist hit; CI not green on the final commit (no merge); the merge denied by anything (quote it); any dry run or `--apply` exiting 1; an owner message in F after this dispatch that tells this coder to do or not do something in this scope; a planner message that widens the scope without quoting an owner ruling.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-03
+**Timestamp:** 2026-09-25T08:20:26Z
+**PR:** 17
+**Head:** kit-v0.2-wt-move
+**Base:** main
+**Merge-commit:** 80f3f8c47865d3ec9489b73cc387d778a0e21455
+**Pre-merge:** 8b1c88a69086b52698fa63e6f6a05937acf5685f
+**Backup:** 2026-09-25-03
+**Merged-by:** coder preserved/2026-09-25-18.md
+**Carries:** 2026-09-25-28, 2026-09-25-29; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 17 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#17`, folder 2026-09-25-03, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-31.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-04
+**Timestamp:** 2026-09-25T08:58:27Z
+**PR:** 19
+**Head:** kit-v0.2-t5
+**Base:** main
+**Merge-commit:** 2e37dfc42e01e1a37d93bb47d946f1aed01dee97
+**Pre-merge:** 80f3f8c47865d3ec9489b73cc387d778a0e21455
+**Backup:** 2026-09-25-04
+**Merged-by:** coder preserved/2026-09-25-19.md
+**Carries:** 2026-09-25-30, 2026-09-25-31, 2026-09-25-32, 2026-09-25-33
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 19 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#19`, folder 2026-09-25-04, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-33.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-05
+**Timestamp:** 2026-09-25T09:53:21Z
+**PR:** 20
+**Head:** kit-v0.2-update-wt
+**Base:** main
+**Merge-commit:** 3847590469634ed45759e429ce7900be07a4d169
+**Pre-merge:** 2e37dfc42e01e1a37d93bb47d946f1aed01dee97
+**Backup:** 2026-09-25-05
+**Merged-by:** coder preserved/2026-09-25-20.md
+**Carries:** 2026-09-25-34, 2026-09-25-35
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 20 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#20`, folder 2026-09-25-05, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-35.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-06
+**Timestamp:** 2026-09-25T10:12:32Z
+**PR:** 21
+**Head:** kit-v0.2-wt-update
+**Base:** main
+**Merge-commit:** 22723e0a3993dffd911ffb20267ad79cabb4f669
+**Pre-merge:** 3847590469634ed45759e429ce7900be07a4d169
+**Backup:** 2026-09-25-07
+**Merged-by:** coder preserved/2026-09-25-21.md
+**Carries:** 2026-09-25-36, 2026-09-25-37; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 21 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#21`, folder 2026-09-25-07, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-37.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-07
+**Timestamp:** 2026-09-25T10:41:16Z
+**PR:** 22
+**Head:** kit-v0.2-batch1
+**Base:** main
+**Merge-commit:** 05a56ef2f73880a2219323c98843c01106c7900a
+**Pre-merge:** 22723e0a3993dffd911ffb20267ad79cabb4f669
+**Backup:** 2026-09-25-08
+**Merged-by:** coder preserved/2026-09-25-22.md
+**Carries:** 2026-09-25-38, 2026-09-25-39
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 22 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#22`, folder 2026-09-25-08, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-39.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-08
+**Timestamp:** 2026-09-25T11:10:26Z
+**PR:** 23
+**Head:** kit-v0.2-backlog
+**Base:** main
+**Merge-commit:** 905ac6415eb1551fc088cfa2235591bc2bc55f45
+**Pre-merge:** 05a56ef2f73880a2219323c98843c01106c7900a
+**Backup:** 2026-09-25-09
+**Merged-by:** coder preserved/2026-09-25-23.md
+**Carries:** 2026-09-25-40, 2026-09-25-41, 2026-09-25-42, 2026-09-25-43, 2026-09-25-44, 2026-09-25-45, 2026-09-25-46, 2026-09-25-47, 2026-09-25-48, 2026-09-25-49, 2026-09-25-50, 2026-09-25-51, 2026-09-25-52, 2026-09-25-53, 2026-09-25-54, 2026-09-25-55, 2026-09-25-56; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 23 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#23`, folder 2026-09-25-09, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-56.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-09
+**Timestamp:** 2026-09-25T11:30:34Z
+**PR:** 24
+**Head:** kit-v0.2-t10
+**Base:** main
+**Merge-commit:** 1599a53975b8f980035c594d52f7d125de768370
+**Pre-merge:** 905ac6415eb1551fc088cfa2235591bc2bc55f45
+**Backup:** 2026-09-25-10
+**Merged-by:** coder preserved/2026-09-25-24.md
+**Carries:** 2026-09-25-57, 2026-09-25-58
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 24 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#24`, folder 2026-09-25-10, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-58.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-10
+**Timestamp:** 2026-09-25T17:08:15Z
+**PR:** 25
+**Head:** kit-v0.2-t14-16
+**Base:** main
+**Merge-commit:** db742d2bd6f0926d908ad5919f9fc28806a68547
+**Pre-merge:** 1599a53975b8f980035c594d52f7d125de768370
+**Backup:** 2026-09-25-12
+**Merged-by:** coder preserved/2026-09-25-29.md
+**Carries:** 2026-09-25-59, 2026-09-25-60, 2026-09-25-61, 2026-09-25-62, 2026-09-25-63, 2026-09-25-64
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 25 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#25`, folder 2026-09-25-12, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-64. The merge ran under the continuation dispatch preserved/2026-09-25-29.md (continuation 2026-09-25-63) after the original coder (intent 2026-09-25-60, preserved/2026-09-25-26.md) halted before CI, so Merged-by names the continuation's copy.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-11
+**Timestamp:** 2026-09-25T18:03:29Z
+**PR:** 26
+**Head:** kit-v0.2-t6
+**Base:** main
+**Merge-commit:** 9e6ff6b2c2b06bbd8fd4d73f4a04b23e415046ad
+**Pre-merge:** db742d2bd6f0926d908ad5919f9fc28806a68547
+**Backup:** 2026-09-25-14
+**Merged-by:** coder preserved/2026-09-25-32.md
+**Carries:** 2026-09-25-65, 2026-09-25-66, 2026-09-25-67, 2026-09-25-68
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 26 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#26`, folder 2026-09-25-14, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-68.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-12
+**Timestamp:** 2026-09-25T19:06:44Z
+**PR:** 27
+**Head:** kit-v0.2-t7
+**Base:** main
+**Merge-commit:** cedeb526887397945349f3ff030123466af9aeea
+**Pre-merge:** 9e6ff6b2c2b06bbd8fd4d73f4a04b23e415046ad
+**Backup:** 2026-09-25-16
+**Merged-by:** coder preserved/2026-09-25-35.md
+**Carries:** 2026-09-25-69, 2026-09-25-70, 2026-09-25-71, 2026-09-25-72
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 27 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#27`, folder 2026-09-25-16, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-72.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-13
+**Timestamp:** 2026-09-25T19:48:01Z
+**PR:** 28
+**Head:** kit-v0.2-batch2
+**Base:** main
+**Merge-commit:** c196c9de8465bed6d5072266462424d05aa8f3d2
+**Pre-merge:** cedeb526887397945349f3ff030123466af9aeea
+**Backup:** 2026-09-25-17
+**Merged-by:** coder preserved/2026-09-25-36.md
+**Carries:** 2026-09-25-73, 2026-09-25-74
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 28 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#28`, folder 2026-09-25-17, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-74.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-14
+**Timestamp:** 2026-09-25T20:40:52Z
+**PR:** 29
+**Head:** kit-v0.2-t8
+**Base:** main
+**Merge-commit:** e4cfab25c98ac87bd7a556a2900a4b9acf0581cc
+**Pre-merge:** c196c9de8465bed6d5072266462424d05aa8f3d2
+**Backup:** 2026-09-25-19
+**Merged-by:** coder preserved/2026-09-25-37.md
+**Carries:** 2026-09-25-75, 2026-09-25-76, 2026-09-25-77, 2026-09-25-78
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 29 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#29`, folder 2026-09-25-19, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-78.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-15
+**Timestamp:** 2026-09-25T21:09:25Z
+**PR:** 30
+**Head:** kit-v0.2-batch3
+**Base:** main
+**Merge-commit:** 9425ef7b5989a3e8e887c826c7b2379680896f08
+**Pre-merge:** e4cfab25c98ac87bd7a556a2900a4b9acf0581cc
+**Backup:** 2026-09-25-21
+**Merged-by:** coder preserved/2026-09-25-40.md
+**Carries:** 2026-09-25-79, 2026-09-25-80
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 30 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#30`, folder 2026-09-25-21, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-80.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-16
+**Timestamp:** 2026-09-25T21:46:57Z
+**PR:** 31
+**Head:** kit-v0.2-bypass-rulings
+**Base:** main
+**Merge-commit:** 6a848aca23a50fdde28d3580b3d7447b1c5002de
+**Pre-merge:** 9425ef7b5989a3e8e887c826c7b2379680896f08
+**Backup:** 2026-09-25-23
+**Merged-by:** coder preserved/2026-09-25-41.md
+**Carries:** 2026-09-25-81, 2026-09-25-82
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 31 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#31`, folder 2026-09-25-23, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-82.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-17
+**Timestamp:** 2026-09-25T22:06:31Z
+**PR:** 32
+**Head:** kit-v0.2-batch4
+**Base:** main
+**Merge-commit:** 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f
+**Pre-merge:** 6a848aca23a50fdde28d3580b3d7447b1c5002de
+**Backup:** 2026-09-25-25
+**Merged-by:** coder preserved/2026-09-25-42.md
+**Carries:** 2026-09-25-83, 2026-09-25-84
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 32 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#32`, folder 2026-09-25-25, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-84.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-18
+**Timestamp:** 2026-09-25T23:08:09Z
+**PR:** 33
+**Head:** kit-v0.2-batch5
+**Base:** main
+**Merge-commit:** 671b05d75db5ba71fce947aac906114047aabd9a
+**Pre-merge:** 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f
+**Backup:** 2026-09-25-27
+**Merged-by:** coder preserved/2026-09-25-43.md
+**Carries:** 2026-09-25-85, 2026-09-25-86
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 33 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#33`, folder 2026-09-25-27, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-86.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-19
+**Timestamp:** 2026-09-25T23:22:20Z
+**PR:** 34
+**Head:** kit-v0.2-fd-gc
+**Base:** main
+**Merge-commit:** 0319ccd7a8818dbabec7faa2f67c31cde349e11f
+**Pre-merge:** 671b05d75db5ba71fce947aac906114047aabd9a
+**Backup:** 2026-09-25-29
+**Merged-by:** coder preserved/2026-09-25-45.md
+**Carries:** 2026-09-25-87, 2026-09-25-88, 2026-09-25-89; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 34 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#34`, folder 2026-09-25-29, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-89.

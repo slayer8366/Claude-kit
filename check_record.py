@@ -64,6 +64,22 @@ closes the whole chain. The order of a build's commits (the sweep, then
 the dispatch's store copy with its intent or continuation, then the
 work) is a written rule in coder.md and is not checked here: CI checks
 out a single commit with no history.
+
+Claude-kit review fix R1 addition: the entry kinds `merge` and `revert`,
+a set of terminal outcomes, and the dispatch-note outcome `merged`. A
+merge entry records one merge commit on a protected branch's first-
+parent chain (PR, Head, Base, Merge-commit, Pre-merge, Backup, Merged-by,
+Carries); the next build's sweep writes one for each merge the record
+does not hold yet. A revert entry records the revert of a merge that is
+left out before a promotion; its Reverts must name a merge entry earlier
+in the file, checked by position like a continuation's Continues. Both
+open and close nothing and may not carry Closes, Superseded-by, Outcome,
+Finish line or either prediction field. A terminal's Outcome must be
+one of completed, partial, superseded, abandoned; `partial` requires a
+non-empty Deferred field (the commits reverted on the feature branch
+and the check that failed) and `completed` may not carry one. A
+dispatch-note with Outcome `merged` claims the store copy of a merge
+dispatch, which opens no intent.
 """
 import re
 import subprocess
@@ -85,6 +101,11 @@ INTENT_REQUIRED = [
 TERMINAL_REQUIRED = [
     "Kind", "ID", "Timestamp", "Closes", "Outcome", "Observed", "Deviations",
 ]
+# Claude-kit review fix R1 addition (see module docstring): the only
+# outcomes a terminal may declare. `partial` needs DEFERRED_FIELD;
+# `completed` may not carry it.
+TERMINAL_OUTCOMES = {"completed", "partial", "superseded", "abandoned"}
+DEFERRED_FIELD = "Deferred"
 
 ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}$")
 FIELD_RE = re.compile(r"^\*\*(.+?):\*\*\s?(.*)$")
@@ -117,7 +138,9 @@ SUPPLIED_FIELD = "Prediction-outcome-supplied"
 NOTE_KIND = "dispatch-note"
 NOTE_REQUIRED = ["Kind", "ID", "Dispatch-file", "Type", "Outcome", "Report"]
 NOTE_TYPES = {"build", "device", "pulse"}
-NOTE_OUTCOMES = {"answered", "declined", "exercise", "stopped"}
+# `merged` (Claude-kit review fix R1) claims the store copy of a merge
+# dispatch, which opens no intent; the merge itself is a `merge` entry.
+NOTE_OUTCOMES = {"answered", "declined", "exercise", "stopped", "merged"}
 NOTE_FORBIDDEN = ["Closes", "Superseded-by", "Finish line",
                   "Prediction (outcome — planner)",
                   "Prediction (mechanism — coder)"]
@@ -219,6 +242,114 @@ def _check_continues(entries):
     return errors
 
 
+# Claude-kit review fix R1 addition (see module docstring).
+# A merge entry records one merge commit on a protected branch; a revert
+# entry records the revert of a recorded merge. Neither opens or closes
+# an intent. Reverts is checked by position in _check_reverts, after
+# every entry is parsed.
+MERGE_KIND = "merge"
+MERGE_REQUIRED = ["Kind", "ID", "Timestamp", "PR", "Head", "Base",
+                  "Merge-commit", "Pre-merge", "Backup", "Merged-by",
+                  "Carries"]
+REVERT_KIND = "revert"
+REVERT_REQUIRED = ["Kind", "ID", "Timestamp", "Reverts", "Revert-commit",
+                   "PR", "Reason", "Decided-by"]
+MERGE_FORBIDDEN = ["Closes", "Superseded-by", "Outcome", "Finish line",
+                   "Prediction (outcome — planner)",
+                   "Prediction (mechanism — coder)"]
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+PR_RE = re.compile(r"^\d+$")
+MERGED_BY_RE = re.compile(r"^(owner|coder\s+\S.*)$")
+
+
+def _validate_merge_like(kind, required, fields, entry_id, label_for_errors):
+    errors = []
+    if entry_id and not ID_RE.match(entry_id):
+        errors.append(f"{kind} {entry_id}: malformed ID (expected "
+                      f"YYYY-MM-DD-NN)")
+    for req_label in required:
+        if not fields.get(req_label, "").strip():
+            errors.append(f"{kind} {label_for_errors}: missing required "
+                          f"field {req_label!r}")
+    pr = fields.get("PR", "").strip()
+    if pr and not PR_RE.match(pr):
+        errors.append(f"{kind} {label_for_errors}: PR {pr!r} is not a "
+                      f"pull request number (digits only)")
+    for label in MERGE_FORBIDDEN:
+        if label in fields:
+            errors.append(f"{kind} {label_for_errors}: carries field "
+                          f"{label!r}, but a {kind} entry opens and closes "
+                          f"nothing and has no prediction or finish line")
+    return errors
+
+
+def _validate_merge(fields, entry_id, label_for_errors):
+    errors = _validate_merge_like(MERGE_KIND, MERGE_REQUIRED, fields,
+                                  entry_id, label_for_errors)
+    shas = {}
+    for label in ("Merge-commit", "Pre-merge"):
+        value = fields.get(label, "").strip()
+        if not value:
+            continue  # already reported as a missing required field
+        if not SHA_RE.match(value):
+            errors.append(f"{MERGE_KIND} {label_for_errors}: {label} "
+                          f"{value!r} is not 40 lowercase hex characters")
+        shas[label] = value
+    if len(shas) == 2 and shas["Merge-commit"] == shas["Pre-merge"]:
+        errors.append(f"{MERGE_KIND} {label_for_errors}: Merge-commit and "
+                      f"Pre-merge are the same commit {shas['Pre-merge']!r}; "
+                      f"Pre-merge is the merge commit's first parent")
+    merged_by = fields.get("Merged-by", "").strip()
+    if merged_by and not MERGED_BY_RE.match(merged_by):
+        errors.append(f"{MERGE_KIND} {label_for_errors}: Merged-by "
+                      f"{merged_by!r} is neither 'owner' nor 'coder' followed "
+                      f"by the dispatch's store file")
+    return errors
+
+
+def _validate_revert(fields, entry_id, label_for_errors):
+    errors = _validate_merge_like(REVERT_KIND, REVERT_REQUIRED, fields,
+                                  entry_id, label_for_errors)
+    value = fields.get("Revert-commit", "").strip()
+    if value and not SHA_RE.match(value):
+        errors.append(f"{REVERT_KIND} {label_for_errors}: Revert-commit "
+                      f"{value!r} is not 40 lowercase hex characters")
+    return errors
+
+
+def _check_reverts(entries):
+    """Errors for reverts whose Reverts does not name a merge entry
+    earlier in the file. entries is in file order. The first entry
+    holding an ID is the one compared; a duplicate ID is reported
+    separately."""
+    errors = []
+    first = {}
+    for pos, e in enumerate(entries):
+        if e["id"] and e["id"] not in first:
+            first[e["id"]] = (pos, e["kind"])
+    for pos, e in enumerate(entries):
+        if e["kind"] != REVERT_KIND:
+            continue
+        target = e["fields"].get("Reverts", "").strip()
+        if not target:
+            continue  # already reported as a missing required field
+        label = e["id"] or "(no ID)"
+        found = first.get(target)
+        if found is None:
+            errors.append(f"{REVERT_KIND} {label}: Reverts {target!r} names "
+                          f"no entry in the record")
+            continue
+        target_pos, target_kind = found
+        if target_kind != MERGE_KIND:
+            errors.append(f"{REVERT_KIND} {label}: Reverts {target!r} names "
+                          f"a {target_kind or 'Kind-less'} entry, not a merge")
+            continue
+        if target_pos > pos:
+            errors.append(f"{REVERT_KIND} {label}: Reverts {target!r} names "
+                          f"a merge entry that appears later in the file")
+    return errors
+
+
 def split_entries(text):
     """Raw text blocks for each entry, found after the '## Entries'
     heading and separated by bare '---' lines. Header/format
@@ -299,6 +430,18 @@ def validate_entries(text):
             entries.append({"kind": kind, "id": entry_id, "fields": fields})
             continue
 
+        if kind in (MERGE_KIND, REVERT_KIND):
+            validator = _validate_merge if kind == MERGE_KIND else _validate_revert
+            errors.extend(validator(fields, entry_id, label_for_errors))
+            if entry_id:
+                if entry_id in seen_ids:
+                    errors.append(f"duplicate ID {entry_id}: used by entry "
+                                  f"#{seen_ids[entry_id] + 1} and entry #{i + 1}")
+                else:
+                    seen_ids[entry_id] = i
+            entries.append({"kind": kind, "id": entry_id, "fields": fields})
+            continue
+
         if kind not in ("intent", "terminal"):
             errors.append(f"{label_for_errors}: missing or invalid Kind "
                           f"(got {kind!r})")
@@ -334,6 +477,19 @@ def validate_entries(text):
                         f"since nothing there can legitimately be "
                         f"outstanding or absent")
             outcome = fields.get("Outcome", "").strip()
+            if outcome and outcome not in TERMINAL_OUTCOMES:
+                errors.append(f"terminal {label_for_errors}: Outcome "
+                              f"{outcome!r} is not one of "
+                              f"{sorted(TERMINAL_OUTCOMES)}")
+            if outcome == "partial" and not fields.get(DEFERRED_FIELD, "").strip():
+                errors.append(f"terminal {label_for_errors}: outcome "
+                              f"'partial' requires a non-empty field "
+                              f"{DEFERRED_FIELD!r} naming the reverted "
+                              f"commits and the failing check")
+            if outcome == "completed" and DEFERRED_FIELD in fields:
+                errors.append(f"terminal {label_for_errors}: outcome "
+                              f"'completed' carries field {DEFERRED_FIELD!r}; "
+                              f"a build with deferrals is 'partial'")
             if outcome == "superseded" and not fields.get("Superseded-by", "").strip():
                 errors.append(f"terminal {label_for_errors}: outcome "
                               f"'superseded' requires field 'Superseded-by'")
@@ -365,6 +521,7 @@ def validate_entries(text):
             closed_ids.add(closes)
 
     errors.extend(_check_continues(entries))
+    errors.extend(_check_reverts(entries))
 
     # A later-supplied outcome prediction cannot be written into the
     # sentinel's own intent entry -- that entry is already committed, and
