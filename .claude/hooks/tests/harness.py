@@ -5,6 +5,7 @@ import atexit
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -107,3 +108,19 @@ def tool(name, agent_type=None, tool_input=None, cwd="/tmp"):
         p["agent_type"] = agent_type
         p["agent_id"] = "a0000"
     return p
+
+
+def write_sleeper(path, seconds, line):
+    """An executable at path that sleeps `seconds`, prints `line` and exits 0:
+    a stand-in for a tool that answers too slowly. Nothing a test writes
+    with this sleeps longer than 5 seconds."""
+    path = Path(path)
+    path.write_text(f"#!/usr/bin/env python3\nimport sys, time\ntime.sleep({seconds})\n"
+                    f"print({line!r})\nsys.exit(0)\n")
+    path.chmod(path.stat().st_mode | stat.S_IEXEC)
+    return path
+
+
+def slow_path(fake_dir):
+    """A PATH with fake_dir first, so a fake `git` there is the one found."""
+    return os.pathsep.join([str(fake_dir), os.environ.get("PATH", "")])

@@ -2,15 +2,17 @@
 repository checked out on main or on a feature branch."""
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from harness import TEST_CONFIG, bash, run_hook
+from harness import TEST_CONFIG, bash, run_hook, slow_path, write_sleeper
 
 HOOK = "history_guard.py"
+PREFIX = TEST_CONFIG["guard_env_prefix"]
 
 
 def make_repo(branch):
@@ -368,6 +370,29 @@ class CommandWord(OuterRepos):
         self.assertDenied("echo 'oops; gh pr merge 5 -m", "could not parse", "gh pr merge")
 
 
+class Timeouts(unittest.TestCase):
+    """Every command the hook runs has the kit's timeout (<prefix>TIMEOUT
+    seconds, 20 by default): a git that answers too slowly is a deny that
+    names the timeout, not a wait that Claude Code cuts short."""
+
+    def setUp(self):
+        self.fake = Path(tempfile.mkdtemp(prefix="history_guard_slow_"))
+        self.repo = make_repo("main")
+        write_sleeper(self.fake / "git", 5, "main")
+
+    def tearDown(self):
+        shutil.rmtree(self.fake, ignore_errors=True)
+        shutil.rmtree(self.repo, ignore_errors=True)
+
+    def test_slow_git_denied_by_name(self):
+        env = {"PATH": slow_path(self.fake), PREFIX + "TIMEOUT": "1"}
+        decision, reason = run_hook(HOOK, bash("git merge x", "coder", cwd=str(self.repo)),
+                                    env=env)
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("timed out", reason)
+        self.assertIn("failing closed", reason)
+
+
 def git_in(repo, *args):
     return subprocess.run(["git", "-C", str(repo), "-c", "user.name=t",
                            "-c", "user.email=t@example.invalid"] + list(args),
@@ -538,6 +563,16 @@ class MergeRule(unittest.TestCase):
         git_in(self.work, "remote", "set-url", "origin", str(self.root / "missing.git"))
         self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness",
                                "could not be read")
+
+    def test_m15_remote_denial_never_echoes_credentials(self):
+        self.write_backup(15)
+        git_in(self.work, "remote", "set-url", "origin",
+               "https://user:s3cr3t@example.invalid/x.git")
+        decision, reason = self.decide("gh pr merge 15 --merge")
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("(e) freshness", reason)
+        self.assertIn("could not be read", reason)
+        self.assertNotIn("s3cr3t", reason)
 
 
 if __name__ == "__main__":
