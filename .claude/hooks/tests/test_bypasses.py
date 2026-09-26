@@ -121,7 +121,8 @@ class Bypasses(unittest.TestCase):
         graphql = ("gh api graphql -f query='mutation { mergePullRequest(input: "
                    "{pullRequestId: \"x\"}) { clientMutationId } }'")
         for command, words in ((graphql, "mergePullRequest"),
-                               ("gh alias set m 'pr merge'", "gh alias set")):
+                               ("gh alias set m 'pr merge'", "gh alias set"),
+                               ("gh alias import aliases.yml", "gh alias import")):
             with self.subTest(command=command):
                 self.assertBlocked("history_guard.py",
                                    bash(command, "coder", cwd=str(self.on_feature)), words)

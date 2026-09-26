@@ -153,14 +153,23 @@ A coder merges a pull request only when its dispatch's `Merge` section reads
 into the first protected branch, authorised by the build's own dispatch, and
 a promotion pull request from the first protected branch into a later one,
 authorised only by a merge dispatch sent after the owner's evidence gate
-(see "Branches"). history_guard lets the merge through only
-for the `coder` role, in one form (`gh pr merge <N>` with `--merge` or
-`--squash`), and only after the coder has written a backup for PR N under
-`backup_dir`: a folder holding a git bundle of `origin/<base branch>`,
-`merge.json` (`pr`, `branch`, `sha`, `bundle`) and `MANIFEST.sha256`, with one
-line in `backup_dir/INDEX.md` naming the folder, `#<N>` and the pre-merge SHA.
-merge.json's `sha` must still be the tip of
-`origin/<branch>`. The planner and the pulse are always denied.
+(see "Branches"). history_guard denies the merge unless the caller is the
+`coder` role, the command is one form (`gh pr merge <N>` with `--merge` or
+`--squash`) and a backup for PR N exists under `backup_dir`. What the hook
+proves about that backup: it is self-consistent (one folder holding
+`merge.json` with `pr`, `branch`, `sha` and `bundle`, a `MANIFEST.sha256`
+that matches every file it lists, and one line in `backup_dir/INDEX.md`
+naming the folder, `#<N>` and `sha`, each as a whole word); `branch` is one
+of the protected branches; the bundle's head is that branch at the recorded
+SHA (`git bundle list-heads` gives `<sha> refs/remotes/origin/<branch>`);
+and that SHA is the branch's tip both in the coder's checkout
+(`origin/<branch>`, so a missing fetch is named) and on the remote at merge
+time (`git ls-remote origin refs/heads/<branch>`, with a 20-second timeout;
+a remote that cannot be read denies the merge). What it does not prove: the
+pull request's base branch is not read, so `branch` is checked against the
+config, not against the PR; and the bundle is checked only by its listed
+head and the manifest, not by unpacking it. The planner and the pulse are
+always denied.
 
 After the merge, the coder updates the main checkout (the checkout on the
 first protected branch, where the dispatch hook saves dispatches), and any
@@ -181,12 +190,17 @@ merge dispatch's store copy is claimed by a dispatch-note with Outcome
 naming its `merge` entry.
 
 To undo a merge, find the backup folder whose `merge.json` has the PR's
-number, then either:
-
-- revert the merge or squash commit (`git revert -m 1 <merge commit>` for a
-  merge commit, `git revert <commit>` for a squash); or
-- reset the branch to merge.json's `sha` and force-push it. The kit's agents
-  never force-push; this push is the owner's, made by hand.
+number. The default is a revert: `git revert -m 1 <merge commit>` for a
+merge commit, `git revert <commit>` for a squash, merged by its own pull
+request (see "Branches" for the revert a coder makes before a promotion).
+A reset is for the case where nothing else has landed: only when `git
+rev-list <sha>..origin/<branch>` (with merge.json's `sha`) lists exactly
+the merge commit and the merged pull request's own commits may the branch
+be reset to `sha` and force-pushed, since anything else in that range would
+be lost. The owner runs both the rev-list and the reset by hand; the kit's
+agents never force-push. After a promotion into main, updating the main
+checkout fast-forwards pre-main, which the promotion did not move, so that
+update is a no-op.
 
 If the remote is lost, restore from the bundle. `git bundle list-heads
 <bundle>` names its one ref (`refs/remotes/origin/<branch>`), and in any

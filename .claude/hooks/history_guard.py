@@ -17,17 +17,31 @@ every condition holds, and each denial names the condition that failed:
     merge is denied with a message saying to set it.
 (d) The backup. Exactly one folder directly under backup_dir holds a
     merge.json with `"pr": N`. That file is a JSON object with `pr` (int),
-    `branch` (string), `sha` (40 lowercase hex) and `bundle` (a file name
-    in that folder). In that folder, MANIFEST.sha256 lists at least
-    merge.json and the bundle, and every listed file's sha256 matches;
-    `git bundle list-heads <bundle>` lists `sha`; and backup_dir/INDEX.md
-    has one line containing all three of the folder's name, `#<N>` (not
-    followed by another digit) and `sha` (the pre-merge SHA, as the
-    owner's chosen option put it: "an INDEX.md line naming PR N and the
-    pre-merge SHA").
-(e) Freshness. `git rev-parse origin/<branch>` in the payload's cwd equals
-    `sha`. The hook does not fetch; coder.md tells the coder to fetch
-    first.
+    `branch` (one of the config's protected_branches; any other string is
+    denied naming it and the list), `sha` (40 lowercase hex) and `bundle`
+    (a file name in that folder). In that folder, MANIFEST.sha256 lists at
+    least merge.json and the bundle, and every listed file's sha256
+    matches; `git bundle list-heads <bundle>` lists the pair
+    `<sha> refs/remotes/origin/<branch>` on one line (`sha` on another
+    ref, or that ref at another sha, is denied naming what the bundle
+    lists); and backup_dir/INDEX.md has one line holding each of the
+    folder's name, `#<N>` and `sha` as a whole token: the name bounded by
+    characters that are not letters, digits, `-` or `_`, N not followed by
+    a digit, the sha bounded by characters that are not hex digits (the
+    pre-merge SHA, as the owner's chosen option put it: "an INDEX.md line
+    naming PR N and the pre-merge SHA"). What this does not prove: the
+    pull request's base branch is not read, so `branch` is checked against
+    the config and not against the PR; and the bundle's content is
+    verified only by its listed head and the manifest, not by unpacking
+    it.
+(e) Freshness. First locally: `git rev-parse origin/<branch>` in the
+    payload's cwd equals `sha` (the hook does not fetch; coder.md tells the
+    coder to fetch first, and this denial names it). Then on the remote:
+    `git ls-remote --quiet origin refs/heads/<branch>` in the same cwd,
+    with a 20-second timeout, gives `sha`. A different sha is denied naming
+    both (the branch moved on the remote after the backup); a failure,
+    empty output or timeout is denied as "the remote could not be read":
+    a merge is not run blind.
 
 A merge that passes gets no decision from this check, like any other
 allowed call. `git merge` handling is unchanged by this rule.
@@ -640,8 +654,11 @@ def merge_backup_problem(number, cwd):
                               f"{', '.join(c.name for c, _ in found)}")
     folder, data = found[0]
     branch, sha, bundle = data.get("branch"), data.get("sha"), data.get("bundle")
-    if not (isinstance(branch, str) and branch.strip()):
-        return ("(d) backup", f"{folder}/merge.json has no string `branch`")
+    protected = g.CONFIG["protected_branches"]
+    if not (isinstance(branch, str) and branch in protected):
+        return ("(d) backup", f"{folder}/merge.json's `branch` {branch!r} is not one of "
+                              f"the protected branches ({', '.join(protected)}); the "
+                              f"backup must be of the branch the merge lands on")
     if not (isinstance(sha, str) and SHA40.fullmatch(sha)):
         return ("(d) backup", f"{folder}/merge.json's `sha` is not 40 lowercase hex")
     if not (isinstance(bundle, str) and bundle not in ("", ".", "..")
@@ -679,17 +696,24 @@ def merge_backup_problem(number, cwd):
     if r.returncode != 0:
         return ("(d) backup", f"`git bundle list-heads` could not read {folder / bundle} "
                               f"({r.stderr.strip() or f'git exited {r.returncode}'})")
-    if sha not in {line.split()[0] for line in r.stdout.splitlines() if line.split()}:
-        return ("(d) backup", f"the bundle {folder / bundle} does not list {sha}")
+    heads = [line.split()[:2] for line in r.stdout.splitlines() if line.split()]
+    ref = f"refs/remotes/origin/{branch}"
+    if [sha, ref] not in heads:
+        listed = "; ".join(" ".join(h) for h in heads) or "nothing"
+        return ("(d) backup", f"the bundle {folder / bundle} does not list {sha} {ref}: "
+                              f"it lists {listed}")
 
     index = root / "INDEX.md"
     if not index.is_file():
         return ("(d) backup", f"{index} does not exist")
+    folder_mark = re.compile(r"(?<![A-Za-z0-9_-])%s(?![A-Za-z0-9_-])"
+                             % re.escape(folder.name))
     pr_mark = re.compile(r"#%d(?![0-9])" % number)
-    if not any(folder.name in line and pr_mark.search(line) and sha in line
+    sha_mark = re.compile(r"(?<![0-9a-fA-F])%s(?![0-9a-fA-F])" % sha)
+    if not any(folder_mark.search(line) and pr_mark.search(line) and sha_mark.search(line)
                for line in index.read_text().splitlines()):
         return ("(d) backup", f"INDEX.md in {root} has no line naming {folder.name}, "
-                              f"#{number} and {sha}")
+                              f"#{number} and {sha}, each as a whole word")
 
     r = subprocess.run(["git", "-C", cwd, "rev-parse", "--verify", "--quiet",
                         f"origin/{branch}"], capture_output=True, text=True)
@@ -701,6 +725,28 @@ def merge_backup_problem(number, cwd):
         return ("(e) freshness", f"origin/{branch} is {tip}, not merge.json's sha {sha}: "
                                  f"the branch moved after the backup, or the backup "
                                  f"predates the last fetch. Fetch, then write a new backup.")
+
+    blind = "the remote could not be read ({}); a merge is not run blind."
+    try:
+        r = subprocess.run(["git", "ls-remote", "--quiet", "origin", f"refs/heads/{branch}"],
+                           cwd=cwd, capture_output=True, text=True, timeout=20)
+    except subprocess.TimeoutExpired:
+        return ("(e) freshness", blind.format("`git ls-remote origin` timed out after "
+                                              "20 seconds"))
+    if r.returncode != 0:
+        first = r.stderr.strip().splitlines()[:1]
+        return ("(e) freshness", blind.format(first[0] if first
+                                              else f"`git ls-remote origin` exited "
+                                                   f"{r.returncode}"))
+    fields = r.stdout.split()
+    if len(fields) < 2:
+        return ("(e) freshness", blind.format(f"`git ls-remote origin` listed no "
+                                              f"refs/heads/{branch}"))
+    remote = fields[0]
+    if remote != sha:
+        return ("(e) freshness", f"refs/heads/{branch} on the remote is {remote}, not "
+                                 f"merge.json's sha {sha}: the branch moved on the remote "
+                                 f"after the backup. Fetch, then write a new backup.")
     return None
 
 
@@ -766,16 +812,19 @@ def api_problem(args):
 
 def gh_problem(seg, ctx):
     """The rules for a gh segment (seg starts at the gh command word): the
-    merge rule for `pr merge`, the api checks, and `alias set`."""
+    merge rule for `pr merge`, the api checks, and `alias set` or
+    `alias import`."""
     rest = seg[1:]
     if any(a == "pr" and b == "merge" for a, b in zip(rest, rest[1:])):
         problem = merge_problem(ctx["payload"], ctx["command"], ctx["cwd"])
         return f"history_guard: `gh pr merge` denied, {problem}" if problem else None
     if rest[:1] == ["api"]:
         return api_problem(rest[1:])
-    if rest[:1] == ["alias"] and "set" in rest[1:]:
-        return ("history_guard: `gh alias set` is denied for every role: an alias can "
-                "hide any command.")
+    if rest[:1] == ["alias"]:
+        for word in ("set", "import"):
+            if word in rest[1:]:
+                return (f"history_guard: `gh alias {word}` is denied for every role: an "
+                        f"alias can hide any command.")
     return None
 
 
