@@ -36,10 +36,16 @@ Otherwise, merging into a protected branch is the operator's approval, and
 a history rewrite is run by the operator by hand. The protected branches
 are the config's protected_branches. Blocked:
 
-- git push --force, --force-with-lease, -f (alone or in a cluster);
-- git merge while the repository is on a protected branch;
+- git push --force, --force-with-lease, -f (alone or in a cluster), and a
+  push whose refspec begins with `+`: a force push to its destination,
+  whatever the destination, since the kit's agents never force-push;
+- git merge while the repository is on a protected branch; the `merge` may
+  follow git's global options (`-C <dir>`, `-c <k>=<v>`, `--no-pager`,
+  `--git-dir=<dir>`, `--work-tree=<dir>`);
 - git push to a protected branch: an explicit refspec naming one, --all or
-  --mirror, or a push with no refspec (or HEAD) while on one;
+  --mirror, or a push with no refspec (or HEAD) while on one; and a push
+  with no refspec (or HEAD) from a checkout the push walk cannot determine
+  (below), denied by name;
 - gh pr merge, unless the merge rule above lets it through;
 - a `gh api` call that writes to a pull request's merge endpoint;
 - git filter-repo and git filter-branch.
@@ -53,21 +59,46 @@ one allowed route to merge is `gh pr merge` under that rule. A plain GET,
 which only checks whether the pull request is merged, is let through.
 
 Force, gh pr merge, the merge endpoint and the filters match the whole
-command text. Push
-refspecs and the merge branch check are parsed per command segment, so a
-command hidden in a quoted string (sh -c '...') is seen by the first group
-and not by the second.
+command text. Push refspecs and the merge branch check are parsed per
+command segment, so a command hidden in a quoted string (sh -c '...') is
+seen by the first group and not by the second.
+
+The push walk reads a command's segments in order and keeps an effective
+directory, which starts at the payload's cwd. `cd <dir>` and `pushd <dir>`
+set it, resolved as a `git -C` directory is (below) against the current
+effective directory; `cd` alone and `cd ~` set it to the home directory;
+`popd` restores the directory pushed last. A `cd`, `pushd` or `popd` the
+walk cannot resolve (`cd -`, a `$` or backtick in the argument, a flag,
+more than one argument, `pushd` alone, `popd` with nothing pushed) makes
+the effective directory unknown, and a `git push` in an unknown directory
+with no explicit refspec, or with `HEAD`, is denied by name: the checkout
+it pushes from cannot be determined. A push there with an explicit refspec
+is checked by its refspec alone. A `(` saves the directory state and the
+matching `)` restores it, so a `cd` inside a subshell does not reach the
+segments after it. `git -C <dir>` still overrides the effective directory
+for that one command, resolved against it.
+
+A segment's command word is found after dropping its leading tokens while
+they are a shell keyword (`{`, `}`, `!`, `if`, `then`, `else`, `elif`,
+`fi`, `do`, `done`, `while`, `until`), a wrapper (`time`, `command`,
+`exec`, `builtin`, `nohup`, `env` with its `-i`, `-u NAME` and
+`NAME=value` arguments, `nice` with `-n N`) or a `NAME=value` assignment,
+for the `cd` reading and the git reading alike. A command word whose
+basename is `git` (`/usr/bin/git`, `./git`) is git. `sh -c '...'` and
+interpreters are not parsed (B-01).
 
 The branch is read in the repository that `git -C <dir>` names, or else in
-the payload's cwd. A leading `~` or `~user` in that directory is expanded
-with os.path.expanduser, as the shell would, before the branch is read, for
-the push check and the `git merge` check alike. Nothing else is expanded:
-`$VAR` stays as written (B-04). After that expansion, a relative directory
-is resolved against the payload's cwd, where git would run it, not the hook
-process's own directory; an absolute one, or one starting with `~`, is used
-as it is. A quoted `~` (`git -C '~/x'`) is expanded as well, unlike in the
-shell: such a command fails in git anyway, so the check errs toward reading
-the home-directory repo.
+the effective directory (for the `git merge` check, which does not follow
+`cd`, the payload's cwd). A leading `~` or `~user` in a directory is
+expanded with os.path.expanduser, as the shell would, before the branch is
+read, for the push check and the `git merge` check alike. Nothing else is
+expanded: `$VAR` stays as written (B-04). After that expansion, a relative
+directory is resolved against the effective directory (for the `git merge`
+check, the payload's cwd), where git would run it, not the hook process's
+own directory; an absolute one, or one starting with `~`, is used as it
+is. A quoted `~` (`git -C '~/x'`) is expanded as well, unlike in the shell:
+such a command fails in git anyway, so the check errs toward reading the
+home-directory repo.
 
 Before the push check parses a command, heredoc bodies are removed. For
 each `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"` that stands outside
@@ -112,10 +143,19 @@ FORCE_PUSH = re.compile(
     r"(--force(?:-with-lease)?(?:=\S*)?|-[A-Za-z]*f[A-Za-z]*)(?=\s|$)")
 PR_MERGE = re.compile(r"\bgh\b[^;&|]*\spr\s+merge\b")
 FILTERS = re.compile(r"\bgit(?:\s+|-)(filter-(?:repo|branch))\b")
-MERGE = re.compile(r"\bgit\b((?:\s+(?:-C\s+\S+|-c\s+\S+|--no-pager))*)\s+merge\b(?!-)")
+MERGE = re.compile(r"\bgit\b(" + GIT_OPTS + r")\s+merge\b(?!-)")
 PUSH_OPTS_WITH_VALUE = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
 GIT_PUSH = re.compile(r"\bgit\b" + GIT_OPTS + r"\s+push\b")
 HEREDOC = re.compile(r"<<(-?)(['\"]?)(\w+)\2")
+# The push walk's vocabulary (module docstring): the tokens dropped before a
+# segment's command word, the directory words it follows, and what makes a
+# directory argument unresolvable.
+SHELL_KEYWORDS = {"{", "}", "!", "if", "then", "else", "elif", "fi", "do", "done",
+                  "while", "until"}
+WRAPPERS = {"time", "command", "exec", "builtin", "nohup"}
+ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+DIRECTORY_WORDS = ("cd", "pushd", "popd")
+UNRESOLVED = re.compile(r"[$`]")
 # The merge endpoint check: a gh api call's text (up to ; & |, as PR_MERGE),
 # the endpoint in it, and the flags that make the call a write.
 GH_API = re.compile(r"\bgh\b[^;&|]*?\sapi\b[^;&|]*")
@@ -240,23 +280,69 @@ def current_branch(directory):
     return None, r.stderr.strip() or f"git exited {r.returncode}"
 
 
-def segments(tokens):
-    seg = []
-    for t in tokens:
-        if g.PUNCTUATION.match(t):
-            if seg:
-                yield seg
-            seg = []
+def command_start(seg):
+    """The index of seg's command word: its leading tokens are dropped while
+    they are a shell keyword, a wrapper (with env's and nice's own
+    arguments) or a NAME=value assignment, per the module docstring."""
+    i = 0
+    while i < len(seg):
+        t = seg[i]
+        if t in SHELL_KEYWORDS or t in WRAPPERS or ASSIGNMENT.match(t):
+            i += 1
+        elif t == "env":
+            i += 1
+            while i < len(seg):
+                if seg[i] == "-i" or ASSIGNMENT.match(seg[i]):
+                    i += 1
+                elif seg[i] == "-u" and i + 1 < len(seg):
+                    i += 2
+                else:
+                    break
+        elif t == "nice":
+            i += 1
+            if seg[i:i + 1] == ["-n"] and i + 1 < len(seg):
+                i += 2
         else:
-            seg.append(t)
-    if seg:
-        yield seg
+            break
+    return i
+
+
+def resolve_directory(directory, effective):
+    """dash_c_directory against the effective directory, or None when that
+    is unknown and directory is relative."""
+    if effective is None and not (directory.startswith("~") or os.path.isabs(directory)):
+        return None
+    return dash_c_directory(directory, effective)
+
+
+def follow_directory_change(seg, state):
+    """Apply a `cd`, `pushd` or `popd` segment to state, {"dir": the
+    effective directory or None when unknown, "stack": the directories
+    pushd left}. True when seg was one of them."""
+    seg = seg[command_start(seg):]
+    if not seg or seg[0] not in DIRECTORY_WORDS:
+        return False
+    word, args = seg[0], seg[1:]
+    if word == "popd":
+        state["dir"] = state["stack"].pop() if not args and state["stack"] else None
+        return True
+    if word == "pushd":
+        state["stack"].append(state["dir"])
+    if not args:
+        state["dir"] = os.path.expanduser("~") if word == "cd" else None
+    elif len(args) != 1 or args[0].startswith("-") or UNRESOLVED.search(args[0]):
+        state["dir"] = None
+    else:
+        state["dir"] = resolve_directory(args[0], state["dir"])
+    return True
 
 
 def git_invocation(seg):
     """(directory override or None, subcommand, args) for a segment that
-    runs git, else None."""
-    if not seg or seg[0] != "git":
+    runs git, else None. The command word is read after command_start's
+    drop, and is git when its basename is `git`."""
+    seg = seg[command_start(seg):]
+    if not seg or os.path.basename(seg[0]) != "git":
         return None
     i, directory = 1, None
     while i < len(seg) and seg[i].startswith("-"):
@@ -272,13 +358,18 @@ def git_invocation(seg):
 
 
 def push_targets_protected(args, branch, protected):
+    """(kind, problem) for a push that is denied, else None. kind is
+    "force" (a refspec beginning with `+`, whatever its destination),
+    "unknown" (the push needs the current branch and branch is None, the
+    checkout being undetermined) or "protected" (a protected destination,
+    --all or --mirror)."""
     refs = set(protected) | {f"refs/heads/{b}" for b in protected}
     positional, i = [], 0
     while i < len(args):
         a = args[i]
         if a in ("--all", "--mirror"):
-            return (f"`git push {a}` pushes {', '.join(protected)} along with every "
-                    f"other branch")
+            return ("protected", f"`git push {a}` pushes {', '.join(protected)} along "
+                                 f"with every other branch")
         if a in PUSH_OPTS_WITH_VALUE:
             i += 2
             continue
@@ -287,16 +378,78 @@ def push_targets_protected(args, branch, protected):
         i += 1
     refspecs = positional[1:]
     if not refspecs:
-        return (f"a push with no refspec pushes the current branch, which is {branch}"
+        if branch is None:
+            return ("unknown", "a push with no refspec pushes the current branch, and "
+                               "the checkout it pushes from cannot be determined")
+        return (("protected", f"a push with no refspec pushes the current branch, "
+                              f"which is {branch}")
                 if branch in protected else None)
     for spec in refspecs:
-        spec = spec.lstrip("+")
         src, _, dst = spec.partition(":")
         dst = dst or src
+        if spec.startswith("+"):
+            return ("force", f"refspec {spec!r} is a force push to {dst.lstrip('+')}")
         if dst == "HEAD":
+            if branch is None:
+                return ("unknown", f"refspec {spec!r} pushes the current branch, and "
+                                   f"the checkout it pushes from cannot be determined")
             dst = branch
         if dst in refs:
-            return f"refspec {spec!r} pushes to {dst}"
+            return ("protected", f"refspec {spec!r} pushes to {dst}")
+    return None
+
+
+def push_segment(seg, state, protected):
+    """One segment of the push walk: follows a directory change, or checks
+    a git push against the effective directory (or its `git -C`). The deny
+    reason, or None."""
+    if follow_directory_change(seg, state):
+        return None
+    inv = git_invocation(seg)
+    if not inv or inv[1] != "push":
+        return None
+    directory, _, args = inv
+    effective = resolve_directory(directory, state["dir"]) if directory else state["dir"]
+    branch = None
+    if effective is not None:
+        branch, err = current_branch(effective)
+        if err:
+            return f"history_guard: push blocked: could not read the current branch ({err})."
+    found = push_targets_protected(args, branch, protected)
+    if not found:
+        return None
+    kind, problem = found
+    if kind == "force":
+        return (f"history_guard: force-push ({problem}) rewrites history on the remote "
+                f"and is never run by an agent.")
+    if kind == "unknown":
+        return (f"history_guard: push blocked: {problem}: the `cd`, `pushd` or `popd` "
+                f"before it could not be followed, so its target cannot be checked.")
+    return (f"history_guard: push to a protected branch blocked: {problem}. A protected "
+            f"branch changes only through a PR the operator merges.")
+
+
+def push_problem(tokens, cwd, protected):
+    """The push walk of the module docstring over a command's tokens: the
+    reason the first denied push is denied, else None. Punctuation tokens
+    end a segment; in them, each `(` saves the directory state and each
+    `)` restores the state saved last."""
+    state = {"dir": cwd, "stack": []}
+    saved, seg = [], []
+    for t in tokens + [";"]:
+        if not g.PUNCTUATION.match(t):
+            seg.append(t)
+            continue
+        if seg:
+            problem = push_segment(seg, state, protected)
+            if problem:
+                return problem
+            seg = []
+        for c in t:
+            if c == "(":
+                saved.append((state["dir"], list(state["stack"])))
+            elif c == ")" and saved:
+                state["dir"], state["stack"] = saved.pop()
     return None
 
 
@@ -536,20 +689,9 @@ def guard(payload):
             return ("deny", f"history_guard: could not parse this push ({exc}), "
                             f"so its target cannot be checked.")
         return None
-    for seg in segments(tokens):
-        inv = git_invocation(seg)
-        if not inv or inv[1] != "push":
-            continue
-        directory, _, args = inv
-        branch, err = current_branch(dash_c_directory(directory, cwd) if directory else cwd)
-        if err:
-            return ("deny", f"history_guard: push blocked: could not read the "
-                            f"current branch ({err}).")
-        problem = push_targets_protected(args, branch, protected)
-        if problem:
-            return ("deny", f"history_guard: push to a protected branch blocked: "
-                            f"{problem}. A protected branch changes only through a PR "
-                            f"the operator merges.")
+    problem = push_problem(tokens, cwd, protected)
+    if problem:
+        return ("deny", problem)
     return None
 
 
