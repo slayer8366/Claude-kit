@@ -73,14 +73,40 @@ class Bypasses(unittest.TestCase):
         self.assertIn(words, reason)
 
     def test_b01_push_through_wrapper_or_git_path(self):
+        # R2 moved the `env` and `/usr/bin/git` forms to B-10 (fixed); `sh -c`
+        # and the interpreter are R3's.
         for command in ("sh -c 'git push origin main'",
-                        "env git push origin main",
                         "python3 -c \"import subprocess; "
-                        "subprocess.run(['git', 'push', 'origin', 'main'])\"",
-                        "/usr/bin/git push origin main"):
+                        "subprocess.run(['git', 'push', 'origin', 'main'])\""):
             with self.subTest(command=command):
                 self.assertGetsThrough("history_guard.py",
                                        bash(command, "coder", cwd=str(self.on_feature)))
+
+    def test_b10_push_behind_cd_keyword_wrapper_assignment_or_git_path_is_blocked(self):
+        for command in (f"cd {self.on_main} && git push origin",
+                        f"pushd {self.on_main} && git push origin && popd",
+                        "{ git push origin main; }",
+                        "time git push origin main",
+                        "GIT_TRACE=1 git push origin main",
+                        "/usr/bin/git push origin main"):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)),
+                                   "protected branch")
+
+    def test_b11_plus_refspec_is_blocked_as_force(self):
+        for command in ("git push origin +main", "git push origin +feature"):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)),
+                                   "force")
+
+    def test_b12_merge_behind_git_dir_or_work_tree_is_blocked(self):
+        for command in ("git --git-dir=.git merge x", "git --work-tree=. merge x"):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_main)),
+                                   "while on main")
 
     def test_b02_interpreter_splits_words(self):
         cases = [
