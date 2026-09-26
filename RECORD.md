@@ -4119,3 +4119,18 @@ A read-only pulse run on Fable 5.1 (the Agent call's model override), a differen
 - INDEX.md's line for PR #19 also mentions "#18", so a sweep that greps `#18` without the "Pre-merge backup for PR" prefix would match it; the backfill matched on the prefix. There is no #18 merge to record.
 - The tests-first CI run 36203971436 is the only run on 7a65a64 (push event; the PR did not exist yet), so the prediction "both jobs" was checked on one run of two jobs.
 - history_guard's PR_MERGE and the other whole-text patterns also catch record entries that quote a merge command, as (2) above shows; a coder writing a terminal has to paraphrase. R3's move of those patterns to command position would end that.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-21
+**Timestamp:** 2026-09-26T00:27:10Z
+**PR:** 35
+**Head:** kit-review-r1
+**Base:** pre-main
+**Merge-commit:** 24e4f7fc54ef6c6e534ac35bebeb19c18c7fabf4
+**Pre-merge:** 0319ccd7a8818dbabec7faa2f67c31cde349e11f
+**Backup:** 2026-09-26-01
+**Merged-by:** coder preserved/2026-09-25-47.md
+**Carries:** 2026-09-26-01, 2026-09-26-02, 2026-09-26-03, 2026-09-26-04, 2026-09-26-05, 2026-09-26-06, 2026-09-26-07, 2026-09-26-08, 2026-09-26-09, 2026-09-26-10, 2026-09-26-11, 2026-09-26-12, 2026-09-26-13, 2026-09-26-14, 2026-09-26-15, 2026-09-26-16, 2026-09-26-17, 2026-09-26-18, 2026-09-26-19, 2026-09-26-20
+**Sweep:** written by R2's coder (dispatch preserved/2026-09-26-01.md) under coder.md item 1 at 24e4f7f: the one merge commit on origin/pre-main's first-parent chain newer than 0319ccd (the newest Merge-commit a `merge` entry records, 2026-09-26-19, Base main, whose history pre-main shares). Merge-commit and Pre-merge from `git log --format=%H%x20%P -1 origin/pre-main` (24e4f7f, first parent 0319ccd, second parent 197d3ca); PR, Head, Base and Timestamp (mergedAt) from `gh pr view 35 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (mergeCommit.oid equal to Merge-commit); Backup is the one ~/forager-backups/INDEX.md line whose "Pre-merge backup for PR #35" names folder 2026-09-26-01 and the SHA 0319ccd7a8818dbabec7faa2f67c31cde349e11f (equal to Pre-merge); Merged-by names the dispatch R1's coder merged under, whose terminal 2026-09-26-20 (Dispatch-file preserved/2026-09-25-47.md) says the merge followed it. Carries lists the 20 IDs the PR's RECORD.md diff added (`git diff 0319ccd..24e4f7f -- RECORD.md`); the PR also changed check_record.py, kit.json, coder.md, README.md and the plan document, so it is not record only. No store file under prompts/preserved/ at 24e4f7f is unclaimed (check_prompts.py PASS), so this sweep writes no dispatch-note.
