@@ -4278,3 +4278,18 @@ A read-only pulse run on Fable 5.1 (the Agent call's model override), a differen
 - role_guard's `sed` rule reads `-i` alone or as the start of a short option, per the dispatch; `-ni` (a cluster with `i` not first) is not caught.
 - INDEX.md rows 47 and 48 have two cells under a five-column header.
 - test_install's `test_vendored_hook_tests_pass_in_the_adopter` makes tests/ fail on every tests-first hook commit (R2 flagged this too).
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-27
+**Timestamp:** 2026-09-26T01:51:46Z
+**PR:** 37
+**Head:** kit-review-r3
+**Base:** pre-main
+**Merge-commit:** 48c391dd2dd1f8c71b48c1cb3690bfe56510e6b0
+**Pre-merge:** 0ff36345d0812c956ab1a423089d0b26ecf65468
+**Backup:** 2026-09-26-04
+**Merged-by:** coder preserved/2026-09-26-02.md
+**Carries:** 2026-09-26-24, 2026-09-26-25, 2026-09-26-26
+**Sweep:** written by R4's coder (dispatch preserved/2026-09-26-03.md) under coder.md item 1 at 48c391d: the one merge commit on origin/pre-main's first-parent chain newer than 0ff3634 (the newest Merge-commit a `merge` entry with Base pre-main records, 2026-09-26-24); origin/main's chain has no merge newer than 0319ccd (recorded by 2026-09-26-19; `git log --merges --first-parent -1 origin/main` gives 0319ccd). Merge-commit and Pre-merge from `git log --merges --first-parent --format=%H%x20%P -1 origin/pre-main` (48c391d, first parent 0ff3634, second parent 27226a2); PR, Head, Base and Timestamp (mergedAt) from `gh pr view 37 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (mergeCommit.oid equal to Merge-commit); Backup is the one ~/forager-backups/INDEX.md line (row 50) whose "Pre-merge backup for PR #37" names folder 2026-09-26-04 and the SHA 0ff36345d0812c956ab1a423089d0b26ecf65468 (equal to Pre-merge; that folder's merge.json reads pr 37, branch pre-main, that sha, pre-main.bundle; INDEX rows 2026-09-26-03 and 2026-09-26-05 are update_worktree.py's moves of W's copies, not merge backups); Merged-by names the dispatch R3's coder merged under, whose terminal 2026-09-26-26 (Dispatch-file preserved/2026-09-26-02.md) says the merge followed it. Carries lists the three IDs the PR's RECORD.md diff added (`git diff 0ff3634..48c391d -- RECORD.md`); the PR also changed history_guard.py, role_guard.py, BYPASSES.md and three test files, so it is not record only. The one store file under prompts/preserved/ not yet claimed at 48c391d is this dispatch's own copy, 2026-09-26-03.md, which the intent that follows claims; so this sweep writes no dispatch-note.
