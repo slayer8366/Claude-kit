@@ -38,10 +38,15 @@ every condition holds, and each denial names the condition that failed:
     payload's cwd equals `sha` (the hook does not fetch; coder.md tells the
     coder to fetch first, and this denial names it). Then on the remote:
     `git ls-remote --quiet origin refs/heads/<branch>` in the same cwd,
-    with a 20-second timeout, gives `sha`. A different sha is denied naming
-    both (the branch moved on the remote after the backup); a failure,
-    empty output or timeout is denied as "the remote could not be read":
-    a merge is not run blind.
+    with the kit's command timeout (guardlib.TIMEOUT: 20 seconds by
+    default, `<guard_env_prefix>TIMEOUT` overrides), gives `sha`. A
+    different sha is denied naming both (the branch moved on the remote
+    after the backup). A non-zero exit is denied naming the exit code and
+    nothing git printed (its stderr can carry the remote's URL, credentials
+    included), and empty output is denied as listing no such ref; both say
+    "the remote could not be read": a merge is not run blind. A timeout, in
+    this or any other command the hook runs, is guardlib's deny naming the
+    command and the seconds.
 
 A merge that passes gets no decision from this check, like any other
 allowed call. `git merge` handling is unchanged by this rule.
@@ -166,7 +171,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -346,8 +350,7 @@ def dash_c_directory(directory, cwd):
 
 
 def current_branch(directory):
-    r = subprocess.run(["git", "-C", directory, "symbolic-ref", "--short", "-q", "HEAD"],
-                       capture_output=True, text=True)
+    r = g.run_command(["git", "-C", directory, "symbolic-ref", "--short", "-q", "HEAD"])
     if r.returncode == 0:
         return r.stdout.strip(), None
     if r.returncode == 1 and not r.stderr.strip():
@@ -691,8 +694,7 @@ def merge_backup_problem(number, cwd):
             return ("(d) backup", f"MANIFEST.sha256 in {folder} does not match {name}: "
                                   f"the file changed after the manifest was written")
 
-    r = subprocess.run(["git", "bundle", "list-heads", str(folder / bundle)], cwd=cwd,
-                       capture_output=True, text=True)
+    r = g.run_command(["git", "bundle", "list-heads", str(folder / bundle)], cwd=cwd)
     if r.returncode != 0:
         return ("(d) backup", f"`git bundle list-heads` could not read {folder / bundle} "
                               f"({r.stderr.strip() or f'git exited {r.returncode}'})")
@@ -715,8 +717,8 @@ def merge_backup_problem(number, cwd):
         return ("(d) backup", f"INDEX.md in {root} has no line naming {folder.name}, "
                               f"#{number} and {sha}, each as a whole word")
 
-    r = subprocess.run(["git", "-C", cwd, "rev-parse", "--verify", "--quiet",
-                        f"origin/{branch}"], capture_output=True, text=True)
+    r = g.run_command(["git", "-C", cwd, "rev-parse", "--verify", "--quiet",
+                       f"origin/{branch}"])
     tip = r.stdout.strip()
     if r.returncode != 0 or not tip:
         return ("(e) freshness", f"origin/{branch} could not be read in {cwd}. Fetch "
@@ -727,17 +729,13 @@ def merge_backup_problem(number, cwd):
                                  f"predates the last fetch. Fetch, then write a new backup.")
 
     blind = "the remote could not be read ({}); a merge is not run blind."
-    try:
-        r = subprocess.run(["git", "ls-remote", "--quiet", "origin", f"refs/heads/{branch}"],
-                           cwd=cwd, capture_output=True, text=True, timeout=20)
-    except subprocess.TimeoutExpired:
-        return ("(e) freshness", blind.format("`git ls-remote origin` timed out after "
-                                              "20 seconds"))
+    # A timeout here raises g.CommandTimeout, which guardlib.run denies by
+    # name. git's stderr is not quoted: it can carry the remote's URL.
+    r = g.run_command(["git", "ls-remote", "--quiet", "origin", f"refs/heads/{branch}"],
+                      cwd=cwd)
     if r.returncode != 0:
-        first = r.stderr.strip().splitlines()[:1]
-        return ("(e) freshness", blind.format(first[0] if first
-                                              else f"`git ls-remote origin` exited "
-                                                   f"{r.returncode}"))
+        return ("(e) freshness", blind.format(f"`git ls-remote origin` exited "
+                                              f"{r.returncode}"))
     fields = r.stdout.split()
     if len(fields) < 2:
         return ("(e) freshness", blind.format(f"`git ls-remote origin` listed no "

@@ -52,7 +52,7 @@ warns (see "Session check").
 | `required_sections` | yes | dispatch `Type:` to the headings it must carry; same types as `type_targets` |
 | `agent_roles` | yes | subagent name to role: `planner`, `pulse` or `coder`; every dispatchable agent needs one. role_guard restricts an agent by its role; an agent with no role, or with any other role name, is denied every tool. The main session is always `planner` |
 | `approval_exempt_types` | yes | the dispatch Types that run without operator approval (may be empty); every other Type asks. Each must be a Type in `type_targets` |
-| `guard_env_prefix` | no, default `KIT_GUARD_` | `<prefix>ADB`, `<prefix>AAPT2`, `<prefix>APKSIGNER` override the device guard's tools |
+| `guard_env_prefix` | no, default `KIT_GUARD_` | `<prefix>ADB`, `<prefix>AAPT2`, `<prefix>APKSIGNER` override the device guard's tools; `<prefix>TIMEOUT` (a positive number of seconds) overrides the 20-second timeout on every command a hook runs |
 | `backup_dir` | no, no default | a string: the directory that holds merge backups (`~` is expanded). Unset, history_guard denies every pull-request merge. See "Merging and undoing a merge" |
 
 This repository's own `kit.json` also requires a `Merge` section in build and
@@ -67,6 +67,17 @@ When the dispatch hook saves a prompt whose text is identical to a stored
 dispatch's, it adds a `Repeat-of: preserved/<name>` header line naming the
 earliest such file, and `check_prompts.py` fails unless that file exists
 with the same text.
+
+Every command a hook runs (git, adb, aapt2, apksigner, the store check) has
+a timeout, 20 seconds by default, and its expiry is a deny that names the
+command and the seconds (`guardlib.run_command`; the session check, which
+never blocks, reports its own git timeouts as warnings under the same
+override). `.claude/settings.json` gives each PreToolUse guard a `timeout`
+of 120 seconds and the session check 60, so that deny is emitted before
+Claude Code cancels the hook. What Claude Code does with a cancelled hook is
+not verified from the binary (its documentation says the per-command
+`timeout` defaults to 60 seconds); it is assumed to be non-blocking, which
+is why the margin exists.
 
 ## Install and drift
 

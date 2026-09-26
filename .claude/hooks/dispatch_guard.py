@@ -42,13 +42,19 @@ A dispatch that this hook or role_guard blocks is logged in the session log
 with `toolDenialKind` (for example "permission-rule") on the tool_result,
 not with a `deny` decision.
 
+Every git the hook runs, and the store check, has guardlib's command timeout
+(20 seconds by default, `<guard_env_prefix>TIMEOUT` overrides). A git that
+times out is a `CommandTimeout` on the preserve path, so the dispatch is
+blocked as "could not preserve the dispatch" naming the timeout; a store
+check that times out is reported as such and, like any store-check result,
+decides nothing.
+
 Known bypasses: .claude/hooks/BYPASSES.md B-07
 """
 import datetime
 import fcntl
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -73,7 +79,7 @@ def missing_sections(text, required):
 
 
 def git(cwd, *args):
-    r = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True)
+    r = g.run_command(["git", "-C", cwd, *args])
     if r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed in {cwd}: {r.stderr.strip()}")
     return r.stdout.strip()
@@ -190,8 +196,11 @@ def store_check(root):
     checker = Path(root) / "check_prompts.py"
     if not checker.is_file():
         return "check_prompts.py not found at the repository root; the store was not checked."
-    r = subprocess.run([sys.executable, str(checker)], capture_output=True,
-                       text=True, cwd=root)
+    try:
+        r = g.run_command([sys.executable, str(checker)], cwd=root)
+    except g.CommandTimeout as exc:
+        return (f"check_prompts.py timed out after {exc.seconds:g} seconds; the store "
+                f"was not checked.")
     tail = "\n".join(l for l in r.stdout.splitlines() if l.startswith((" -", "PASS", "FAIL")))
     return f"check_prompts.py exit {r.returncode}:\n{tail}"
 

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness import TEST_CONFIG, bash, run_hook
+from harness import TEST_CONFIG, bash, run_hook, write_sleeper
 
 HOOK = "device_guard.py"
 APP = TEST_CONFIG["android_package"]
@@ -202,6 +202,16 @@ class DeviceGuard(unittest.TestCase):
             with self.subTest(who):
                 decision, _ = run_hook(HOOK, bash("adb uninstall x", who), env=e)
                 self.assertEqual(decision, "deny")
+
+    # Every tool the guard runs has the kit's timeout: an adb that answers
+    # too slowly denies by name before Claude Code's own hook limit.
+    def test_slow_adb_denied_by_name(self):
+        slow = write_sleeper(self.tmp / "slow-adb", 5,
+                             "  mResumedActivity: ActivityRecord{1a2b u0 %s/.Main t9}" % APP)
+        decision, reason = self.decide("adb shell input tap 1 1",
+                                       **{PREFIX + "ADB": str(slow), PREFIX + "TIMEOUT": "1"})
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("timed out", reason)
 
 
 if __name__ == "__main__":

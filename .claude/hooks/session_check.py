@@ -34,7 +34,12 @@ The rule:
    are read at session start". When nothing differs it prints nothing.
 5. Never block. It always exits 0, and reports any internal error as a
    warning in the same form. It writes nothing: git runs with
-   GIT_OPTIONAL_LOCKS=0, so no index refresh is written.
+   GIT_OPTIONAL_LOCKS=0, so no index refresh is written. Each git runs with
+   a 20-second timeout, overridden by the environment variable
+   KIT_GUARD_TIMEOUT when it is a positive number (the kit's command-timeout
+   override, read under the default guard_env_prefix because this hook runs
+   git before it can read kit.json); a timeout is reported as an internal
+   error, like any other.
 
 Unlike the PreToolUse guards it does not use guardlib.run(), which denies on
 a config error.
@@ -54,7 +59,18 @@ LOCK = ".claude/kit.lock"
 UPDATER = "update_worktree.py"
 RESTART = ("settings.json differs: start a new session after updating, since "
            "hooks are read at session start")
-GIT_TIMEOUT = 20
+
+
+def git_timeout(default=20):
+    """KIT_GUARD_TIMEOUT as a positive number of seconds, else default."""
+    try:
+        value = float(os.environ.get("KIT_GUARD_TIMEOUT"))
+    except (TypeError, ValueError):
+        return default
+    return value if 0 < value < float("inf") else default
+
+
+GIT_TIMEOUT = git_timeout()
 
 
 class Problem(Exception):
