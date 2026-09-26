@@ -8,11 +8,19 @@ A guard that crashes must not let the call through. Claude Code treats any
 exit code other than 0 and 2 as non-blocking, so an uncaught exception in a
 guard would fail open. `run` catches everything and turns it into a deny
 that names the exception, which fails closed and says why.
+
+Every command a guard runs goes through `run_command`, which gives it a
+timeout: TIMEOUT seconds, 20 by default, overridable by the environment
+variable <guard_env_prefix>TIMEOUT when that is a positive number. A command
+that does not finish raises CommandTimeout, which `run` turns into a deny
+naming the command and the seconds (no traceback), so a hung tool fails
+closed by name before Claude Code's own hook limit cancels the hook.
 """
 import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 import traceback
 from pathlib import Path
@@ -37,6 +45,52 @@ CONFIG_REQUIRED = ("android_package", "protected_branches", "dispatchable_agents
 # rule). Optional with no default: unset, every pull-request merge is denied.
 CONFIG_DEFAULTS = {"guard_env_prefix": "KIT_GUARD_", "backup_dir": None}
 CONFIG = None  # set by run() before the guard is called
+
+# The timeout, in seconds, of every command a guard runs. run() sets TIMEOUT
+# from <guard_env_prefix>TIMEOUT once the config (the prefix) is loaded; an
+# unset, unreadable or non-positive value keeps the default.
+DEFAULT_TIMEOUT = 20
+TIMEOUT = DEFAULT_TIMEOUT
+TIMEOUT_SUFFIX = "TIMEOUT"
+
+
+class CommandTimeout(Exception):
+    """A command a guard ran did not finish within `seconds`. The message
+    names the command's first two words and the seconds."""
+
+    def __init__(self, args, seconds):
+        self.command = " ".join(str(a) for a in list(args)[:2])
+        self.seconds = seconds
+        super().__init__(f"`{self.command}` timed out after {seconds:g} seconds")
+
+
+def read_timeout(prefix=None, environ=None):
+    """<prefix>TIMEOUT as a positive number of seconds, else DEFAULT_TIMEOUT.
+    The prefix defaults to the loaded config's guard_env_prefix (or the
+    kit's default when no config is loaded)."""
+    if prefix is None:
+        prefix = (CONFIG or CONFIG_DEFAULTS)["guard_env_prefix"]
+    raw = (os.environ if environ is None else environ).get(prefix + TIMEOUT_SUFFIX)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_TIMEOUT
+    if not 0 < value < float("inf"):  # also false for nan
+        return DEFAULT_TIMEOUT
+    return value
+
+
+def run_command(args, **kwargs):
+    """subprocess.run(args) with captured text output and TIMEOUT (or the
+    `timeout` given). A command that does not finish in time raises
+    CommandTimeout; the guard lets it propagate to run(), which denies."""
+    kwargs.setdefault("capture_output", True)
+    kwargs.setdefault("text", True)
+    kwargs.setdefault("timeout", TIMEOUT)
+    try:
+        return subprocess.run(args, **kwargs)
+    except subprocess.TimeoutExpired:
+        raise CommandTimeout(args, kwargs["timeout"]) from None
 
 
 class ConfigError(Exception):
@@ -143,21 +197,25 @@ def run(guard):
     """Load the config, read the payload, call guard(payload) -> None or
     (decision, reason). A missing or invalid config blocks every call: the
     kit never fails open on its own config."""
-    global CONFIG
+    global CONFIG, TIMEOUT
     name = getattr(guard, "__module__", "guard")
+    hook = os.path.basename(sys.argv[0]) or name
     try:
         CONFIG = load_config()
     except Exception as exc:
-        hook = os.path.basename(sys.argv[0]) or name
         emit("deny", f"{hook}: the kit config could not be used, so every call is "
                      f"blocked until it is fixed: {exc}")
         return 0
+    TIMEOUT = read_timeout()
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw)
         if not isinstance(payload, dict):
             raise ValueError(f"payload is {type(payload).__name__}, not an object")
         result = guard(payload)
+    except CommandTimeout as exc:  # a hung command: deny by name, no traceback
+        emit("deny", f"{hook}: {exc}; failing closed.")
+        return 0
     except Exception as exc:  # fail closed, and say so
         emit("deny", f"{name}: guard error, failing closed: "
                      f"{type(exc).__name__}: {exc}\n{traceback.format_exc(limit=3)}")
