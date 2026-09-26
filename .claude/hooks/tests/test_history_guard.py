@@ -298,6 +298,76 @@ class PushWalk(OuterRepos):
                 self.assertDenied(command, "while on main", cwd=self.outer / "sub")
 
 
+class CommandWord(OuterRepos):
+    """R3: every rule is decided on a segment's command word and arguments,
+    so a guarded word inside an argument denies nothing; the strings given
+    to `sh -c`, `bash -lc` and `eval` are walked as commands; a GraphQL
+    merge, `gh alias set` and quoted or split `gh pr merge` words are
+    denied; unparseable text is denied only when it mentions a guarded
+    command."""
+
+    def assertDenied(self, command, *words, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertEqual(decision, "deny", f"{command!r}: got {decision!r} ({reason})")
+        for w in words:
+            self.assertIn(w, reason, command)
+
+    def assertPasses(self, command, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertIsNone(decision, f"{command!r}: {reason}")
+
+    def test_guarded_words_in_arguments_pass(self):
+        # sub is on main: none of these runs a push, a merge or a filter.
+        for command in ('git grep -E "git merge|--force" -- .',
+                        'git commit -m "gh pr merge 5 --merge later"',
+                        "echo git push --force origin main",
+                        "git log --grep filter-repo",
+                        "python3 -c \"print('git push origin main')\""):
+            with self.subTest(command):
+                self.assertPasses(command, cwd=self.outer / "sub")
+
+    def test_push_to_feature_then_another_command_passes(self):
+        # outer is on feature; the `-rf` after the push is rm's, not a force flag.
+        for command in ("git push origin feature\nrm -rf build",
+                        "sh -c 'git push origin feature'"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
+    def test_push_inside_shell_string_or_eval_denied(self):
+        for command, words in (("sh -c 'git push origin main'", ("protected branch",)),
+                               ('bash -lc "cd sub && git push origin"',
+                                ("protected branch", "which is main")),
+                               ("eval 'git push origin main'", ("protected branch",)),
+                               ("sh -c 'git push --force origin x'", ("force",))):
+            with self.subTest(command):
+                self.assertDenied(command, *words)
+
+    def test_quoted_or_split_gh_pr_merge_words_denied(self):
+        for command in ('gh "pr" merge 5 -m', 'gh pr mer""ge 5 -m'):
+            with self.subTest(command):
+                self.assertDenied(command, "denied")
+
+    def test_graphql_merge_and_alias_set_denied(self):
+        self.assertDenied("gh api graphql -f query='mutation { mergePullRequest(input: "
+                          "{pullRequestId: \"x\"}) { clientMutationId } }'",
+                          "mergePullRequest")
+        self.assertDenied("gh alias set m 'pr merge'", "gh alias set")
+
+    def test_merge_after_cd_or_behind_git_dir_denied(self):
+        self.assertDenied("cd sub && git merge x", "while on main")
+        self.assertDenied("git --git-dir=sub/.git merge x", "cannot be determined")
+
+    def test_earlier_denials_still_hold(self):
+        for command, word in (("gh api -X PUT repos/o/r/pulls/5/merge -f merge_method=merge",
+                               "gh pr merge"),
+                              ("git push origin feature && echo 'oops", "could not parse")):
+            with self.subTest(command):
+                self.assertDenied(command, word)
+
+    def test_unparseable_text_denied_naming_the_mention(self):
+        self.assertDenied("echo 'oops; gh pr merge 5 -m", "could not parse", "gh pr merge")
+
+
 def git_in(repo, *args):
     return subprocess.run(["git", "-C", str(repo), "-c", "user.name=t",
                            "-c", "user.email=t@example.invalid"] + list(args),

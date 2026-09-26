@@ -41,19 +41,31 @@ whose role is not one of the kit's roles below, is denied every tool.
 - coder: not restricted here. device_guard.py and history_guard.py apply
   to everyone.
 
-The Bash checks are patterns over the command text. They hold the command
-forms an agent usually writes, not every program that could do the same
-thing.
+The Bash checks read a command's tokens. The named changes, checked first
+so that each is denied by name, are read per segment (split at the shell
+punctuation tokens) at the segment's command word, found as history_guard
+finds it (its `command_start` drops the leading shell keywords, wrappers
+and assignments; its `git_invocation` reads git's global options): `git`
+by basename with the subcommand `commit`, `push`, `checkout`, `reset` or
+`merge`; `rm`; `mv`; `sed` with a token that is `-i`, starts with `-i` as
+a short option, or is `--in-place` with or without `=`; and a command word
+whose basename is `gradle`, `gradlew` or `gradlew.bat`. A guarded word
+inside an argument (`git log --grep "rm "`, `git grep "sed -i"`) denies
+nothing. The named check runs before the punctuation rule, so `git log; rm
+x` is denied by name. The checks hold the command forms an agent usually
+writes, not every program that could do the same thing.
 
 Known bypasses: .claude/hooks/BYPASSES.md B-08, B-09
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import guardlib as g  # noqa: E402
+import history_guard as hg  # noqa: E402  (command_start, git_invocation)
 
 # Grep and Glob are not on the planner allowlist: neither exists as a tool on
 # Claude Code 2.1.280. They are still listed for the pulse, where they are
@@ -68,20 +80,10 @@ PULSE_TOOLS = {"Read", "Grep", "Glob", "Bash", "SubagentHandback"}
 # gets nothing.
 KIT_ROLES = ("coder", "planner", "pulse")
 
-GIT_PREFIX = r"\bgit\s+(?:(?:-C\s+\S+|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+)\s+)*"
-# Named patterns, checked first so each is blocked by name.
-NAMED_PATTERNS = [
-    ("git commit", re.compile(GIT_PREFIX + r"commit\b")),
-    ("git push", re.compile(GIT_PREFIX + r"push\b")),
-    ("git checkout", re.compile(GIT_PREFIX + r"checkout\b")),
-    ("git reset", re.compile(GIT_PREFIX + r"reset\b")),
-    ("git merge", re.compile(GIT_PREFIX + r"merge\b(?!-)")),
-    ("rm", re.compile(r"(?:^|[\s;&|(`])rm\s")),
-    ("mv", re.compile(r"(?:^|[\s;&|(`])mv\s")),
-    ("sed -i", re.compile(r"\bsed\b[^;&|]*\s(?:-i|--in-place)")),
-    # A command word, not a file name: matches `gradle`, `./gradlew`, not `build.gradle.kts`.
-    ("gradle", re.compile(r"(?:^|[\s;&|(`/])gradlew?(?:\.bat)?(?=\s|$|[;&|)])")),
-]
+# The named changes (module docstring), read at a segment's command word.
+NAMED_GIT = {"commit", "push", "checkout", "reset", "merge"}
+NAMED_COMMANDS = {"rm", "mv"}
+GRADLE = {"gradle", "gradlew", "gradlew.bat"}
 ADB = re.compile(r"\badb\b")
 
 READ_ONLY_GIT = {"log", "show", "diff", "status", "rev-parse", "ls-files",
@@ -103,6 +105,43 @@ ADB_SHELL_READS = {"getprop", "dumpsys", "screencap"}
 DUMPSYS_MUTATORS = {"set", "reset", "unplug", "clear", "enable", "disable",
                     "--reset", "--clear"}
 
+
+def sed_in_place(args):
+    return any(a == "-i" or (a.startswith("-i") and not a.startswith("--"))
+               or a == "--in-place" or a.startswith("--in-place=") for a in args)
+
+
+def named_segment(seg):
+    """The named change a segment runs (module docstring), else None."""
+    inv = hg.git_invocation(seg)
+    if inv:
+        return f"git {inv[1]}" if inv[1] in NAMED_GIT else None
+    seg = seg[hg.command_start(seg):]
+    if not seg:
+        return None
+    word = os.path.basename(seg[0])
+    if word in NAMED_COMMANDS:
+        return word
+    if word == "sed" and sed_in_place(seg[1:]):
+        return "sed -i"
+    if word in GRADLE:
+        return "gradle"
+    return None
+
+
+def named_change(tokens):
+    """The name of the first command among tokens' segments that changes the
+    repository or build, else None. Punctuation tokens end a segment."""
+    seg = []
+    for t in tokens + [";"]:
+        if not g.PUNCTUATION.match(t):
+            seg.append(t)
+            continue
+        name = named_segment(seg)
+        if name:
+            return name
+        seg = []
+    return None
 
 def read_only_git(tokens):
     i = 1
@@ -180,9 +219,9 @@ def check_bash(command, role):
         return f"the command could not be parsed ({exc}), so it is not run"
     if g.has_redirection(tokens):
         return "redirection (`>`, `>>`, `<`) writes or reads files outside the read tools"
-    for name, pattern in NAMED_PATTERNS:
-        if pattern.search(command):
-            return f"`{name}` changes the repository or build"
+    name = named_change(tokens)
+    if name:
+        return f"`{name}` changes the repository or build"
     if role == "planner" and ADB.search(command):
         return "`adb` is for the pulse role; dispatch a pulse for device reads"
     if any(g.PUNCTUATION.match(t) for t in tokens) or "$" in command or "`" in command:
