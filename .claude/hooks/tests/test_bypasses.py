@@ -73,14 +73,66 @@ class Bypasses(unittest.TestCase):
         self.assertIn(words, reason)
 
     def test_b01_push_through_wrapper_or_git_path(self):
-        for command in ("sh -c 'git push origin main'",
-                        "env git push origin main",
-                        "python3 -c \"import subprocess; "
-                        "subprocess.run(['git', 'push', 'origin', 'main'])\"",
+        # R2 moved the `env` and `/usr/bin/git` forms to B-10 (fixed) and R3
+        # the `sh -c` form to B-13 (fixed); the interpreter form stays accepted.
+        command = ("python3 -c \"import subprocess; "
+                   "subprocess.run(['git', 'push', 'origin', 'main'])\"")
+        self.assertGetsThrough("history_guard.py",
+                               bash(command, "coder", cwd=str(self.on_feature)))
+
+    def test_b10_push_behind_cd_keyword_wrapper_assignment_or_git_path_is_blocked(self):
+        for command in (f"cd {self.on_main} && git push origin",
+                        f"pushd {self.on_main} && git push origin && popd",
+                        "{ git push origin main; }",
+                        "time git push origin main",
+                        "GIT_TRACE=1 git push origin main",
                         "/usr/bin/git push origin main"):
             with self.subTest(command=command):
-                self.assertGetsThrough("history_guard.py",
-                                       bash(command, "coder", cwd=str(self.on_feature)))
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)),
+                                   "protected branch")
+
+    def test_b11_plus_refspec_is_blocked_as_force(self):
+        for command in ("git push origin +main", "git push origin +feature"):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)),
+                                   "force")
+
+    def test_b12_merge_behind_git_dir_or_work_tree_is_blocked(self):
+        for command in ("git --git-dir=.git merge x", "git --work-tree=. merge x"):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_main)),
+                                   "while on main")
+
+    def test_b13_push_or_merge_inside_shell_string_or_eval_is_blocked(self):
+        for command, cwd, words in (
+                ("sh -c 'git push origin main'", self.on_feature, "protected branch"),
+                (f'bash -lc "cd {self.on_main} && git push origin"', self.on_feature,
+                 "protected branch"),
+                ("eval 'git push origin main'", self.on_feature, "protected branch"),
+                ("sh -c 'git merge feature'", self.on_main, "while on main")):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py", bash(command, "coder", cwd=str(cwd)),
+                                   words)
+
+    def test_b14_graphql_merge_and_alias_set_are_blocked(self):
+        graphql = ("gh api graphql -f query='mutation { mergePullRequest(input: "
+                   "{pullRequestId: \"x\"}) { clientMutationId } }'")
+        for command, words in ((graphql, "mergePullRequest"),
+                               ("gh alias set m 'pr merge'", "gh alias set"),
+                               ("gh alias import aliases.yml", "gh alias import")):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)), words)
+
+    def test_b15_quoted_or_split_subcommand_words_are_blocked(self):
+        for command in ('gh "pr" merge 5 -m', 'gh pr mer""ge 5 -m'):
+            with self.subTest(command=command):
+                self.assertBlocked("history_guard.py",
+                                   bash(command, "coder", cwd=str(self.on_feature)),
+                                   "denied")
 
     def test_b02_interpreter_splits_words(self):
         cases = [

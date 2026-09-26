@@ -2,15 +2,17 @@
 repository checked out on main or on a feature branch."""
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from harness import TEST_CONFIG, bash, run_hook
+from harness import TEST_CONFIG, bash, run_hook, slow_path, write_sleeper
 
 HOOK = "history_guard.py"
+PREFIX = TEST_CONFIG["guard_env_prefix"]
 
 
 def make_repo(branch):
@@ -187,11 +189,11 @@ def init_repo(path, branch):
     subprocess.run(g + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
 
 
-class RelativeDashC(unittest.TestCase):
-    """A relative `git -C` directory is read against the payload's cwd, not
-    the hook process's own directory. The payload cwd is `outer`, on
-    feature, holding `sub` on main and `sub2` on feature. The hook process
-    runs in the harness's default directory (the test runner's), not outer."""
+class OuterRepos(unittest.TestCase):
+    """The fixture RelativeDashC and PushWalk share: the payload cwd is
+    `outer`, on feature, holding `sub` on main and `sub2` on feature. The
+    hook process runs in the harness's default directory (the test
+    runner's), not outer. No tests of its own."""
 
     @classmethod
     def setUpClass(cls):
@@ -204,8 +206,13 @@ class RelativeDashC(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.outer, ignore_errors=True)
 
-    def decide(self, command):
-        return run_hook(HOOK, bash(command, "coder", cwd=str(self.outer)))
+    def decide(self, command, cwd=None):
+        return run_hook(HOOK, bash(command, "coder", cwd=str(cwd or self.outer)))
+
+
+class RelativeDashC(OuterRepos):
+    """A relative `git -C` directory is read against the payload's cwd, not
+    the hook process's own directory."""
 
     def test_relative_dash_c_push_from_main_denied(self):
         decision, reason = self.decide("git -C sub push origin")
@@ -221,6 +228,169 @@ class RelativeDashC(unittest.TestCase):
     def test_relative_dash_c_push_from_feature_allowed(self):
         decision, reason = self.decide("git -C sub2 push origin feature")
         self.assertIsNone(decision, reason)
+
+
+class PushWalk(OuterRepos):
+    """R2: the push walk follows `cd` and `pushd` from the payload's cwd,
+    sees git behind shell keywords, wrappers, assignments and a path to git,
+    denies `+` refspecs as force pushes, and the `git merge` check sees
+    `--git-dir=` and `--work-tree=`."""
+
+    def assertDenied(self, command, *words, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertEqual(decision, "deny", f"{command!r}: got {decision!r} ({reason})")
+        for w in words:
+            self.assertIn(w, reason, command)
+
+    def assertPasses(self, command, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertIsNone(decision, f"{command!r}: {reason}")
+
+    def test_cd_into_main_then_bare_push_denied(self):
+        for command in ("cd sub && git push origin",
+                        "cd sub; git push origin",
+                        "pushd sub && git push origin && popd",
+                        "cd sub && cd ../sub2 && cd ../sub && git push origin"):
+            with self.subTest(command):
+                self.assertDenied(command, "protected branch", "which is main")
+
+    def test_cd_into_feature_or_subshell_cd_then_push_allowed(self):
+        # outer is on feature: a cd inside `(...)` does not reach the push after it.
+        for command in ("cd sub2 && git push origin feature",
+                        "(cd sub) && git push origin"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
+    def test_unresolvable_cd_then_bare_push_denied_by_name(self):
+        for command in ("cd - && git push origin",
+                        'cd "$D" && git push origin'):
+            with self.subTest(command):
+                self.assertDenied(command, "cannot be determined")
+
+    def test_push_to_main_behind_keyword_wrapper_assignment_or_path_denied(self):
+        for command in ("{ git push origin main; }",
+                        "if true; then git push origin main; fi",
+                        "for x in 1; do git push origin main; done",
+                        "time git push origin main",
+                        "command git push origin main",
+                        "exec git push origin main",
+                        "env -u X git push origin main",
+                        "GIT_TRACE=1 git push origin main",
+                        "/usr/bin/git push origin main"):
+            with self.subTest(command):
+                self.assertDenied(command, "protected branch", "main")
+
+    def test_push_to_feature_behind_keyword_or_wrapper_allowed(self):
+        for command in ("{ git push origin feature; }",
+                        "time git push origin feature"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
+    def test_plus_refspec_denied_as_force_push_to_any_destination(self):
+        for command in ("git push origin +feature", "git push origin +main"):
+            with self.subTest(command):
+                self.assertDenied(command, "force")
+
+    def test_full_refspec_to_feature_allowed(self):
+        self.assertPasses("git push origin feature:refs/heads/feature")
+
+    def test_merge_with_git_dir_or_work_tree_on_main_denied(self):
+        for command in ("git --git-dir=.git merge x", "git --work-tree=. merge x"):
+            with self.subTest(command):
+                self.assertDenied(command, "while on main", cwd=self.outer / "sub")
+
+
+class CommandWord(OuterRepos):
+    """R3: every rule is decided on a segment's command word and arguments,
+    so a guarded word inside an argument denies nothing; the strings given
+    to `sh -c`, `bash -lc` and `eval` are walked as commands; a GraphQL
+    merge, `gh alias set` and quoted or split `gh pr merge` words are
+    denied; unparseable text is denied only when it mentions a guarded
+    command."""
+
+    def assertDenied(self, command, *words, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertEqual(decision, "deny", f"{command!r}: got {decision!r} ({reason})")
+        for w in words:
+            self.assertIn(w, reason, command)
+
+    def assertPasses(self, command, cwd=None):
+        decision, reason = self.decide(command, cwd)
+        self.assertIsNone(decision, f"{command!r}: {reason}")
+
+    def test_guarded_words_in_arguments_pass(self):
+        # sub is on main: none of these runs a push, a merge or a filter.
+        for command in ('git grep -E "git merge|--force" -- .',
+                        'git commit -m "gh pr merge 5 --merge later"',
+                        "echo git push --force origin main",
+                        "git log --grep filter-repo",
+                        "python3 -c \"print('git push origin main')\""):
+            with self.subTest(command):
+                self.assertPasses(command, cwd=self.outer / "sub")
+
+    def test_push_to_feature_then_another_command_passes(self):
+        # outer is on feature; the `-rf` after the push is rm's, not a force flag.
+        for command in ("git push origin feature\nrm -rf build",
+                        "sh -c 'git push origin feature'"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
+    def test_push_inside_shell_string_or_eval_denied(self):
+        for command, words in (("sh -c 'git push origin main'", ("protected branch",)),
+                               ('bash -lc "cd sub && git push origin"',
+                                ("protected branch", "which is main")),
+                               ("eval 'git push origin main'", ("protected branch",)),
+                               ("sh -c 'git push --force origin x'", ("force",))):
+            with self.subTest(command):
+                self.assertDenied(command, *words)
+
+    def test_quoted_or_split_gh_pr_merge_words_denied(self):
+        for command in ('gh "pr" merge 5 -m', 'gh pr mer""ge 5 -m'):
+            with self.subTest(command):
+                self.assertDenied(command, "denied")
+
+    def test_graphql_merge_and_alias_set_denied(self):
+        self.assertDenied("gh api graphql -f query='mutation { mergePullRequest(input: "
+                          "{pullRequestId: \"x\"}) { clientMutationId } }'",
+                          "mergePullRequest")
+        self.assertDenied("gh alias set m 'pr merge'", "gh alias set")
+
+    def test_merge_after_cd_or_behind_git_dir_denied(self):
+        self.assertDenied("cd sub && git merge x", "while on main")
+        self.assertDenied("git --git-dir=sub/.git merge x", "cannot be determined")
+
+    def test_earlier_denials_still_hold(self):
+        for command, word in (("gh api -X PUT repos/o/r/pulls/5/merge -f merge_method=merge",
+                               "gh pr merge"),
+                              ("git push origin feature && echo 'oops", "could not parse")):
+            with self.subTest(command):
+                self.assertDenied(command, word)
+
+    def test_unparseable_text_denied_naming_the_mention(self):
+        self.assertDenied("echo 'oops; gh pr merge 5 -m", "could not parse", "gh pr merge")
+
+
+class Timeouts(unittest.TestCase):
+    """Every command the hook runs has the kit's timeout (<prefix>TIMEOUT
+    seconds, 20 by default): a git that answers too slowly is a deny that
+    names the timeout, not a wait that Claude Code cuts short."""
+
+    def setUp(self):
+        self.fake = Path(tempfile.mkdtemp(prefix="history_guard_slow_"))
+        self.repo = make_repo("main")
+        write_sleeper(self.fake / "git", 5, "main")
+
+    def tearDown(self):
+        shutil.rmtree(self.fake, ignore_errors=True)
+        shutil.rmtree(self.repo, ignore_errors=True)
+
+    def test_slow_git_denied_by_name(self):
+        env = {"PATH": slow_path(self.fake), PREFIX + "TIMEOUT": "1"}
+        decision, reason = run_hook(HOOK, bash("git merge x", "coder", cwd=str(self.repo)),
+                                    env=env)
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("timed out", reason)
+        self.assertIn("failing closed", reason)
 
 
 def git_in(repo, *args):
@@ -255,24 +425,30 @@ class MergeRule(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
 
-    def write_backup(self, pr, index="full"):
-        """A backup as coder.md item 10 describes it, for origin/main. index
-        picks the INDEX.md line: "full" names the folder, #<pr> and the
-        SHA; "none" names none of them; "no-pr" and "no-sha" leave one out."""
+    def write_backup(self, pr, index="full", branch="main", ref=None):
+        """A backup as coder.md item 10 describes it, for origin/<branch>
+        (main unless said); ref is the ref bundled, origin/<branch> unless
+        said. index picks the INDEX.md line: "full" names the folder, #<pr>
+        and the SHA; "none" names none of them; "no-pr" and "no-sha" leave
+        one out; "folder-in-longer-name" names the folder only as the start
+        of a longer folder name."""
         folder = self.backups / f"2026-01-01-pr{pr}"
         folder.mkdir()
-        sha = git_in(self.work, "rev-parse", "origin/main")
-        git_in(self.work, "bundle", "create", "-q", str(folder / "main.bundle"),
-               "origin/main")
+        sha = git_in(self.work, "rev-parse", f"origin/{branch}")
+        bundle = f"{branch}.bundle"
+        git_in(self.work, "bundle", "create", "-q", str(folder / bundle),
+               ref or f"origin/{branch}")
         (folder / "merge.json").write_text(json.dumps(
-            {"pr": pr, "branch": "main", "sha": sha, "bundle": "main.bundle"}))
+            {"pr": pr, "branch": branch, "sha": sha, "bundle": bundle}))
         (folder / "MANIFEST.sha256").write_text("".join(
             f"{sha256_of(folder / name)}  {name}\n"
-            for name in ("merge.json", "main.bundle")))
-        line = {"full": f"- {folder.name}: #{pr}, main at {sha}\n",
+            for name in ("merge.json", bundle)))
+        line = {"full": f"- {folder.name}: #{pr}, {branch} at {sha}\n",
                 "none": "- some other backup\n",
-                "no-pr": f"- {folder.name}: main at {sha}\n",
-                "no-sha": f"- {folder.name}: #{pr}\n"}[index]
+                "no-pr": f"- {folder.name}: {branch} at {sha}\n",
+                "no-sha": f"- {folder.name}: #{pr}\n",
+                "folder-in-longer-name":
+                    f"- {folder.name}2: #{pr}, {branch} at {sha}\n"}[index]
         with open(self.backups / "INDEX.md", "a") as f:
             f.write(line)
         return folder
@@ -347,6 +523,56 @@ class MergeRule(unittest.TestCase):
             with self.subTest(who):
                 decision, _ = self.decide("gh pr merge 12 --merge", who)
                 self.assertEqual(decision, "deny")
+
+    def test_m10_origin_moved_on_the_remote_without_a_local_fetch_denied(self):
+        # The remote's main moves through another clone; work's origin/main
+        # stays at the backup's sha, so only a read of the remote sees it.
+        self.write_backup(12)
+        other = self.root / "other"
+        subprocess.run(["git", "clone", "-q", "-b", "main", str(self.origin), str(other)],
+                       check=True, capture_output=True)
+        git_in(other, "commit", "-q", "--allow-empty", "-m", "later")
+        git_in(other, "push", "-q", "origin", "HEAD:main")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness", "remote")
+
+    def test_m11_bundle_of_another_ref_at_the_same_sha_denied(self):
+        # merge.json names main; the bundle's head is origin/other at the
+        # same commit.
+        git_in(self.work, "branch", "other", "main")
+        git_in(self.work, "push", "-q", "origin", "other")
+        git_in(self.work, "fetch", "-q", "origin")
+        self.write_backup(12, ref="origin/other")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup",
+                               "refs/remotes/origin/other")
+
+    def test_m12_branch_not_protected_denied(self):
+        # A self-consistent backup of a branch the config does not protect.
+        git_in(self.work, "branch", "feature", "main")
+        git_in(self.work, "push", "-q", "origin", "feature")
+        git_in(self.work, "fetch", "-q", "origin")
+        self.write_backup(12, branch="feature")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup", "protected")
+
+    def test_m13_index_names_folder_only_inside_a_longer_name_denied(self):
+        # Folder 2026-01-01-pr1; the line names 2026-01-01-pr12, #1 and the sha.
+        self.write_backup(1, index="folder-in-longer-name")
+        self.assertMergeDenied("gh pr merge 1 --merge", "(d) backup", "INDEX.md")
+
+    def test_m14_remote_unreadable_denied(self):
+        self.write_backup(12)
+        git_in(self.work, "remote", "set-url", "origin", str(self.root / "missing.git"))
+        self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness",
+                               "could not be read")
+
+    def test_m15_remote_denial_never_echoes_credentials(self):
+        self.write_backup(15)
+        git_in(self.work, "remote", "set-url", "origin",
+               "https://user:s3cr3t@example.invalid/x.git")
+        decision, reason = self.decide("gh pr merge 15 --merge")
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("(e) freshness", reason)
+        self.assertIn("could not be read", reason)
+        self.assertNotIn("s3cr3t", reason)
 
 
 if __name__ == "__main__":

@@ -117,6 +117,13 @@ class PlannerBash(unittest.TestCase):
     def test_unbalanced_quotes_denied(self):
         self.assertDenied("git log --format='%h", "parse")
 
+    def test_guarded_words_in_arguments_pass(self):
+        # R3: the named check reads each segment's command word, not the text.
+        for command in ('git grep -n "sed -i" -- x', 'git log --grep "rm "',
+                        "gh pr view 5 --json title"):
+            with self.subTest(command):
+                self.assertPasses(command)
+
 
 class PlannerSendMessage(unittest.TestCase):
     """The planner may SendMessage only to an agent this session started: an

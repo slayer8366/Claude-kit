@@ -14,15 +14,17 @@ adb, aapt2 and apksigner can be replaced through the environment variables
 <guard_env_prefix>ADB, <guard_env_prefix>AAPT2 and <guard_env_prefix>APKSIGNER.
 
 Wherever the guard needs a device or tool answer and cannot get one, it
-denies and says what it could not determine. These are patterns over the
-command text, not every program that could do the same thing.
+denies and says what it could not determine. Every tool call has guardlib's
+command timeout (20 seconds by default, `<guard_env_prefix>TIMEOUT`
+overrides): a tool that does not answer in time is denied naming the
+command and the seconds. These are patterns over the command text, not
+every program that could do the same thing.
 
 Known bypasses: .claude/hooks/BYPASSES.md B-06
 """
 import glob
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -78,7 +80,7 @@ def adb_target(tokens):
 
 
 def run(cmd):
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    return g.run_command(cmd)  # guardlib's timeout; a CommandTimeout is a deny by name
 
 
 def foreground_package(target):

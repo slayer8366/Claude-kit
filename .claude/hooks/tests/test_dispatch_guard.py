@@ -8,9 +8,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness import HOOKS, TEST_CONFIG, run_hook
+from harness import HOOKS, TEST_CONFIG, run_hook, slow_path, write_sleeper
 
 HOOK = "dispatch_guard.py"
+PREFIX = TEST_CONFIG["guard_env_prefix"]
 REPO_ROOT = HOOKS.parent.parent
 
 BUILD_SECTIONS = ["Role", "Base and state", "Scope boundary",
@@ -331,6 +332,18 @@ class DispatchGuard(unittest.TestCase):
             self.assertIn("preserve", reason)
         finally:
             shutil.rmtree(outside, ignore_errors=True)
+
+    # Every git the hook runs has the kit's timeout: a git that answers too
+    # slowly blocks the dispatch by name instead of being waited for.
+    def test_slow_git_denied_by_name(self):
+        fake = Path(tempfile.mkdtemp(prefix="dispatch_guard_slow_"))
+        self.addCleanup(shutil.rmtree, fake, ignore_errors=True)
+        write_sleeper(fake / "git", 5, str(self.repo))
+        env = {"PATH": slow_path(fake), PREFIX + "TIMEOUT": "1"}
+        decision, reason = run_hook(HOOK, agent(prompt("pulse", PULSE_SECTIONS), "pulse",
+                                                cwd=str(self.repo)), env=env)
+        self.assertEqual(decision, "deny", f"got {decision!r}: {reason}")
+        self.assertIn("timed out", reason)
 
 
 if __name__ == "__main__":
