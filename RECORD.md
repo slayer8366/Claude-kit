@@ -4447,3 +4447,53 @@ A read-only pulse run on Fable 5.1 (the Agent call's model override), a differen
 - Whether the new rule at 310cb68 admits this build's own backup 2026-09-26-08 was not exercised: the merge of PR #39 runs under W's hooks at 9d07747.
 - INDEX.md rows 47 and 48 still have two cells under the five-column header (R3 and R4 flagged this).
 - test_install's `test_vendored_hook_tests_pass_in_the_adopter` still makes tests/ fail on every tests-first hook commit (R2 to R4 flagged this).
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-33
+**Dispatch-file:** preserved/2026-09-26-05.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log F, /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01RGmfuBWv4x1Nvnpa3fBQDZ/d5592fbe-c371-5027-aaf9-18ab19a5613c.jsonl, line 451 (2026-09-26T02:44:35Z, the Agent call to `pulse`) and line 472 (2026-09-26T02:51:08Z, the pulse's hand-back, delivered as "[Subagent hand-back]"): "Pulse: Forager's premises for a Claude-kit install", read at kit 9d077470c57249c450e6e3de59651bd727e05f37 and Forager origin/main af12a69603ab38295099ef27f0b3114c2a9ccd74, twelve numbered sections (Forager's hardcoded config, hook drift, settings.json, install.py's first-install path, the .gitignore effect, root collisions, record compatibility, store names, CLAUDE.md, Forager's GitHub state, live Forager sessions, the kit's install tests) and a "Could not determine" list; nothing written, fetched, checked out or run.
+**Observed:** The planner's pulse "Forager adopter premises", the dispatch hook (shared counter) saved in the planner's harness worktree W, /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01RGmfuBWv4x1Nvnpa3fBQDZ, as `prompts/preserved/2026-09-26-05.md` (6313 bytes, sha256 7ac5d917e99f7576bd6f6f96069bd6c2cd3a86762047fa8d3d280c6ea6bfb33a; header "Preserved: 2026-09-26T02:44:35Z by .claude/hooks/dispatch_guard.py", HEAD 9d077470c57249c450e6e3de59651bd727e05f37, target pulse, type pulse, no `Repeat-of:` line). Copied byte for byte (`cp -p`; cmp identical; the same size and sha256 on both sides) into this store under the hook's name, which was free (the store's last file at 5ba1581 is 2026-09-26-04.md). The prompt after the delimiter equals the Agent call's prompt at F line 451. Written by R5's coder under coder.md item 1 at 5ba1581 in the sweep of build dispatch preserved/2026-09-26-07.md. A read-only pulse: it opened no intent and changed nothing in this repository; the Forager install it read for is outside R5's scope.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-34
+**Dispatch-file:** preserved/2026-09-26-06.md
+**Type:** build
+**Outcome:** merged
+**Report:** the planner log F, /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01RGmfuBWv4x1Nvnpa3fBQDZ/d5592fbe-c371-5027-aaf9-18ab19a5613c.jsonl, line 510 (2026-09-26T03:05:58Z, the Agent call to `coder`) and line 555 (2026-09-26T03:15:28Z, the hand-back "Hand-back: promotion of pre-main into main (merge dispatch, coder.md item 10(b))"): PR #40 (pre-main -> main, "Promote pre-main to main: review fixes R1 to R4 and R6") opened, backup 2026-09-26-10 written, the merge at 2026-09-26T03:13:21Z as b1bb0bd17fcc94cc4b9719c56ea7e39122914cae, C and W then updated with update_worktree.py; no commit, no record entry, no tag, nothing deleted.
+**Observed:** The merge dispatch for the first promotion of pre-main into main, the dispatch hook (shared counter) saved in W as `prompts/preserved/2026-09-26-06.md` (7847 bytes, sha256 1694277af0c209be6874596aa9f04326cac524fc73f4b5e6b93a2570d6c1225f; header "Preserved: 2026-09-26T03:05:59Z by .claude/hooks/dispatch_guard.py", HEAD 5ba1581f252a2e10a8825d6c3520a0054291e748, target coder, type build, no `Repeat-of:` line). Copied byte for byte (`cp -p`; cmp identical; the same size and sha256 on both sides) into this store under the hook's name, which was free. The prompt after the delimiter equals the Agent call's prompt at F line 510. Written by R5's coder under coder.md item 1 at 5ba1581 in the sweep of build dispatch preserved/2026-09-26-07.md. Under coder.md item 10(b) a merge dispatch opens no intent; this note claims its store copy, and the merge it authorised is merge entry 2026-09-26-36 in this sweep (Merged-by `coder preserved/2026-09-26-06.md`).
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-35
+**Timestamp:** 2026-09-26T03:01:55Z
+**PR:** 39
+**Head:** kit-review-r6
+**Base:** pre-main
+**Merge-commit:** 5ba1581f252a2e10a8825d6c3520a0054291e748
+**Pre-merge:** 9d077470c57249c450e6e3de59651bd727e05f37
+**Backup:** 2026-09-26-08
+**Merged-by:** coder preserved/2026-09-26-04.md
+**Carries:** 2026-09-26-30, 2026-09-26-31, 2026-09-26-32
+**Sweep:** written by R5's coder (dispatch preserved/2026-09-26-07.md) under coder.md item 1 at 5ba1581: the one merge commit on origin/pre-main's first-parent chain newer than 9d07747 (the newest Merge-commit a `merge` entry with Base pre-main records, 2026-09-26-30). Merge-commit and Pre-merge from `git log --merges --first-parent --format=%H%x20%P -3 origin/pre-main` (5ba1581, first parent 9d07747, second parent 90d26b5); PR, Head, Base and Timestamp (mergedAt) from `gh pr view 39 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (mergeCommit.oid equal to Merge-commit); Backup is the one ~/forager-backups/INDEX.md line (row 54) whose "Pre-merge backup for PR #39" names folder 2026-09-26-08 and the SHA 9d077470c57249c450e6e3de59651bd727e05f37 (equal to Pre-merge; that folder's merge.json reads pr 39, branch pre-main, that sha, pre-main.bundle; INDEX rows 2026-09-26-03, -05, -07 and -09 are update_worktree.py's moves of W's copies, not merge backups); Merged-by names the dispatch R6's coder merged under, whose terminal 2026-09-26-32 (Dispatch-file preserved/2026-09-26-04.md) says the merge followed it. Carries lists the three IDs the PR's RECORD.md diff added (`git diff 9d07747..5ba1581 -- RECORD.md`); the PR also changed guardlib.py, history_guard.py, dispatch_guard.py, device_guard.py, session_check.py, settings.json, harness.py, three hook test files, README.md and the store copy 2026-09-26-04.md, so it is not record only.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-36
+**Timestamp:** 2026-09-26T03:13:21Z
+**PR:** 40
+**Head:** pre-main
+**Base:** main
+**Merge-commit:** b1bb0bd17fcc94cc4b9719c56ea7e39122914cae
+**Pre-merge:** 0319ccd7a8818dbabec7faa2f67c31cde349e11f
+**Backup:** 2026-09-26-10
+**Merged-by:** coder preserved/2026-09-26-06.md
+**Carries:** 2026-09-26-01, 2026-09-26-02, 2026-09-26-03, 2026-09-26-04, 2026-09-26-05, 2026-09-26-06, 2026-09-26-07, 2026-09-26-08, 2026-09-26-09, 2026-09-26-10, 2026-09-26-11, 2026-09-26-12, 2026-09-26-13, 2026-09-26-14, 2026-09-26-15, 2026-09-26-16, 2026-09-26-17, 2026-09-26-18, 2026-09-26-19, 2026-09-26-20, 2026-09-26-21, 2026-09-26-22, 2026-09-26-23, 2026-09-26-24, 2026-09-26-25, 2026-09-26-26, 2026-09-26-27, 2026-09-26-28, 2026-09-26-29, 2026-09-26-30, 2026-09-26-31, 2026-09-26-32
+**Sweep:** written by R5's coder (dispatch preserved/2026-09-26-07.md) under coder.md item 1 at 5ba1581: the one merge commit on origin/main's first-parent chain newer than 0319ccd (the newest Merge-commit a `merge` entry with Base main records, 2026-09-26-19). Merge-commit and Pre-merge from `git log --merges --first-parent --format=%H%x20%P -2 origin/main` (b1bb0bd, first parent 0319ccd, second parent 5ba1581, the PR #39 merge that 2026-09-26-35 records); PR, Head, Base and Timestamp (mergedAt) from `gh pr view 40 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (mergeCommit.oid equal to Merge-commit); Backup is the one INDEX.md line (row 56) whose "Pre-merge backup for PR #40" names folder 2026-09-26-10 and the SHA 0319ccd7a8818dbabec7faa2f67c31cde349e11f (equal to Pre-merge; that folder's merge.json reads pr 40, branch main, that sha, main.bundle); Merged-by names the merge dispatch (coder.md item 10(b)) the promotion's coder merged under, store copy preserved/2026-09-26-06.md, claimed by dispatch-note 2026-09-26-34, whose hand-back at F line 555 reports the merge. Carries lists every ID the PR's RECORD.md diff added (`git diff 0319ccd..b1bb0bd -- RECORD.md`: 32 IDs, 5 intents, 5 terminals, 1 dispatch-note and 21 merge entries, among them 2026-09-26-21, -24, -27 and -30 for PRs 35 to 38 and the R1 backfill); the PR changed 26 files, so it is not record only. The annotated tag v0.2 (a2b8025060332199931f5f3349cf9b6a38c126f5) points at this Merge-commit; no tag is part of R5.
