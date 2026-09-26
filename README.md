@@ -19,7 +19,7 @@ source files unchanged; later steps make them generic.
 | `check_record.py`, `check_prompts.py` | the record checkers, at the repository root | yes |
 | `check_kit.py` | drift check against `.claude/kit.lock` | yes |
 | `find_dispatches.py` | lists hook-saved dispatches left untracked in other worktrees, with copy commands and citations; read-only | yes |
-| `update_worktree.py` | fast-forwards a harness worktree to origin/<first protected branch> after moving aside untracked files the branch tracks byte for byte; dry run by default | yes |
+| `update_worktree.py` | fast-forwards a harness worktree or the main checkout to origin/<first protected branch> after moving aside untracked files the branch tracks byte for byte; dry run by default | yes |
 | `session_agents.py` | lists a session log's Agent calls with their outcome, hand-backs and SendMessages, and how far each unfinished agent got; read-only | yes |
 | `launch_session.py` | launches one headless `claude -p` session in a checkout under a wall-clock limit, after checking the checkout, its hooks and the session's identity; writes only its stream files | yes |
 | `run_exercise.py` | runs the four live-exercise cases through `launch_session.py` in a temporary detached worktree and writes one evidence line per case from the session logs; writes only under its `--out-dir` and the worktree | yes |
@@ -116,10 +116,44 @@ matches. The denylist stays in the workshop and is never released, since it
 names what must not be published. A release is a tag, made by the owner after
 reading the release diff.
 
+## Branches
+
+`protected_branches` in `.claude/kit.json` lists the branches history_guard
+protects, in order. The first is the working trunk: every build branches
+from it, its pull request targets it, and the build's coder merges it there
+(see "Merging and undoing a merge"). The later ones are release trunks: they
+receive promotion pull requests from the working trunk, merged by a coder
+from a merge dispatch that the planner writes only after the owner has read
+the evidence (the builds' intents and terminals, their failing-first and
+revert-check lines, their CI runs, any deferrals). In this repository the
+list is `["pre-main", "main"]`: pre-main is the working trunk, main the
+release trunk, and the main checkout sits on pre-main. Both are protected on
+GitHub as well (pull request required, enforced for admins, the two CI
+checks).
+
+Leaving work out of a promotion is a revert on the working trunk: a coder
+reverts the feature's merge commit (`git revert -m 1`) on a branch, restores
+`RECORD.md` and `prompts/preserved/` from HEAD (the record is append-only),
+writes a `revert` entry naming the merge's `merge` entry, and merges the
+revert by its own pull request with its own backup. Work that a later build
+depends on does not revert cleanly; that is the signal to keep it.
+
+A coder may defer an item of its own build only when the dispatch says
+deferral is allowed (coder.md item 12): an item whose check fails while
+every other check passes without it is reverted on the feature branch, the
+reverted commits stay pushed, the terminal's Outcome is `partial` with a
+`Deferred` field naming the commits and the failing check, and the
+hand-back lists every deferral under "Deferred" for the owner. A met abort
+condition is never a deferral.
+
 ## Merging and undoing a merge
 
 A coder merges a pull request only when its dispatch's `Merge` section reads
-`authorised` (coder.md item 10). history_guard lets the merge through only
+`authorised` (coder.md item 10). There are two kinds: a build's pull request
+into the first protected branch, authorised by the build's own dispatch, and
+a promotion pull request from the first protected branch into a later one,
+authorised only by a merge dispatch sent after the owner's evidence gate
+(see "Branches"). history_guard lets the merge through only
 for the `coder` role, in one form (`gh pr merge <N>` with `--merge` or
 `--squash`), and only after the coder has written a backup for PR N under
 `backup_dir`: a folder holding a git bundle of `origin/<base branch>`,
@@ -129,12 +163,22 @@ merge.json's `sha` must still be the tip of
 `origin/<branch>`. The planner and the pulse are always denied.
 
 After the merge, the coder updates the main checkout (the checkout on the
-base branch, where the dispatch hook saves dispatches) with the
-`update_worktree.py` it just merged: a dry run, then `--apply` (see
-"Updating a harness worktree"). It reports both outputs and, if either
-exits 1, stops there. In this repository that is
-`python3 ~/Zynergy/Claude-kit-fixes/update_worktree.py ~/Zynergy/Claude-kit`,
-then the same with `--apply`.
+first protected branch, where the dispatch hook saves dispatches), and any
+other checkout the dispatch names, with the `update_worktree.py` it just
+merged: a dry run, then `--apply` (see "Updating a harness worktree"). It
+reports every output and, if any exits 1, stops there. In this repository
+that is `python3 ~/Zynergy/Claude-kit-fixes/update_worktree.py
+~/Zynergy/Claude-kit`, then the same with `--apply`.
+
+A build's finish line ends before its merge: the pull request open, CI green
+on its final commit, the backup written and the terminal pushed. The merge
+and the checkout updates come after, and the next build's sweep records
+each merge commit on a protected branch's first-parent chain as a `merge`
+entry in RECORD.md (PR, Head, Base, Merge-commit, Pre-merge, Backup,
+Merged-by, Carries), so the record names every merge and its backup. A
+merge dispatch's store copy is claimed by a dispatch-note with Outcome
+`merged`; a merge undone by a revert pull request gets a `revert` entry
+naming its `merge` entry.
 
 To undo a merge, find the backup folder whose `merge.json` has the PR's
 number, then either:
