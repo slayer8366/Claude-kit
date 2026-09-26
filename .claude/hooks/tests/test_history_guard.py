@@ -400,24 +400,30 @@ class MergeRule(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
 
-    def write_backup(self, pr, index="full"):
-        """A backup as coder.md item 10 describes it, for origin/main. index
-        picks the INDEX.md line: "full" names the folder, #<pr> and the
-        SHA; "none" names none of them; "no-pr" and "no-sha" leave one out."""
+    def write_backup(self, pr, index="full", branch="main", ref=None):
+        """A backup as coder.md item 10 describes it, for origin/<branch>
+        (main unless said); ref is the ref bundled, origin/<branch> unless
+        said. index picks the INDEX.md line: "full" names the folder, #<pr>
+        and the SHA; "none" names none of them; "no-pr" and "no-sha" leave
+        one out; "folder-in-longer-name" names the folder only as the start
+        of a longer folder name."""
         folder = self.backups / f"2026-01-01-pr{pr}"
         folder.mkdir()
-        sha = git_in(self.work, "rev-parse", "origin/main")
-        git_in(self.work, "bundle", "create", "-q", str(folder / "main.bundle"),
-               "origin/main")
+        sha = git_in(self.work, "rev-parse", f"origin/{branch}")
+        bundle = f"{branch}.bundle"
+        git_in(self.work, "bundle", "create", "-q", str(folder / bundle),
+               ref or f"origin/{branch}")
         (folder / "merge.json").write_text(json.dumps(
-            {"pr": pr, "branch": "main", "sha": sha, "bundle": "main.bundle"}))
+            {"pr": pr, "branch": branch, "sha": sha, "bundle": bundle}))
         (folder / "MANIFEST.sha256").write_text("".join(
             f"{sha256_of(folder / name)}  {name}\n"
-            for name in ("merge.json", "main.bundle")))
-        line = {"full": f"- {folder.name}: #{pr}, main at {sha}\n",
+            for name in ("merge.json", bundle)))
+        line = {"full": f"- {folder.name}: #{pr}, {branch} at {sha}\n",
                 "none": "- some other backup\n",
-                "no-pr": f"- {folder.name}: main at {sha}\n",
-                "no-sha": f"- {folder.name}: #{pr}\n"}[index]
+                "no-pr": f"- {folder.name}: {branch} at {sha}\n",
+                "no-sha": f"- {folder.name}: #{pr}\n",
+                "folder-in-longer-name":
+                    f"- {folder.name}2: #{pr}, {branch} at {sha}\n"}[index]
         with open(self.backups / "INDEX.md", "a") as f:
             f.write(line)
         return folder
@@ -492,6 +498,46 @@ class MergeRule(unittest.TestCase):
             with self.subTest(who):
                 decision, _ = self.decide("gh pr merge 12 --merge", who)
                 self.assertEqual(decision, "deny")
+
+    def test_m10_origin_moved_on_the_remote_without_a_local_fetch_denied(self):
+        # The remote's main moves through another clone; work's origin/main
+        # stays at the backup's sha, so only a read of the remote sees it.
+        self.write_backup(12)
+        other = self.root / "other"
+        subprocess.run(["git", "clone", "-q", "-b", "main", str(self.origin), str(other)],
+                       check=True, capture_output=True)
+        git_in(other, "commit", "-q", "--allow-empty", "-m", "later")
+        git_in(other, "push", "-q", "origin", "HEAD:main")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness", "remote")
+
+    def test_m11_bundle_of_another_ref_at_the_same_sha_denied(self):
+        # merge.json names main; the bundle's head is origin/other at the
+        # same commit.
+        git_in(self.work, "branch", "other", "main")
+        git_in(self.work, "push", "-q", "origin", "other")
+        git_in(self.work, "fetch", "-q", "origin")
+        self.write_backup(12, ref="origin/other")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup",
+                               "refs/remotes/origin/other")
+
+    def test_m12_branch_not_protected_denied(self):
+        # A self-consistent backup of a branch the config does not protect.
+        git_in(self.work, "branch", "feature", "main")
+        git_in(self.work, "push", "-q", "origin", "feature")
+        git_in(self.work, "fetch", "-q", "origin")
+        self.write_backup(12, branch="feature")
+        self.assertMergeDenied("gh pr merge 12 --merge", "(d) backup", "protected")
+
+    def test_m13_index_names_folder_only_inside_a_longer_name_denied(self):
+        # Folder 2026-01-01-pr1; the line names 2026-01-01-pr12, #1 and the sha.
+        self.write_backup(1, index="folder-in-longer-name")
+        self.assertMergeDenied("gh pr merge 1 --merge", "(d) backup", "INDEX.md")
+
+    def test_m14_remote_unreadable_denied(self):
+        self.write_backup(12)
+        git_in(self.work, "remote", "set-url", "origin", str(self.root / "missing.git"))
+        self.assertMergeDenied("gh pr merge 12 --merge", "(e) freshness",
+                               "could not be read")
 
 
 if __name__ == "__main__":
