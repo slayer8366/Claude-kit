@@ -3779,3 +3779,343 @@ A read-only pulse run on Fable 5.1 (the Agent call's model override), a differen
 - The dispatch's scope-3 test cannot fail first for the stated reason: on this evidence it passes under find_dispatches.py from 671b05d.
 - Options (b) (investigate another cause) and (c) (apply the settings as defence in depth, with a restated failing-first condition) are for the owner or the next planner session, per the ruling.
 **Choices this coder made that the dispatch does not** (listed in the hand-back): writing the intent before step 1; step 1's set-up (blob count, waits, adding the `put` files after the first runs); the `gc --auto` and `git commit` controls and the trace; reading the CI log; the scan after the abort; the backup was written before this terminal and before CI, not after CI as in the ruling's numbered list, so that this terminal can cite it (coder.md item 10), following batch 5's terminal -86; origin/main, the backup's subject, is not moved by this commit; the PR was opened before this terminal so that it can be named; `Working-state`'s wording (check_record requires the field for `abandoned`, and no document defines it).
+
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-01
+**Dispatch-file:** preserved/2026-09-25-46.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** the planner log F /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01RGmfuBWv4x1Nvnpa3fBQDZ/d5592fbe-c371-5027-aaf9-18ab19a5613c.jsonl: the Agent call at 2026-09-25T23:21:47.185Z (line 131, to `pulse`, tool_use `toolu_01JDN1GZf2gjVDRRapvWnhyW`, description "Premises for review-fix dispatches"); the hand-back at 23:26:47.877Z (line 144). Read-only, no intent: fourteen questions answered with path:line citations at origin/main 671b05d (hooks' subprocess calls and timeouts, test_bypasses.py and test_history_guard.py structure, test_role_guard.py's named-pattern tests, harness.py, update_worktree.py, run_exercise.py, session_agents.py, launch_session.py, README.md, coder.md and check_record.py line numbers, the store and worktrees, the CI check names). Its answers are the premises of the review-fix dispatches; this dispatch (R1, `preserved/2026-09-25-47.md`, intent 2026-09-26-02) cites them as line numbers at 0319ccd and this coder verified each one before relying on it.
+**Observed:** `prompts/preserved/2026-09-25-46.md` copied byte for byte (cmp) from the planner's harness worktree /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01RGmfuBWv4x1Nvnpa3fBQDZ (W, on branch worktree-bridge-cse_01RGmfuBWv4x1Nvnpa3fBQDZ at 671b05d), where the dispatch hook (shared counter) saved it under the same name: 7236 bytes, sha256 0a034d56ee56f2ffcdcb1076151e35a80a94d06432fbddea0b06c09b5dade136; header "Preserved: 2026-09-25T23:21:47Z by .claude/hooks/dispatch_guard.py", HEAD 671b05d75db5ba71fce947aac906114047aabd9a, target pulse, type pulse, no `Repeat-of:` line. The name was free in the store (its highest was 2026-09-25-45), so the hook's name is kept (coder.md item 5). The original stays untracked in W until W is updated after this build's merge.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-26-02
+**Timestamp:** 2026-09-26T00:08:18Z
+**Title:** Claude-kit review fix R1: the pre-main branch model (pre-main first in `protected_branches`), the record's `merge` and `revert` entry kinds, the terminal outcome set with `partial` and `Deferred`, the note outcome `merged`, coder.md items 1, 3, 10 and 12, a README "Branches" section, and the review-fixes plan document
+**Dispatch-file:** preserved/2026-09-25-47.md
+**Dispatch source:** The dispatch hook (shared counter) saved this dispatch in the planner's harness worktree /home/zynergy-labs/Zynergy/Claude-kit/.claude/worktrees/bridge-cse_01RGmfuBWv4x1Nvnpa3fBQDZ (W, branch worktree-bridge-cse_01RGmfuBWv4x1Nvnpa3fBQDZ at 671b05d) as `prompts/preserved/2026-09-25-47.md` (18186 bytes, sha256 47a4677b2b55587e57450d36c221d9768f1e77bbcbcd8c00f78a54ea4b6a47a9; header "Preserved: 2026-09-25T23:55:36Z by .claude/hooks/dispatch_guard.py", HEAD 671b05d75db5ba71fce947aac906114047aabd9a, target coder, type build, no `Repeat-of:` line). Copied byte for byte (cmp) under the hook's name, which was free in the store (coder.md item 5). The planner's Agent call: F line 202, 2026-09-25T23:55:36.026Z, tool_use `toolu_01VsDcmppjgHJBMAjzmJuCWp`, description "R1: branch model and record kinds". F is /home/zynergy-labs/.claude/projects/-home-zynergy-labs-Zynergy-Claude-kit--claude-worktrees-bridge-cse-01RGmfuBWv4x1Nvnpa3fBQDZ/d5592fbe-c371-5027-aaf9-18ab19a5613c.jsonl (210 lines when read).
+**Sweep:** 2026-09-26-01 (commit 83fe1c2), the premises pulse -46, Outcome `answered`. The 17 backfilled `merge` entries the sweep rule also asks for need the checker this dispatch adds, so they go in the fix commit's record change, as the dispatch says.
+**Change:**
+- `check_record.py`: Kind `merge` (required Kind, ID, Timestamp, PR digits, Head, Base, Merge-commit and Pre-merge 40 lowercase hex and different, Backup, Merged-by `owner` or `coder` followed by the dispatch's store file, Carries; forbidden Closes, Superseded-by, Outcome, Finish line, both prediction fields); Kind `revert` (required Kind, ID, Timestamp, Reverts, Revert-commit 40 hex, PR digits, Reason, Decided-by; same forbidden list; Reverts must name a `merge` entry earlier in the file, checked by position as `_check_continues` does); the terminal outcome set `completed`, `partial`, `superseded`, `abandoned`, anything else an error naming the entry and the value; `partial` requires a non-empty `Deferred`, `completed` carrying `Deferred` is an error; `NOTE_OUTCOMES` gains `merged`. Nine render checks (31 to 39), `_minimal_merge` and `_minimal_revert` beside `_minimal_note`, `total = 39`, a docstring paragraph. Both new kinds open and close nothing.
+- `.claude/kit.json`: `protected_branches` becomes `["pre-main", "main"]`. Nothing else.
+- `.claude/agents/coder.md`: item 1 also sweeps `merge` entries for unrecorded first-parent merges of each protected branch and `merged` notes for merge dispatches' copies; item 3 names the four outcomes and puts a build's finish line at the PR open, CI green on its final commit, the backup written and the terminal pushed; item 10 has the two merge kinds (a build's PR into the first protected branch; a promotion PR into a later protected branch under a merge dispatch sent after the owner has read the evidence), the backup of `origin/<base>`, the checkout updates, and leaving work out by a revert PR; new item 12, deferral; a new non-negotiable "A met abort condition is a stop."
+- `README.md`: a "Branches" section; "Merging and undoing a merge" updated for the two merge kinds and the `merge` entry; the Layout row for update_worktree.py says it fast-forwards a harness worktree or the main checkout. The sentence about what history_guard proves is left for R4.
+- `docs/specs/2026-09-26-review-fixes-plan.md`: the dispatch's "Plan text" verbatim under a title line and the first line the dispatch prescribes.
+- `RECORD.md`: this entry; 17 `merge` entries (PRs #17, #19 to #34) in the fix commit; the terminal.
+**Scope boundary:** Files: check_record.py, .claude/kit.json, .claude/agents/coder.md, README.md, docs/specs/2026-09-26-review-fixes-plan.md, RECORD.md, prompts/preserved/2026-09-25-46.md and -47.md. Nothing else changes; no hook code; not templates/kit.json, .claude/settings.json, the owner's settings, docs/standing-rulings.md (B-13 stays a Part B proposal); not the T3 backlog beyond -46 and -47 (D2, D5, the older harness worktrees); no other PR, no tag, nothing deleted. The merge: this PR only (kit-review-r1 -> pre-main), `--merge`, from C without `--repo`, one Bash call, once CI is green on its final commit and after coder.md item 10's backup of origin/pre-main; then C and W updated by the merged update_worktree.py (dry run, then `--apply`, each).
+**Baseline:**
+- origin/main and origin/pre-main are both 0319ccd7a8818dbabec7faa2f67c31cde349e11f (the PR #34 merge); `git tag` prints nothing. ~/Zynergy/Claude-kit-fixes was on kit-v0.2-fd-gc at 3b584dc, clean; `kit-review-r1` was created from origin/pre-main and pushed with `-u` (83fe1c2 is the sweep on it). C (~/Zynergy/Claude-kit) is on `pre-main` at 0319ccd with only `.claude/worktrees/` untracked. W is on its worktree branch at 671b05d with `prompts/preserved/2026-09-25-46.md` and `-47.md` untracked.
+- The record at 0319ccd ends with terminal 2026-09-25-89 (closing -88, `abandoned`); no intent open; both checkers PASS. Its Outcome values (grep of `**Outcome:**`): terminals completed 37, superseded 3, abandoned 1; notes answered 13, exercise 5, stopped 14. Kinds: intent 41, terminal 41, dispatch-note 32, continuation 1. Two intents (-04 at :141, -07 at :202) carry a field labelled `Deferred to v0.2, not built…`, not `Deferred`; the new rule matches the exact label, so neither is affected.
+- check_record.py at 0319ccd: `TERMINAL_REQUIRED` :85, `NOTE_OUTCOMES` :120, `_validate_note` :126, `_validate_continuation` :163, `validate_entries` :258 (terminal outcome checks :336-342), `check_duplicate_terminals` :428, `render_check` :739, `total = 30` :1236, docstring paragraph :54-66; no terminal outcome set (:336-342 only test `superseded` and `abandoned` for their companion fields). coder.md: item 1 :40-43, item 3 :48-50, item 10 :80-95, Non-negotiables :102, "Checks fail first" :104-105. README: update_worktree.py Layout row :22, "Merging and undoing a merge" :119-151, "Updating a harness worktree" :183-207. kit.json `protected_branches` `["main"]`. All as the dispatch says.
+- `git log --merges --first-parent 8b1c88a..origin/pre-main` lists 17 merge commits, PRs #17 and #19 to #34 (no #18 merge). ~/forager-backups/INDEX.md has one line naming `#N` for each of the 17 (folders 2026-09-25-03, -04, -05, -07, -08, -09, -10, -12, -14, -16, -17, -19, -21, -23, -25, -27, -29). `gh pr view N --json mergedBy` gives `slayer8366` for all 17, which does not tell a coder's merge from the owner's (coders use the owner's gh login); the INDEX line is the criterion the dispatch names.
+- Counts at 0319ccd in this worktree: hook tests "Ran 147 tests" OK; tests/ "Ran 94 tests" OK; render checks "PASS: 0 of 30 checks failed" and "0 of 13"; release_check "PASS: 27 release file(s), 8097 line(s), 18 denylist pattern(s), no match".
+- GitHub protection of main and pre-main (pull request required, zero reviews, enforced for admins, checks `python 3.8` and `python 3.14`) is the dispatch's premise, read by the planner at F lines 170-171; not re-read by this coder.
+**Closed decisions:** From F, the owner, verbatim:
+- Line 157, 2026-09-25T23:36:34.756Z: "Answer is B. Maybe set up a pre-main in the specific branch, to act as a dummy main so that all work is reversible. Only after passing the evidence gate does it qualify for main. The owner can choose to leave out parts of the code that doesn't qualify and pass the rest, if the passed code doesn't depend on the failed code. A coder can make a similar choice, but in a non destructive way, to where the non qualified code is deferred to a list to present to the owner at the end of the run"
+- Line 165, 2026-09-25T23:51:32.480Z: "Done. And go, I'll take your recommendations " — the recommendations are the planner's message at line 160 (23:38:46.700Z), "Yours to confirm" 1 to 4, first reading of each: leaving out by revert on pre-main; pre-main protected in kit.json with a backup bundle per merge; deferral only when the dispatch says so; the three B-01 forms move to `fixed` in R2/R3, R4 uses the ls-remote freshness check, the tag waits until R4 is promoted.
+- Option B, from the planner's plan in F: coders merge, the human gate is a merge dispatch approved after the PR exists, GitHub protection on the branches.
+- Planner's choices, per the dispatch: the field names; the set of four terminal outcomes; `merged` as a note outcome; backfill from PR #17; the plan document's path.
+- Not standing: B-13 stays a Part B proposal; docs/standing-rulings.md is not edited.
+- Owner messages in F after the dispatch call (line 202), read through line 210 before this entry: none.
+**Prediction (outcome — planner):**
+- Tests-first commit: `python3 check_record.py --render-check` prints "FAIL: 9 of 39 checks failed", naming exactly the nine new checks; the 30 existing checks pass. Hook tests 147 OK and tests/ 94 OK, unchanged. CI on that commit fails at "Checker self-tests" in both jobs.
+- After the fix: 39 of 39; `check_record.py` on the real record PASS with 17 new merge entries and no unterminated intent; check_prompts PASS; hook tests 147 OK; tests/ 94 OK (the kit.json order change touches no test); release_check PASS, 27 files, no denylist hit.
+- Backfill: 17 `merge` entries, #17 and #19 to #34; those with an INDEX.md line get Merged-by `coder` and a Backup folder; the rest `owner` and `none`. I expect #22 to #24 and #17 to #21 all to have backups except where a terminal says otherwise; report the split.
+- Revert check: check_record.py from 0319ccd over the new render checks gives the same nine failures.
+**Prediction (mechanism — coder):**
+- Tests-first: `validate_entries` at 0319ccd (:302-305) rejects any Kind other than the four it knows with "missing or invalid Kind (got 'merge')" and skips the entry, so check 31 (a well-formed merge entry accepted) fails on that error, checks 32 to 34 fail because the only error for a merge entry is the Kind error, which names neither the missing field, `Merge-commit` nor `Closes`, and check 35 fails the same way for its three revert cases. Checks 36 to 38 fail because :336-342 tests no outcome set: `partial` without `Deferred`, `completed` with `Deferred` and an unknown outcome all produce no error. Check 39 fails on "Outcome 'merged' is not one of ['answered', 'declined', 'exercise', 'stopped']" from `_validate_note` (:140-142). Nine of 39; the 30 existing checks are untouched by the tests-first commit and pass.
+- Fix: two more branches in `validate_entries` beside the note and continuation ones (each records the entry and `continue`s, so the new kinds never reach the intent/terminal required-field loop and neither `intent_ids` nor `closed_ids`), a `_check_reverts(entries)` after `_check_continues`, and the outcome set at the terminal branch. The 17 backfilled entries then pass with the real record (every field present, hashes from `git log`, PRs from `gh`, backups from INDEX.md), `unterminated` stays empty, and check_prompts is unaffected (merge entries carry no `Dispatch-file`).
+- Revert check: splicing the fixed file's self-test section (from the "Self-tests" comment to the end) onto 0319ccd's validation code and running `--render-check` on the splice gives the same nine failures for the same reasons; the 30 existing checks pass on it.
+- Backfill split: 17 `coder`, 0 `owner`, because INDEX.md names all 17 PRs (verified before this entry). Every PR's Base is `main`; Head from `gh`; Pre-merge equals the merge commit's first parent (`%P`); Carries lists the record IDs the PR's RECORD.md diff added, and says record only where the PR's diff outside RECORD.md and prompts/ is empty (#17, #21, #23, #34).
+- The kit.json order change: session_check, launch_session, run_exercise and update_worktree read the first protected branch, so their tests, which use their own configs, do not change; hook tests 147 and tests/ 94 unchanged.
+**Finish line:** Pushed on kit-review-r1: (1) the sweep note for -46 (83fe1c2); (2) this copy and this intent; (3) the tests-first commit; (4) the fix, with the 17 merge entries; (5) kit.json, coder.md, README and the plan document; (6) the terminal, Outcome `completed`, written under the new coder.md item 3: it closes at the PR open, CI green on the final commit and the backup written. Then the merge and the two updates (C, then W), reported in the hand-back only. No tag. Deferral is not allowed in this build.
+**Abort conditions:** a Base-and-state mismatch other than the copies' names or line drift; any existing test or render check failing after the fix; any existing record entry failing the new checks (report it; do not loosen the check); a needed change to any hook's code; a failure for any reason other than the predicted one; two failed fixes on one symptom; a denylist hit; CI not green on the final commit (no merge); the merge denied by anything (quote it); any dry run or `--apply` exiting 1; an owner message in F after this dispatch that tells this coder to do or not do something in this scope; a planner message that widens the scope without quoting an owner ruling.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-03
+**Timestamp:** 2026-09-25T08:20:26Z
+**PR:** 17
+**Head:** kit-v0.2-wt-move
+**Base:** main
+**Merge-commit:** 80f3f8c47865d3ec9489b73cc387d778a0e21455
+**Pre-merge:** 8b1c88a69086b52698fa63e6f6a05937acf5685f
+**Backup:** 2026-09-25-03
+**Merged-by:** coder preserved/2026-09-25-18.md
+**Carries:** 2026-09-25-28, 2026-09-25-29; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 17 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#17`, folder 2026-09-25-03, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-31.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-04
+**Timestamp:** 2026-09-25T08:58:27Z
+**PR:** 19
+**Head:** kit-v0.2-t5
+**Base:** main
+**Merge-commit:** 2e37dfc42e01e1a37d93bb47d946f1aed01dee97
+**Pre-merge:** 80f3f8c47865d3ec9489b73cc387d778a0e21455
+**Backup:** 2026-09-25-04
+**Merged-by:** coder preserved/2026-09-25-19.md
+**Carries:** 2026-09-25-30, 2026-09-25-31, 2026-09-25-32, 2026-09-25-33
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 19 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#19`, folder 2026-09-25-04, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-33.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-05
+**Timestamp:** 2026-09-25T09:53:21Z
+**PR:** 20
+**Head:** kit-v0.2-update-wt
+**Base:** main
+**Merge-commit:** 3847590469634ed45759e429ce7900be07a4d169
+**Pre-merge:** 2e37dfc42e01e1a37d93bb47d946f1aed01dee97
+**Backup:** 2026-09-25-05
+**Merged-by:** coder preserved/2026-09-25-20.md
+**Carries:** 2026-09-25-34, 2026-09-25-35
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 20 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#20`, folder 2026-09-25-05, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-35.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-06
+**Timestamp:** 2026-09-25T10:12:32Z
+**PR:** 21
+**Head:** kit-v0.2-wt-update
+**Base:** main
+**Merge-commit:** 22723e0a3993dffd911ffb20267ad79cabb4f669
+**Pre-merge:** 3847590469634ed45759e429ce7900be07a4d169
+**Backup:** 2026-09-25-07
+**Merged-by:** coder preserved/2026-09-25-21.md
+**Carries:** 2026-09-25-36, 2026-09-25-37; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 21 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#21`, folder 2026-09-25-07, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-37.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-07
+**Timestamp:** 2026-09-25T10:41:16Z
+**PR:** 22
+**Head:** kit-v0.2-batch1
+**Base:** main
+**Merge-commit:** 05a56ef2f73880a2219323c98843c01106c7900a
+**Pre-merge:** 22723e0a3993dffd911ffb20267ad79cabb4f669
+**Backup:** 2026-09-25-08
+**Merged-by:** coder preserved/2026-09-25-22.md
+**Carries:** 2026-09-25-38, 2026-09-25-39
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 22 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#22`, folder 2026-09-25-08, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-39.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-08
+**Timestamp:** 2026-09-25T11:10:26Z
+**PR:** 23
+**Head:** kit-v0.2-backlog
+**Base:** main
+**Merge-commit:** 905ac6415eb1551fc088cfa2235591bc2bc55f45
+**Pre-merge:** 05a56ef2f73880a2219323c98843c01106c7900a
+**Backup:** 2026-09-25-09
+**Merged-by:** coder preserved/2026-09-25-23.md
+**Carries:** 2026-09-25-40, 2026-09-25-41, 2026-09-25-42, 2026-09-25-43, 2026-09-25-44, 2026-09-25-45, 2026-09-25-46, 2026-09-25-47, 2026-09-25-48, 2026-09-25-49, 2026-09-25-50, 2026-09-25-51, 2026-09-25-52, 2026-09-25-53, 2026-09-25-54, 2026-09-25-55, 2026-09-25-56; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 23 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#23`, folder 2026-09-25-09, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-56.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-09
+**Timestamp:** 2026-09-25T11:30:34Z
+**PR:** 24
+**Head:** kit-v0.2-t10
+**Base:** main
+**Merge-commit:** 1599a53975b8f980035c594d52f7d125de768370
+**Pre-merge:** 905ac6415eb1551fc088cfa2235591bc2bc55f45
+**Backup:** 2026-09-25-10
+**Merged-by:** coder preserved/2026-09-25-24.md
+**Carries:** 2026-09-25-57, 2026-09-25-58
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 24 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#24`, folder 2026-09-25-10, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-58.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-10
+**Timestamp:** 2026-09-25T17:08:15Z
+**PR:** 25
+**Head:** kit-v0.2-t14-16
+**Base:** main
+**Merge-commit:** db742d2bd6f0926d908ad5919f9fc28806a68547
+**Pre-merge:** 1599a53975b8f980035c594d52f7d125de768370
+**Backup:** 2026-09-25-12
+**Merged-by:** coder preserved/2026-09-25-29.md
+**Carries:** 2026-09-25-59, 2026-09-25-60, 2026-09-25-61, 2026-09-25-62, 2026-09-25-63, 2026-09-25-64
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 25 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#25`, folder 2026-09-25-12, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-64. The merge ran under the continuation dispatch preserved/2026-09-25-29.md (continuation 2026-09-25-63) after the original coder (intent 2026-09-25-60, preserved/2026-09-25-26.md) halted before CI, so Merged-by names the continuation's copy.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-11
+**Timestamp:** 2026-09-25T18:03:29Z
+**PR:** 26
+**Head:** kit-v0.2-t6
+**Base:** main
+**Merge-commit:** 9e6ff6b2c2b06bbd8fd4d73f4a04b23e415046ad
+**Pre-merge:** db742d2bd6f0926d908ad5919f9fc28806a68547
+**Backup:** 2026-09-25-14
+**Merged-by:** coder preserved/2026-09-25-32.md
+**Carries:** 2026-09-25-65, 2026-09-25-66, 2026-09-25-67, 2026-09-25-68
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 26 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#26`, folder 2026-09-25-14, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-68.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-12
+**Timestamp:** 2026-09-25T19:06:44Z
+**PR:** 27
+**Head:** kit-v0.2-t7
+**Base:** main
+**Merge-commit:** cedeb526887397945349f3ff030123466af9aeea
+**Pre-merge:** 9e6ff6b2c2b06bbd8fd4d73f4a04b23e415046ad
+**Backup:** 2026-09-25-16
+**Merged-by:** coder preserved/2026-09-25-35.md
+**Carries:** 2026-09-25-69, 2026-09-25-70, 2026-09-25-71, 2026-09-25-72
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 27 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#27`, folder 2026-09-25-16, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-72.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-13
+**Timestamp:** 2026-09-25T19:48:01Z
+**PR:** 28
+**Head:** kit-v0.2-batch2
+**Base:** main
+**Merge-commit:** c196c9de8465bed6d5072266462424d05aa8f3d2
+**Pre-merge:** cedeb526887397945349f3ff030123466af9aeea
+**Backup:** 2026-09-25-17
+**Merged-by:** coder preserved/2026-09-25-36.md
+**Carries:** 2026-09-25-73, 2026-09-25-74
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 28 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#28`, folder 2026-09-25-17, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-74.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-14
+**Timestamp:** 2026-09-25T20:40:52Z
+**PR:** 29
+**Head:** kit-v0.2-t8
+**Base:** main
+**Merge-commit:** e4cfab25c98ac87bd7a556a2900a4b9acf0581cc
+**Pre-merge:** c196c9de8465bed6d5072266462424d05aa8f3d2
+**Backup:** 2026-09-25-19
+**Merged-by:** coder preserved/2026-09-25-37.md
+**Carries:** 2026-09-25-75, 2026-09-25-76, 2026-09-25-77, 2026-09-25-78
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 29 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#29`, folder 2026-09-25-19, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-78.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-15
+**Timestamp:** 2026-09-25T21:09:25Z
+**PR:** 30
+**Head:** kit-v0.2-batch3
+**Base:** main
+**Merge-commit:** 9425ef7b5989a3e8e887c826c7b2379680896f08
+**Pre-merge:** e4cfab25c98ac87bd7a556a2900a4b9acf0581cc
+**Backup:** 2026-09-25-21
+**Merged-by:** coder preserved/2026-09-25-40.md
+**Carries:** 2026-09-25-79, 2026-09-25-80
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 30 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#30`, folder 2026-09-25-21, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-80.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-16
+**Timestamp:** 2026-09-25T21:46:57Z
+**PR:** 31
+**Head:** kit-v0.2-bypass-rulings
+**Base:** main
+**Merge-commit:** 6a848aca23a50fdde28d3580b3d7447b1c5002de
+**Pre-merge:** 9425ef7b5989a3e8e887c826c7b2379680896f08
+**Backup:** 2026-09-25-23
+**Merged-by:** coder preserved/2026-09-25-41.md
+**Carries:** 2026-09-25-81, 2026-09-25-82
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 31 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#31`, folder 2026-09-25-23, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-82.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-17
+**Timestamp:** 2026-09-25T22:06:31Z
+**PR:** 32
+**Head:** kit-v0.2-batch4
+**Base:** main
+**Merge-commit:** 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f
+**Pre-merge:** 6a848aca23a50fdde28d3580b3d7447b1c5002de
+**Backup:** 2026-09-25-25
+**Merged-by:** coder preserved/2026-09-25-42.md
+**Carries:** 2026-09-25-83, 2026-09-25-84
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 32 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#32`, folder 2026-09-25-25, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-84.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-18
+**Timestamp:** 2026-09-25T23:08:09Z
+**PR:** 33
+**Head:** kit-v0.2-batch5
+**Base:** main
+**Merge-commit:** 671b05d75db5ba71fce947aac906114047aabd9a
+**Pre-merge:** 68a1ef4c7cbd5e843708526d0e85559dd33e0f9f
+**Backup:** 2026-09-25-27
+**Merged-by:** coder preserved/2026-09-25-43.md
+**Carries:** 2026-09-25-85, 2026-09-25-86
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 33 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#33`, folder 2026-09-25-27, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-86.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-26-19
+**Timestamp:** 2026-09-25T23:22:20Z
+**PR:** 34
+**Head:** kit-v0.2-fd-gc
+**Base:** main
+**Merge-commit:** 0319ccd7a8818dbabec7faa2f67c31cde349e11f
+**Pre-merge:** 671b05d75db5ba71fce947aac906114047aabd9a
+**Backup:** 2026-09-25-29
+**Merged-by:** coder preserved/2026-09-25-45.md
+**Carries:** 2026-09-25-87, 2026-09-25-88, 2026-09-25-89; record only
+**Backfill:** written on 2026-09-26 by R1's coder (intent 2026-09-26-02) from `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit, Pre-merge as the first parent), `gh pr view 34 --json number,headRefName,baseRefName,mergeCommit,mergedAt` (PR, Head, Base; Timestamp is GitHub's mergedAt, not this entry's writing time) and ~/forager-backups/INDEX.md (the one line naming `#34`, folder 2026-09-25-29, whose pre-merge SHA equals Pre-merge). Carries lists the IDs the PR's RECORD.md diff added. The merge was recorded at the time by terminal 2026-09-25-89.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-26-20
+**Timestamp:** 2026-09-26T00:24:41Z
+**Closes:** 2026-09-26-02
+**Dispatch-file:** preserved/2026-09-25-47.md
+**Outcome:** completed
+**Observed:**
+- Written under the new coder.md item 3 (this build's own change): the finish line ends at the pull request open, CI green on its final commit, the backup written and this terminal pushed. The merge of PR #35 and the updates of C and W come after this entry and are reported in the hand-back only; the next build's sweep records the merge as a `merge` entry.
+- Commits on kit-review-r1, all pushed: 83fe1c2 the sweep (store copy 2026-09-25-46 and note 2026-09-26-01); 6e677f6 store copy 2026-09-25-47 and intent 2026-09-26-02; 7a65a64 tests only (render checks 31 to 39, `_minimal_merge`, `_minimal_revert`, `total = 39`); 40adf37 the fix in check_record.py with the 17 backfilled `merge` entries 2026-09-26-03 to -19; e9ce08c kit.json, coder.md, README.md and docs/specs/2026-09-26-review-fixes-plan.md; then this terminal.
+- Failing-first run at 7a65a64, exact line: "FAIL: 9 of 39 checks failed: check31_well_formed_merge_entry_accepted, check32_merge_entry_missing_field_names_fault, check33_merge_commit_must_be_40_lowercase_hex, check34_merge_entry_cannot_close_an_intent, check35_reverts_must_name_an_earlier_merge_entry, check36_partial_requires_deferred, check37_completed_cannot_carry_deferred, check38_terminal_rejects_unknown_outcome, check39_dispatch_note_outcome_merged_accepted". Each failed for the predicted reason: checks 31 to 35 on "missing or invalid Kind (got 'merge')" or "(got 'revert')", checks 36 to 38 on an empty error list, check 39 on "Outcome 'merged' is not one of ['answered', 'declined', 'exercise', 'stopped']". The 30 existing checks passed. At that commit hook tests "Ran 147 tests" OK and tests/ "Ran 94 tests" OK. CI run 36203971436 on 7a65a64: both jobs (python 3.8, python 3.14) failed at the step "Checker self-tests", as predicted.
+- After the fix (40adf37): "PASS: 0 of 39 checks failed"; check_prompts "PASS: 0 of 13 checks failed"; `check_record.py` on the real record PASS, with the 17 merge entries and "unterminated intent entries (reported, not a failure): 2026-09-26-02" only; check_prompts PASS; hook tests "Ran 147 tests" OK; tests/ "Ran 94 tests" OK; release_check "PASS: 27 release file(s), 8434 line(s), 18 denylist pattern(s), no match". Re-run after e9ce08c (kit.json, coder.md, README): 147 OK, 94 OK, release_check PASS 27 files, 8481 lines, no match. No existing test, render check or record entry failed the new checks; no hook code was touched.
+- Revert check: 0319ccd's check_record.py with the fixed file's self-test section (everything from the "Self-tests" comment to the end) spliced in, run in /tmp/kit-r1-revert: the same "FAIL: 9 of 39 checks failed" naming the same nine checks with the same assertion messages; the 30 existing checks pass on it.
+- Backfill: 17 `merge` entries, PRs #17 and #19 to #34, each matched to its line of `git log --merges --first-parent --format=%H%x20%P%x20%s 8b1c88a..origin/pre-main` (Merge-commit = %H, Pre-merge = the first %P) and to `gh pr view N --json number,headRefName,baseRefName,mergeCommit,mergedAt` (mergeCommit.oid equal to %H for all 17; Timestamp is mergedAt). Split: 17 Merged-by `coder` with a Backup folder (2026-09-25-03, -04, -05, -07, -08, -09, -10, -12, -14, -16, -17, -19, -21, -23, -25, -27, -29), 0 `owner`/`none`: ~/forager-backups/INDEX.md has exactly one "Pre-merge backup for PR #N" line for each of the 17, and each line's pre-merge SHA equals the entry's Pre-merge. So the planner's expectation held for #17 to #24 and also for #25 to #34. `gh pr view --json mergedBy` gives `slayer8366` for all 17 and cannot tell a coder's merge from the owner's. Carries lists the record IDs each PR's RECORD.md diff added; #17, #21, #23 and #34 changed nothing outside RECORD.md and prompts/preserved/ and say "record only" as well.
+- Store copies: -46 (7236 bytes, sha256 0a034d56ee56f2ffcdcb1076151e35a80a94d06432fbddea0b06c09b5dade136) and -47 (18186 bytes, sha256 47a4677b2b55587e57450d36c221d9768f1e77bbcbcd8c00f78a54ea4b6a47a9), both copied byte for byte from W under the hook's names, both free in the store. The plan document's text from line 4 on is byte-identical to the dispatch copy's text after its "# Plan text" heading (diff), except for one added trailing newline; its title line is the plan's own first line.
+- PR #35 (kit-review-r1 -> pre-main) was opened at e9ce08c before this entry so that it can be named here. CI on e9ce08c: python 3.8 pass and python 3.14 pass, in both the push run 36204401659 and the pull_request run 36204423400.
+- Backup (coder.md item 10), written after `git fetch origin` in C (origin/pre-main and origin/main both 0319ccd7a8818dbabec7faa2f67c31cde349e11f, equal to `git ls-remote`) and after CI was green on e9ce08c: ~/forager-backups/2026-09-26-01/ holds `pre-main.bundle` (`git bundle create` of refs/remotes/origin/pre-main, 948263 bytes; `git bundle verify` OK; `list-heads` gives 0319ccd7a8818dbabec7faa2f67c31cde349e11f refs/remotes/origin/pre-main), `merge.json` {"pr": 35, "branch": "pre-main", "sha": "0319ccd7a8818dbabec7faa2f67c31cde349e11f", "bundle": "pre-main.bundle"}, and MANIFEST.sha256 (pre-main.bundle fdd1ae64909f82809123fee47b2a4865761631940b1720d7ad83bb804d09fa2d, merge.json d4913d4da773f4c1d431c19a9606c6789752ba5e2ce55deb5a659b5e190794ce; `sha256sum -c` OK for both). One row was added to ~/forager-backups/INDEX.md (46 to 47 lines) naming 2026-09-26-01, #35 and the SHA. Written at 2026-09-26T00:21:40Z.
+- Owner messages in F after the dispatch call (line 202), read through line 211 (a `pr-link` line, not a message) before this entry: none. No planner message reached this coder during the dispatch.
+- Not yet done when this entry was written, in order: CI on this entry's commit; the merge of PR #35 by its number with `--merge`, one Bash call; the update of C, then of W, by the merged update_worktree.py (dry run, then `--apply`, each). Their results go in the hand-back.
+**Deviations:** None from the predicted outcomes. Tool-call corrections, not code failures: (1) the first append of the sweep note went straight after -89's last line (the committed file ends with no `---`), so check_record read it as part of -89 and reported "carries field 'Closes'"; the working copy was rewritten from HEAD with the separator in front before anything was committed. (2) history_guard denied the first append of this terminal before it ran, "(b) form: it must be one command, with nothing else on another line", because the entry's text quoted the merge command in full and the guard's PR_MERGE pattern matches anywhere in a Bash command's text (the review's P4/P7, R3's work); the phrase was reworded and the append rerun. No other call was denied.
+**Choices this coder made that the dispatch does not** (listed in the hand-back): the wording of coder.md items 1, 3, 10 and 12 and the README, in particular item 1's "newer than the newest merge commit on that chain a `merge` entry already records (with that branch as Base, or an earlier protected branch whose history the chain shares)", which reads the dispatch's "newer than the newest `merge` entry with that Base" so that pre-main, whose first-parent chain is main's up to 0319ccd, does not re-record the 17 merges; the error-message texts and the `Backup`, `Carries`, `Head` and `Base` fields being checked for presence only (`Merged-by` is checked against `owner` or `coder` followed by text, `PR` against digits); `Merge-commit` and `Pre-merge` compared after strip; a `Backfill` field on each backfilled entry, with Timestamp set to GitHub's mergedAt rather than the writing time; Carries naming the IDs and adding "; record only" where the PR touched nothing else; Merged-by for #25 naming the continuation's copy (-29) rather than the halted original's (-26); check 35 also asserting that a well-formed revert is accepted and check 36 that `partial` with `Deferred` closes its intent; the entry IDs dated 2026-09-26 (UTC) with the sweep note as -01; the plan document's title line being the plan's own heading, the "Written by" line second, and an added trailing newline; the backup written after CI on e9ce08c and before this terminal, and the PR opened before this terminal, both so that this entry can cite them, following -89.
+**Flags** (outside scope, not acted on):
+- After a promotion into main, update_worktree.py's update of C is a no-op fast-forward of pre-main (the tool targets the first protected branch); the dispatch says to update C "as today". Worth a sentence in R4's README pass if the planner wants the promotion case spelled out.
+- `check_record.py` does not check that a `merge` entry's Merged-by store file exists or is claimed by a `merged` note, nor that Backup names a real folder; both are outside the checker's single-commit, no-git design. Not asked for.
+- INDEX.md's line for PR #19 also mentions "#18", so a sweep that greps `#18` without the "Pre-merge backup for PR" prefix would match it; the backfill matched on the prefix. There is no #18 merge to record.
+- The tests-first CI run 36203971436 is the only run on 7a65a64 (push event; the PR did not exist yet), so the prediction "both jobs" was checked on one run of two jobs.
+- history_guard's PR_MERGE and the other whole-text patterns also catch record entries that quote a merge command, as (2) above shows; a coder writing a terminal has to paraphrase. R3's move of those patterns to command position would end that.

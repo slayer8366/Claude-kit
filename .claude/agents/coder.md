@@ -37,17 +37,36 @@ inside its stated scope. Anything else is a stop-and-ask.
 and `check_prompts.py` how entries bind to `prompts/preserved/`. Both checkers
 sit at the repository root.
 
-1. **Sweep first.** The first commit of every build is a sweep: one
-   `dispatch-note` entry for each file in `prompts/preserved/` that no entry
-   claims yet (a pulse, a declined build, a live exercise), committed and
-   pushed before any other work.
+1. **Sweep first.** The first commit of every build is a sweep, committed
+   and pushed before any other work. It writes: one `dispatch-note` entry
+   for each file in `prompts/preserved/` that no entry claims yet (a pulse,
+   a declined build, a live exercise; the copy of a merge dispatch, item
+   10 (b), gets Outcome `merged`); and one `merge` entry for each merge
+   commit on the first-parent chain of each protected branch in
+   `.claude/kit.json` that is newer than the newest merge commit on that
+   chain a `merge` entry already records (with that branch as Base, or an
+   earlier protected branch whose history the chain shares). Its fields:
+   Merge-commit and Pre-merge (its first parent) from `git log`; PR, Head,
+   Base and Timestamp (`mergedAt`) from `gh pr view <N> --json
+   number,headRefName,baseRefName,mergeCommit,mergedAt`; Backup, the
+   folder whose line in `backup_dir`'s `INDEX.md` names `#<N>`, and
+   Merged-by `coder` followed by the store file of the dispatch the coder
+   merged under; when no INDEX line names `#<N>`, Backup is `none` and
+   Merged-by `owner`. Carries names the record entries the pull request
+   carried, or `record only`.
 2. **Intent before action.** Before touching any other file, append an intent
    entry for this dispatch: the change, its scope boundary, its baseline
    commit, your mechanism prediction, the finish line and the abort
    conditions, and a `Dispatch-file` naming this dispatch's preserved prompt.
-3. **Every intent ends.** Close it with exactly one terminal entry:
-   completed, superseded, or abandoned; continuations (item 7) do not
-   close it.
+3. **Every intent ends.** Close it with exactly one terminal entry, whose
+   Outcome is `completed`, `partial`, `superseded` or `abandoned`;
+   continuations (item 7) do not close it. `partial` is a build finished
+   with deferrals (item 12) and carries a `Deferred` field. A build's
+   finish line ends at the pull request open, CI green on its final
+   commit, the backup of item 10 written and the terminal pushed. The
+   merge and the checkout updates come after the terminal and are
+   recorded by the next sweep's `merge` entry (item 1), so `completed` is
+   true when it is written.
 4. Run both checkers before every commit that touches `RECORD.md`.
 5. **Store names.** A dispatch's copy in `prompts/preserved/` keeps the name
    the dispatch hook gave it. A dispatch saved by a hook that numbered within
@@ -78,26 +97,52 @@ sit at the repository root.
    dispatch, goes in the next dispatch's sweep. No checker enforces this
    order: CI checks out a single commit with no history.
 10. **Merging.** Merge a pull request only if the dispatch's `Merge`
-    section reads `authorised`. First `git fetch`, then write the backup: a
-    new folder under the `backup_dir` that `.claude/kit.json` names,
-    holding a bundle of `origin/<base branch>` (`git bundle create`),
+    section reads `authorised`. There are two kinds. (a) A build's pull
+    request into the first protected branch (the working trunk),
+    authorised by the build dispatch's `Merge` section. (b) A promotion
+    pull request from the first protected branch into a later protected
+    branch (a release trunk), authorised only by a merge dispatch that
+    the planner sends after the owner has read the evidence: the intents
+    and terminals of every build the promotion carries, their
+    failing-first and revert-check lines, their CI runs and any
+    deferrals. A merge dispatch opens no intent; its store copy is
+    claimed by a dispatch-note with Outcome `merged`, and the merge by
+    the next sweep's `merge` entry.
+    For either kind, first `git fetch`, then write the backup: a new
+    folder under the `backup_dir` that `.claude/kit.json` names, holding
+    a bundle of `origin/<base branch>` (`git bundle create`),
     `merge.json` (`pr`, `branch`, `sha` of `origin/<base branch>`,
     `bundle`), and `MANIFEST.sha256` over both, with one line naming the
     folder, the pull request number and the pre-merge SHA added to that
-    directory's `INDEX.md`. Then merge by pull request
-    number with a merge commit or a squash, and cite the backup folder in
-    your terminal. history_guard refuses the merge if any of this is
-    missing. Last, update the main checkout (the checkout on the base
-    branch, where the dispatch hook saves dispatches) with the
-    `update_worktree.py` you just merged: first a dry run,
-    `python3 <your checkout>/update_worktree.py <main checkout>`, then
-    the same with `--apply`. Report both outputs. If either exits 1,
-    report it and do nothing further.
+    directory's `INDEX.md`; a build's terminal cites the backup folder.
+    Then merge by pull request number with a merge commit or a squash.
+    history_guard refuses the merge if any of this is missing. Last,
+    update the main checkout (the checkout on the first protected branch,
+    where the dispatch hook saves dispatches), and any other checkout the
+    dispatch names, with the `update_worktree.py` you just merged: for
+    each, first a dry run, `python3 <your checkout>/update_worktree.py
+    <checkout>`, then the same with `--apply`. Report every output. If
+    any exits 1, report it and do nothing further.
+    Leaving work out before a promotion is a revert pull request: on a
+    branch from the first protected branch, `git revert -m 1` of the
+    feature's merge commit, with `RECORD.md` and `prompts/preserved/`
+    restored from HEAD (the record is append-only; the revert removes
+    nothing from it), a `revert` entry naming the `merge` entry it
+    reverts, its own pull request and its own backup.
 11. **Re-sends.** A store copy whose header carries `Repeat-of:` is the
     named dispatch sent again, unchanged. If that dispatch's intent is
     still open, record the re-send with a continuation (item 7) citing
     both copies; otherwise record it as its own dispatch, citing the
     original.
+12. **Deferral.** Only when the dispatch's Finish line says deferral is
+    allowed. An item whose check fails while every other check passes
+    without it may be deferred: revert that item's commits on the feature
+    branch with `git revert` (the reverted commits stay pushed), give the
+    terminal Outcome `partial` and a `Deferred` field naming the reverted
+    commits and the failing check, and list every deferral in the
+    hand-back under a heading "Deferred". Never for the predicted failure
+    of a tests-first commit, never when the rest of the build depends on
+    the item, and never in place of an abort condition.
 
 ## Non-negotiables
 
@@ -114,6 +159,8 @@ sit at the repository root.
   Never reset, rebase or amend unpushed work.
 - **Report what happened.** Failures, partial results and skipped work are
   stated plainly.
+- **A met abort condition is a stop.** It is not a prediction miss, a
+  counting miss or a deferral.
 
 ## Decisions I made
 
